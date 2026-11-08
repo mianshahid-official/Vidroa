@@ -133,13 +133,14 @@ class Stage5PromptGenerator:
         if custom_style:
             style_instructions += f"\nCustom Style Directive: {custom_style}"
 
-        is_3d_stickman = any(k in style_name.lower() or k in (style_preset.id if style_preset else "").lower() for k in ["stickman", "3d red & blue", "red_blue"])
+        is_3d_red_blue = (style_preset.id if style_preset else "") in ("3d_red_blue_stickman", "red_blue_stickman_3d") or "3d red & blue" in style_name.lower() or "red & blue" in style_name.lower()
+        is_general_stickman = any(k in (style_preset.id if style_preset else "").lower() or k in style_name.lower() for k in ["stickman", "stick_figure"])
 
         # Determine authoritative character color identity
         protagonist_name, supporting_names = resolve_stickman_characters(analysis)
 
         stickman_faction_rules = ""
-        if is_3d_stickman:
+        if is_3d_red_blue:
             stickman_faction_rules = f"""
 ### MANDATORY 3D RED & BLUE STICKMAN ANATOMY & FACTION COLOR DIRECTIVES:
 1. ZERO HUMAN ANATOMY & NO FACIAL FEATURES:
@@ -157,11 +158,13 @@ class Stage5PromptGenerator:
 """
 
         # Build character context for prompt
-        if is_3d_stickman:
+        if is_3d_red_blue:
             char_ctx = (
                 f"{protagonist_name}: Solid bright red 3D stick figure with smooth featureless sphere head, simple geometric gold toy crown, cylindrical limbs. "
                 f"Other figures ({', '.join(supporting_names[:5])}): Solid blue 3D stick figures with smooth featureless sphere heads, cylindrical limbs."
             )
+        elif is_general_stickman:
+            char_ctx = f"Characters: Stylized stickman characters adhering to {style_name}. Keep character clothing, gear, and expressions faithful to the story."
         else:
             char_ctx = "; ".join([f"{c.name}: {c.appearance}, wearing {c.costume}" for c in analysis.continuity_bible.characters[:6]])
             
@@ -194,7 +197,7 @@ class Stage5PromptGenerator:
                     "timing": f"{s.start_time:.1f}s - {s.end_time:.1f}s ({s.duration:.1f}s)"
                 })
 
-            if is_3d_stickman:
+            if is_3d_red_blue:
                 continuity_block = f"""### CONTINUITY CONTEXT:
 - Characters: {char_ctx}
 - Protagonist (RED): {protagonist_name}
@@ -279,8 +282,10 @@ Return strictly valid JSON:
                 if not matched or not matched.get("prompt"):
                     try:
                         clean_concept = sanitize_action_summary(s.visual_summary, s.narration_text)
-                        if is_3d_stickman:
+                        if is_3d_red_blue:
                             char_directive_single = f"Generate a single production image prompt strictly adhering to {protagonist_name} = RED 3D stickman and others = BLUE 3D stickmen."
+                        elif is_general_stickman:
+                            char_directive_single = f"Generate a single production image prompt adhering to {style_name}. Keep character visual design strictly conforming to {style_name}."
                         else:
                             char_directive_single = f"Generate a single production image prompt adhering to {style_name}. Ground characters in period-accurate human attire from the Character Bible. ZERO stick figures."
 
@@ -291,7 +296,7 @@ Return strictly valid JSON:
 - Scene ID: {s.scene_id}
 - Narration: \"{s.narration_text}\"
 - Visual Concept: {clean_concept}
-- Setting: {derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_3d_stickman)}
+- Setting: {derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_general_stickman)}
 
 {char_directive_single}
 Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subject": "{clean_concept}", "composition": "Eye-level medium shot"}}"""
@@ -313,16 +318,16 @@ Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subjec
                 if matched and isinstance(matched, dict) and matched.get("prompt"):
                     p_text = matched.get("prompt", "").strip()
                     comp = matched.get("composition") or "Eye-level medium shot"
-                    env = matched.get("environment") or derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_3d_stickman)
+                    env = matched.get("environment") or derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_general_stickman)
                     subj = matched.get("subject") or sanitize_action_summary(s.visual_summary, s.narration_text)
                 else:
                     # Clean semantic fallback (ZERO scaffolding, ZERO leaked tags, ZERO generic ramparts)
                     is_fallback_scene = True
                     comp = "Eye-level wide cinematic shot"
-                    env = derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_3d_stickman)
+                    env = derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_general_stickman)
                     subj = sanitize_action_summary(s.visual_summary, s.narration_text)
 
-                    if is_3d_stickman:
+                    if is_3d_red_blue:
                         narr_lower = s.narration_text.lower()
                         has_caesar = any(k in narr_lower for k in ["caesar", "dictator", "magistrate", "husband"])
                         
@@ -338,6 +343,11 @@ Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subjec
                             f"Action: {subj}. "
                             f"{comp}, stylized 3D toy CGI geometry, matte plastic surfaces, warm volumetric lighting, zero photorealism."
                         )
+                    elif is_general_stickman:
+                        p_text = (
+                            f"{style_name} aesthetic. {env}. "
+                            f"Action: {subj}. {comp}, {style_instructions[:120]}."
+                        )
                     else:
                         p_text = (
                             f"{style_name} aesthetic. {env}. "
@@ -347,7 +357,7 @@ Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subjec
                 # =============================================================
                 # POST-PROCESSING SANITIZATION (Authoritative Rule Enforcement)
                 # =============================================================
-                if is_3d_stickman:
+                if is_3d_red_blue:
                     # 1. Strip any realistic human facial features or realistic clothing
                     p_text = re.sub(r"\b(with a|with|having a|wearing a)?\s*(dark|trimmed|short|full|imperial)?\s*(beard|beards|mustache|mustaches)\b", "", p_text, flags=re.IGNORECASE)
                     p_text = re.sub(r"\b(wearing (an|a)?\s*(imperial|embroidered)?\s*(turban|silk caftan|velvet cape|tunic|leather boots|flowing robe|armor plate|cape|cloak))\b", "solid matte colored stick figure", p_text, flags=re.IGNORECASE)
@@ -416,7 +426,7 @@ Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subjec
                             f"STRICT NEGATIVE: human face, realistic eyes, nose, mouth, beard, mustache, human hair, human skin texture, realistic fabric, realistic clothing, turban, cape, cloak, tunic, boots, doll, claymation human, photorealism, live-action."
                         )
                 else:
-                    # NON-STICKMAN STYLES (Century-Old Photograph, Black & White, Vintage, Oil Painting, etc.):
+                    # NON-RED-BLUE STYLES (Century-Old Photograph, 3D Stickman, 2D Stickman, Black & White, Vintage, etc.):
                     # 1. Clean up any leaked pipeline scaffolding
                     p_text = re.sub(r"\b(Active progression|Consequential development|Establishing perspective):\s*", "", p_text)
                     p_text = re.sub(r"^(A wide, low|A split|A solitary, evocative wide shot)\s*—?\s*", "", p_text)
@@ -424,15 +434,16 @@ Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subjec
                     p_text = re.sub(r"Setting:\s*Fortified historical setting\.?", "", p_text)
                     p_text = re.sub(r"\s+", " ", p_text).strip()
 
-                    # 2. Strict Stickman Removal: eradicate any accidental stickman or colored toy mentions
-                    p_text = re.sub(r"\ba\s+(red|blue)\s+3d\s+stickman\s+figure\s+representing\b", "historical figure depicting", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\b(solid\s+)?(bright\s+)?(red|blue)\s+3d\s+stick\s*(man|figure|figures|men)\b", "historical figures in period attire", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\b3d\s+stick\s*(man|figure|figures|men)\b", "figures in period attire", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\bfeatureless\s+spherical\s+(3d\s+)?stickman\s+head\b", "period headwear", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\bmonochromatic palette with distinct red and blue character accents\b", "monochromatic archival palette", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\bgeometric red body\b", "period military attire", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\bblank red surface\b", "weathered determined expression", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\s+", " ", p_text).strip()
+                    # 2. Strict Stickman Removal: ONLY purge stickman references if this is a non-stickman style
+                    if not is_general_stickman:
+                        p_text = re.sub(r"\ba\s+(red|blue)\s+3d\s+stickman\s+figure\s+representing\b", "historical figure depicting", p_text, flags=re.IGNORECASE)
+                        p_text = re.sub(r"\b(solid\s+)?(bright\s+)?(red|blue)\s+3d\s+stick\s*(man|figure|figures|men)\b", "historical figures in period attire", p_text, flags=re.IGNORECASE)
+                        p_text = re.sub(r"\b3d\s+stick\s*(man|figure|figures|men)\b", "figures in period attire", p_text, flags=re.IGNORECASE)
+                        p_text = re.sub(r"\bfeatureless\s+spherical\s+(3d\s+)?stickman\s+head\b", "period headwear", p_text, flags=re.IGNORECASE)
+                        p_text = re.sub(r"\bmonochromatic palette with distinct red and blue character accents\b", "monochromatic archival palette", p_text, flags=re.IGNORECASE)
+                        p_text = re.sub(r"\bgeometric red body\b", "period military attire", p_text, flags=re.IGNORECASE)
+                        p_text = re.sub(r"\bblank red surface\b", "weathered determined expression", p_text, flags=re.IGNORECASE)
+                        p_text = re.sub(r"\s+", " ", p_text).strip()
 
                 v_scene = VisualScene(
                     scene_id=s.scene_id,

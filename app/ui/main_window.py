@@ -1454,14 +1454,16 @@ class MainWindow(QMainWindow):
         self.style_combo.clear()
         styles = PresetManager.get_all_styles()
 
-        # Curated styles: Century-Old Photograph, 3D Stickman, B&W Photo, Paper Quilling, Mixed-Media, Paper Cutout
+        # Curated permanent studio visual styles: 3D Stickman, 2D Stickman, Century-Old, B&W, Quilling, Collage, Paper Cutout
         priority_styles = [
+            ("3d_stickman", "3D Stickman Style"),
+            ("2d_stickman", "2D Stickman Style"),
             ("century_old_photograph", "Century-Old Photograph"),
-            ("3d_red_blue_stickman", "3D Red & Blue Stickman Animation"),
             ("bw_vintage_historical_photography", "Black & White Vintage Historical Photography"),
             ("paper_quilling", "Paper Quilling Illustration"),
             ("mixed_media_collage", "Mixed-Media Collage"),
             ("paper_cutout", "Paper-Cutout Illustration"),
+            ("3d_red_blue_stickman", "3D Red & Blue Stickman Animation"),
         ]
 
         added_ids = set()
@@ -1476,15 +1478,15 @@ class MainWindow(QMainWindow):
             if s.id not in added_ids and s.id != "custom":
                 self.style_combo.addItem(s.name, s.id)
 
-        custom_p = PresetManager.get_style_by_id("custom")
-        if custom_p:
-            self.style_combo.addItem("Custom Visual Style...", "custom")
-
         idx = self.style_combo.findData(self.settings.default_visual_style_id)
         if idx >= 0:
             self.style_combo.setCurrentIndex(idx)
         else:
-            self.style_combo.setCurrentIndex(0)
+            stick_idx = self.style_combo.findData("3d_stickman")
+            if stick_idx >= 0:
+                self.style_combo.setCurrentIndex(stick_idx)
+            else:
+                self.style_combo.setCurrentIndex(0)
 
     def _populate_voice_combo(self):
         """Audio-first workflow: Self-TTS is disabled."""
@@ -1561,10 +1563,12 @@ class MainWindow(QMainWindow):
         default_name = f"Project_{datetime.now().strftime('%Y%m%d_%H%M')}"
         self.project = StoryProject(
             name=default_name,
-            config=ProjectConfig(),
+            config=ProjectConfig(visual_style_id="3d_stickman"),
             state=ProjectState()
         )
         self.proj_name_input.setText(default_name)
+        if hasattr(self, "style_matrix") and self.style_matrix:
+            self.style_matrix.select_style("3d_stickman")
         self.story_text_edit.setPlainText("")
         self.story_stats_lbl.setText("0 words | 0 characters")
         self.ts_path_lbl.setText("Word Timestamps: Auto-generated on Voiceover")
@@ -1613,6 +1617,8 @@ class MainWindow(QMainWindow):
         v_idx = self.style_combo.findData(proj.config.visual_style_id)
         if v_idx >= 0:
             self.style_combo.setCurrentIndex(v_idx)
+        if hasattr(self, "style_matrix") and self.style_matrix and proj.config.visual_style_id:
+            self.style_matrix.select_style(proj.config.visual_style_id)
         if proj.config.custom_style:
             self.custom_style_edit.setPlainText(proj.config.custom_style)
 
@@ -1753,7 +1759,16 @@ class MainWindow(QMainWindow):
         self.project.state.story_raw_text = self.story_text_edit.toPlainText().strip()
         self.project.config.subject_id = self.subject_combo.currentData() or "history"
         self.project.config.custom_subject = self.custom_subject_edit.toPlainText().strip() or None
-        self.project.config.visual_style_id = self.style_combo.currentData() or "century_old_photograph"
+        
+        # Read visual style directly from style_matrix source of truth
+        if hasattr(self, "style_matrix") and self.style_matrix:
+            chosen_style = self.style_matrix.current_style_id()
+            self.project.config.visual_style_id = chosen_style or "3d_stickman"
+        elif hasattr(self, "style_combo") and self.style_combo:
+            self.project.config.visual_style_id = self.style_combo.currentData() or "3d_stickman"
+        else:
+            self.project.config.visual_style_id = "3d_stickman"
+
         self.project.config.custom_style = self.custom_style_edit.toPlainText().strip() or None
         self.project.config.image_count_mode = ImageCountMode.EXACT if self.count_exact_radio.isChecked() else ImageCountMode.AUTOMATIC
         self.project.config.target_image_count = self.target_count_spin.value()

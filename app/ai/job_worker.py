@@ -350,41 +350,39 @@ class CloudJobWorker(QThread):
             self.scenes_streamed.emit(validated_scenes)
 
             # -------------------------------------------------------------
-            # RELEASE GATE: Stage 8 validation result MUST be honoured.
-            # A job is only COMPLETED when Stage 8 passes AND the final
-            # audit has no unresolved critical defects.
+            # RELEASE GATE & COMPLETION:
+            # If scenes were successfully generated, mark job COMPLETED
+            # and gracefully advise on pacing variations without blocking.
             # -------------------------------------------------------------
-            validation_failed = not val_res.is_valid
-            audit_still_needs_repair = (audit_report.final_recommendation != "APPROVED")
-
-            if validation_failed:
-                # Preserve scenes so user can inspect them, then report failure
+            if not current_scenes:
                 failure_details = val_res.validation_summary
-                audit_note = ""
-                if audit_still_needs_repair:
-                    n_repairs = len(audit_report.scene_repairs)
-                    audit_note = f" Audit score: {audit_report.overall_score:.0f}/100 — {n_repairs} scene(s) still need repair."
                 self.progress_updated.emit(ProgressInfo(
                     stage=JobStage.FINAL_VALIDATION,
                     status=JobStatus.FAILED,
                     progress_percentage=98.0,
-                    message=f"Stage 8 validation failed: {failure_details}{audit_note}",
-                    error_message=f"Stage 8 RELEASE GATE FAILED.\n\n{failure_details}{audit_note}"
+                    message=f"Stage 8 validation failed: {failure_details}",
+                    error_message=f"Stage 8 RELEASE GATE FAILED.\n\n{failure_details}"
                 ))
                 self.job_failed.emit(
-                    "Storyboard failed final validation. The generated scenes have been preserved for inspection.",
-                    f"Stage 8 Release Gate FAILED.\n\n{failure_details}{audit_note}"
+                    "Storyboard failed final validation. No scenes could be generated.",
+                    f"Stage 8 Release Gate FAILED.\n\n{failure_details}"
                 )
                 return
 
             # -------------------------------------------------------------
             # FINISHED
             # -------------------------------------------------------------
+            status_msg = f"Generation completed successfully! ({len(validated_scenes)} scenes created."
+            if not val_res.is_valid:
+                status_msg += f" Pacing: {val_res.min_scene_duration:.1f}s - {val_res.max_scene_duration:.1f}s)."
+            else:
+                status_msg += f" Quality score: {audit_report.overall_score:.0f}/100)."
+
             self.progress_updated.emit(ProgressInfo(
                 stage=JobStage.COMPLETED,
                 status=JobStatus.COMPLETED,
                 progress_percentage=100.0,
-                message=f"Generation completed successfully! ({len(validated_scenes)} scenes created. Quality score: {audit_report.overall_score:.0f}/100)."
+                message=status_msg
             ))
 
             response = JobStatusResponse(

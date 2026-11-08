@@ -91,8 +91,10 @@ class Stage7Replanner:
                 "suggested_direction": sugg_dir
             })
 
-        is_3d_stickman = any(k in style_name.lower() or k in (style_preset.id if style_preset else "").lower() for k in ["stickman", "3d red & blue", "red_blue"])
-        if is_3d_stickman:
+        is_3d_red_blue = (style_preset.id if style_preset else "") in ("3d_red_blue_stickman", "red_blue_stickman_3d") or "3d red & blue" in style_name.lower() or "red & blue" in style_name.lower()
+        is_general_stickman = any(k in (style_preset.id if style_preset else "").lower() or k in style_name.lower() for k in ["stickman", "stick_figure"])
+
+        if is_3d_red_blue:
             char_ctx = (
                 f"{protagonist_name}: Solid bright red 3D stick figure (PRIMARY PROTAGONIST). "
                 f"Other characters ({', '.join(supporting_names[:5])}): Solid blue 3D stick figures (supporting figures and conspirators). "
@@ -102,6 +104,10 @@ class Stage7Replanner:
 - Protagonist (RED): {protagonist_name}
 - Supporting Figures / Conspirators (BLUE): {', '.join(supporting_names) or 'Senators and conspirators'}"""
             char_rule = f"3. Follow strict character colors: {protagonist_name} = RED 3D stickman; conspirators/senators = BLUE 3D stickmen."
+        elif is_general_stickman:
+            char_ctx = f"Characters: Stylized stickman characters adhering to {style_name}. Keep character clothing, gear, and expressions faithful to the story."
+            continuity_lines = f"""- Characters: {char_ctx}"""
+            char_rule = f"3. Maintain strict character appearance conforming to {style_name}."
         else:
             char_ctx = ', '.join([f"{c.name}: {c.appearance}" for c in analysis.continuity_bible.characters[:6]]) or 'Historical figures'
             continuity_lines = f"""- Characters: {char_ctx}"""
@@ -221,7 +227,7 @@ Return strictly valid JSON matching this schema:
                 new_prompt = rep.get("repaired_prompt") or s.prompt
                 what_changed = rep.get("what_changed", "Scene replanned by audit")
 
-                if is_3d_stickman:
+                if is_3d_red_blue:
                     # Strip realistic facial features/clothing
                     new_prompt = re.sub(r"\b(with a|with|having a|wearing a)?\s*(dark|trimmed|short|full|imperial)?\s*(beard|beards|mustache|mustaches)\b", "", new_prompt, flags=re.IGNORECASE)
                     new_prompt = re.sub(r"\b(wearing (an|a)?\s*(imperial|embroidered)?\s*(turban|silk caftan|velvet cape|tunic|leather boots|flowing robe|armor plate))\b", "solid matte colored stick figure", new_prompt, flags=re.IGNORECASE)
@@ -275,7 +281,7 @@ Return strictly valid JSON matching this schema:
                             f"STRICT NEGATIVE: human face, realistic eyes, nose, mouth, beard, mustache, human hair, human skin texture, realistic fabric, realistic clothing, photorealism, live-action."
                         )
                 else:
-                    # NON-STICKMAN STYLES (Century-Old Photograph, Black & White, Vintage, Oil Painting, etc.):
+                    # NON-RED-BLUE STYLES (Century-Old Photograph, 3D Stickman, 2D Stickman, Black & White, Vintage, Oil Painting, etc.):
                     # 1. Clean scaffolding
                     new_prompt = re.sub(r"\b(Active progression|Consequential development|Establishing perspective):\s*", "", new_prompt)
                     new_prompt = re.sub(r"^(A wide, low|A split|A solitary, evocative wide shot)\s*—?\s*", "", new_prompt)
@@ -283,15 +289,16 @@ Return strictly valid JSON matching this schema:
                     new_prompt = re.sub(r"Setting:\s*Fortified historical setting\.?", "", new_prompt)
                     new_prompt = re.sub(r"\s+", " ", new_prompt).strip()
 
-                    # 2. Strict Stickman Removal: eradicate any accidental stickman or colored toy mentions
-                    new_prompt = re.sub(r"\ba\s+(red|blue)\s+3d\s+stickman\s+figure\s+representing\b", "historical figure depicting", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\b(solid\s+)?(bright\s+)?(red|blue)\s+3d\s+stick\s*(man|figure|figures|men)\b", "historical figures in period attire", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\b3d\s+stick\s*(man|figure|figures|men)\b", "figures in period attire", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\bfeatureless\s+spherical\s+(3d\s+)?stickman\s+head\b", "period headwear", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\bmonochromatic palette with distinct red and blue character accents\b", "monochromatic archival palette", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\bgeometric red body\b", "period military attire", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\bblank red surface\b", "weathered determined expression", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\s+", " ", new_prompt).strip()
+                    # 2. Strict Stickman Removal: ONLY eradicate stickman mentions if NOT a stickman style
+                    if not is_general_stickman:
+                        new_prompt = re.sub(r"\ba\s+(red|blue)\s+3d\s+stickman\s+figure\s+representing\b", "historical figure depicting", new_prompt, flags=re.IGNORECASE)
+                        new_prompt = re.sub(r"\b(solid\s+)?(bright\s+)?(red|blue)\s+3d\s+stick\s*(man|figure|figures|men)\b", "historical figures in period attire", new_prompt, flags=re.IGNORECASE)
+                        new_prompt = re.sub(r"\b3d\s+stick\s*(man|figure|figures|men)\b", "figures in period attire", new_prompt, flags=re.IGNORECASE)
+                        new_prompt = re.sub(r"\bfeatureless\s+spherical\s+(3d\s+)?stickman\s+head\b", "period headwear", new_prompt, flags=re.IGNORECASE)
+                        new_prompt = re.sub(r"\bmonochromatic palette with distinct red and blue character accents\b", "monochromatic archival palette", new_prompt, flags=re.IGNORECASE)
+                        new_prompt = re.sub(r"\bgeometric red body\b", "period military attire", new_prompt, flags=re.IGNORECASE)
+                        new_prompt = re.sub(r"\bblank red surface\b", "weathered determined expression", new_prompt, flags=re.IGNORECASE)
+                        new_prompt = re.sub(r"\s+", " ", new_prompt).strip()
 
                 updated_scene = s.model_copy(update={
                     "visual_subject": new_concept,

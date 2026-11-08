@@ -46,6 +46,8 @@ class PresetManager:
         cls._loaded = True
 
     BUILTIN_STYLE_IDS = {
+        "3d_stickman",
+        "2d_stickman",
         "century_old_photograph",
         "vintage_photograph",
         "3d_red_blue_stickman",
@@ -72,12 +74,14 @@ class PresetManager:
             cls.initialize()
 
         canonical_order = [
+            "3d_stickman",
+            "2d_stickman",
             "century_old_photograph",
-            "3d_red_blue_stickman",
             "bw_vintage_historical_photography",
             "paper_quilling",
             "mixed_media_collage",
             "paper_cutout",
+            "3d_red_blue_stickman",
         ]
         seen = set()
         result: List[VisualStylePreset] = []
@@ -117,10 +121,14 @@ class PresetManager:
         if not cls._loaded:
             cls.initialize()
         # Aliases normalization
-        if style_id in ("vintage_photo", "vintage_photographs", "century_old_photographs"):
-            style_id = "century_old_photograph"
-        elif style_id in ("stick_figure", "stickman", "red_blue_stickman_3d", "2d_stick_figure"):
+        if style_id in ("3d_stickman", "3d_stickman_style", "stickman_3d"):
+            style_id = "3d_stickman"
+        elif style_id in ("2d_stickman", "2d_stickman_style", "stickman_2d", "2d_stick_figure"):
+            style_id = "2d_stickman"
+        elif style_id in ("3d_red_blue_stickman", "red_blue_stickman_3d", "red_blue_stickman"):
             style_id = "3d_red_blue_stickman"
+        elif style_id in ("vintage_photo", "vintage_photographs", "century_old_photographs"):
+            style_id = "century_old_photograph"
         elif style_id in ("black_white_historical_photography", "bw_historical_photography"):
             style_id = "bw_vintage_historical_photography"
         elif style_id in ("quilling", "paper_quill", "paper_quilling_illustration"):

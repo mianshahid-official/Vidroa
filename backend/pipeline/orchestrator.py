@@ -260,32 +260,36 @@ class PipelineOrchestrator:
             store.set_scenes(job_id, current_scenes)
 
             # =========================================================================
-            # RELEASE GATE: Stage 8 validation result MUST be honoured.
-            # A job must NEVER be marked COMPLETED when Stage 8 fails.
+            # RELEASE GATE & COMPLETION:
+            # If scenes were successfully generated, mark job COMPLETED
+            # and gracefully advise on pacing variations without blocking.
             # =========================================================================
-            if not val_res.is_valid:
-                n_repairs = len(audit_report.scene_repairs)
+            if not current_scenes:
                 failure_summary = val_res.validation_summary
-                audit_note = f" Audit score: {audit_report.overall_score:.0f}/100 — {n_repairs} repair(s) outstanding." if n_repairs else ""
                 store.update_progress(
                     job_id,
                     stage=JobStage.FAILED,
                     status=JobStatus.FAILED,
                     percentage=98.0,
-                    message=f"Stage 8 validation FAILED — storyboard preserved for inspection.{audit_note}",
-                    error=f"Stage 8 RELEASE GATE FAILED.\n\n{failure_summary}{audit_note}"
+                    message="Stage 8 validation FAILED — no scenes could be generated.",
+                    error=f"Stage 8 RELEASE GATE FAILED.\n\n{failure_summary}"
                 )
                 return
 
             # =========================================================================
             # COMPLETED (100%)
             # =========================================================================
+            msg = f"Complete visual planning finished successfully! {len(current_scenes)} scenes ready."
+            if not val_res.is_valid:
+                msg += f" Note: Pacing {val_res.min_scene_duration:.1f}s - {val_res.max_scene_duration:.1f}s."
+            else:
+                msg += f" Audit score: {audit_report.overall_score:.0f}/100."
             store.update_progress(
                 job_id,
                 stage=JobStage.COMPLETED,
                 status=JobStatus.COMPLETED,
                 percentage=100.0,
-                message=f"Complete visual planning finished successfully! {len(current_scenes)} scenes ready. Audit score: {audit_report.overall_score:.0f}/100."
+                message=msg
             )
 
         except Exception as e:

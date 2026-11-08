@@ -1,0 +1,192 @@
+IMAGE 001
+START: 0.00
+END: 4.69
+DURATION: 4.69
+
+NARRATION:
+The sirens stopped three days ago, but the chewing hasn't.
+
+PROMPT:
+Layered paper-cutout illustration of a quiet, desolate suburban street at dusk. The scene is rendered in flat cardstock shapes with visible paper fiber texture and slightly imperfect handmade cut edges. A weathered, period-authentic figure stands in the mid-ground, wearing muted olive and brown clothing, holding a small, indistinct object near their mouth in a subtle chewing motion. The background features simplified, layered houses in parchment beige and dusty orange, with no sirens or active emergency lights, emphasizing a still, eerie silence. Soft cinematic lighting casts delicate drop shadows between the physical layers of the street, trees, and figure, creating depth without 3D rendering. The color palette is warm and muted, dominated by aged paper tones and charcoal shadows.
+
+---
+
+IMAGE 002
+START: 4.69
+END: 10.61
+DURATION: 5.92
+
+NARRATION:
+From the attic vent the world looks gray and jittery like a corrupted broadcast.
+
+PROMPT:
+Dramatic low-angle paper-cutout view from inside an attic, looking up through a square vent opening. The vent frame is constructed from layered, rough-edged cardstock in warm brown tones. Through the opening, the world outside is depicted in desaturated, grayish-blue paper layers, appearing jittery and fragmented to suggest a corrupted broadcast effect. The layers of the sky and distant buildings are slightly misaligned, creating a visual sense of instability. The interior attic space is dark, with subtle paper texture on the wooden beams. No text or modern digital elements are present; the 'corruption' is expressed purely through the physical misalignment and muted color of the paper layers. Soft, diffuse light filters through the vent, highlighting the edges of the cut paper.
+
+---
+
+IMAGE 003
+START: 10.61
+END: 14.60
+DURATION: 3.99
+
+NARRATION:
+Below on Elm Street they wander in stuttering,
+
+PROMPT:
+Medium shot of several figures wandering on a street named Elm Street, depicted in a layered paper-cutout style. The figures are simple, expressive silhouettes with pale, milky eyes, their faces partially obscured by shadows and layered paper hair or hats. They move in disjointed, jerky poses, with limbs positioned in unnatural, stuttering angles to convey lurching motion. The street is lined with muted, historical architecture in dusty orange and parchment beige. The paper texture is prominent, with visible fibers and cut edges on the figures and buildings. The lighting is soft and cinematic, casting distinct drop shadows that separate the figures from the background, enhancing the physical depth of the 2D cutout aesthetic. The atmosphere is eerie and slow, with no sudden actions.
+
+---
+
+IMAGE 004
+START: 14.60
+END: 20.06
+DURATION: 5.46
+
+NARRATION:
+lurching rhythms, guided only by the lingering memory of hunger. You
+
+PROMPT:
+Layered paper-cutout 2D historical illustration, low-angle close-up of a group of period-authentic human figures moving in a disjointed, lurching rhythm. Simple expressive characters with clear silhouettes, paper-crafted clothing in muted historical attire. Staggered, jerky movement sequence emphasizing a stuttering walk. Background is a flat, textured layer of gray, jittery shapes representing a corrupted, desolate street. Visible paper and fiber texture, slightly imperfect handmade cut edges. Warm, muted historical color palette: parchment beige, warm brown, muted naval blue, dusty orange, olive, charcoal, subdued cream, and aged paper tones. Soft cinematic lighting with delicate paper-like drop shadows creating physical depth between overlapping layers. No text, no lettering, no modern objects, no 3D CGI plastic rendering, no photorealism, no vector flatness without paper fiber texture.
+
+---
+
+IMAGE 005
+START: 20.06
+END: 25.84
+DURATION: 5.78
+
+NARRATION:
+learn quickly that it isn't the grotesque faces or the hollow milky eyes that undo you.
+
+PROMPT:
+Layered paper-cutout illustration, extreme close-up of a weathered, expressive face constructed from textured cardstock. The skin is parchment beige with visible fiber texture and imperfect handmade cut edges. The eyes are hollow, milky white circles of paper, devoid of pupils, creating a haunting, empty stare. Subtle dimensional layering separates the cheekbones, nose, and brow from the background. Warm, muted lighting casts delicate paper-like drop shadows that emphasize the physical depth of the facial features. The expression is one of quiet, unsettling stillness. No text, no modern objects, strictly 2D cutout aesthetic with a premium cinematic feel.
+
+---
+
+IMAGE 006
+START: 25.84
+END: 31.36
+DURATION: 5.52
+
+NARRATION:
+It's the sound of their fingernails absent mindedly scraping against locked screen
+
+PROMPT:
+Layered paper-cutout illustration, dramatic focal perspective on a pair of paper-crafted hands. The fingers are long, slender shapes of aged paper, with fingernails depicted as slightly darker, rougher cutouts. The hands are positioned against a locked screen door, which is a grid of thin, dark charcoal paper strips. The nails are shown in the act of scraping against the metal-like paper texture, with tiny, subtle motion lines or dust particles (also paper cutouts) floating near the contact point to suggest sound and friction. The lighting is dim and focused, highlighting the texture of the paper nails and the screen. The background is a deep, shadowy olive tone, creating a sense of confinement and tension. No text, no photorealism, strictly layered cardstock aesthetic.
+
+---
+
+IMAGE 007
+START: 31.36
+END: 35.15
+DURATION: 3.79
+
+NARRATION:
+doors, endlessly testing for a seam.
+
+PROMPT:
+Layered paper-cutout illustration, wide establishing shot of a dimly lit interior room. The protagonist lies motionless on a bare mattress, which is a flat, textured rectangle of cream-colored paper. The figure is almost entirely enveloped in shadow, with only the faintest outline of their body visible as a slightly lighter beige cutout against the deep charcoal blackness of the room. The architecture is suggested by layered paper shapes of walls and a door frame, all in muted historical tones. The lighting is extremely low, with a single, soft light source barely illuminating the edge of the mattress and the protagonist's silhouette. The atmosphere is heavy, silent, and oppressive. No text, no modern objects, strictly 2D cutout aesthetic with visible paper fiber texture.
+
+---
+
+IMAGE 008
+START: 35.15
+END: 39.20
+DURATION: 4.05
+
+NARRATION:
+Survival has stripped away every useless virtue,
+
+PROMPT:
+Layered paper-cutout illustration, dynamic medium shot of the protagonist. The figure is depicted as a layered cardstock shape, with clothing made of period-authentic paper materials in muted browns and dusty oranges. The character's posture is hunched and tense, suggesting a state of heightened alertness and stripped-down survival. The background is a blurred, abstract arrangement of paper shapes in olive and charcoal, implying a chaotic or harsh environment. The lighting is dramatic, casting sharp paper-like shadows that accentuate the character's angular, weathered features. The expression is one of grim determination, with eyes wide and focused. No text, no modern objects, strictly 2D cutout aesthetic with a premium cinematic feel.
+
+---
+
+IMAGE 009
+START: 39.20
+END: 45.97
+DURATION: 6.77
+
+NARRATION:
+leaving only physics and breath. Light attracts them, so the dark is your only bedsheet.
+
+PROMPT:
+A dramatic focal perspective of a period-authentic figure lying in a dark, confined space, depicted as a layered paper-cutout illustration. The character is constructed from weathered cardstock with visible fiber texture and slightly imperfect handmade edges, wearing authentic historical clothing made of muted brown and charcoal paper layers. A single, soft beam of warm parchment-colored light cuts through the darkness, illuminating the character's face and the subtle rise and fall of their chest, representing breath. The surrounding environment is composed of deep charcoal and aged paper tones, creating a strong contrast with the illuminated subject. Delicate paper-like drop shadows separate the character from the background layers, emphasizing the physical depth of the cutout aesthetic. The atmosphere is tense and quiet, focusing on the physics of breathing in the dark. No text, no modern objects, no 3D rendering.
+
+---
+
+IMAGE 010
+START: 45.97
+END: 52.07
+DURATION: 6.10
+
+NARRATION:
+Sound carries half a mile across the dead suburbs, so canned beans are eaten cold,
+
+PROMPT:
+A wide establishing shot of a desolate, suburban street at night, rendered in a premium cinematic 2D paper-cutout style. The scene features silhouetted houses and trees made from layered cardstock in muted olive, dusty orange, and charcoal tones, with visible paper texture and handmade cut edges. In the foreground, a single figure sits on a porch step, holding a tin can of beans, depicted as a flat illustrated shape with subtle dimensional layering. The figure is dressed in period-appropriate, weathered clothing constructed from layered paper. The lighting is dim and cool, with a soft, distant glow suggesting a light source half a mile away. The composition emphasizes the vast, empty space between the figure and the distant light, conveying isolation. No text, no modern objects, no photorealism, no 3D CGI.
+
+---
+
+IMAGE 011
+START: 52.07
+END: 58.82
+DURATION: 6.75
+
+NARRATION:
+and every footstep across hardwood must land on the ball of the foot, rolling toward the heel.
+
+PROMPT:
+A dramatic focal perspective focusing on the feet of a period-authentic figure stepping carefully across a hardwood floor, rendered in a layered paper-cutout illustration style. The floor is depicted as a large, flat plane of warm brown cardstock with visible wood grain texture and slightly imperfect edges. The figure's shoes are constructed from muted charcoal and dusty orange paper layers, showing the specific action of the foot rolling from the ball to the heel. The character's lower legs and trousers are made from weathered, period-accurate paper materials with subtle drop shadows that create physical depth. The lighting is soft and cinematic, highlighting the texture of the paper and the delicate motion of the step. The background is blurred and dark, composed of layered charcoal shapes, keeping the focus entirely on the precise, quiet movement of the foot. No text, no modern objects, no 3D rendering.
+
+---
+
+IMAGE 012
+START: 58.82
+END: 65.76
+DURATION: 6.94
+
+NARRATION:
+Down in the kitchen a single strip of duct tape keeps the back door handle from rattling against the jam.
+
+PROMPT:
+Layered paper-cutout 2D historical illustration, tight detailed shot of a kitchen back door handle. A single strip of duct tape is wrapped around the handle to keep it from rattling. The door is made of layered paper with a visible grain, and the handle is a simple, expressive paper-crafted shape. Surrounding kitchen elements are flat, textured layers of muted, historical colors. Visible paper and fiber texture, slightly imperfect handmade cut edges. Warm, muted historical color palette: parchment beige, warm brown, muted naval blue, dusty orange, olive, charcoal, subdued cream, and aged paper tones. Soft cinematic lighting with delicate paper-like drop shadows creating physical depth between overlapping layers. No text, no lettering, no modern objects, no 3D CGI plastic rendering, no photorealism, no vector flatness without paper fiber texture.
+
+---
+
+IMAGE 013
+START: 65.76
+END: 70.91
+DURATION: 5.15
+
+NARRATION:
+When the sun dips below the roof lines, you don't sleep, you listen.
+
+PROMPT:
+A layered paper-cutout illustration depicting a dramatic low-angle view looking up at the jagged, silhouetted rooflines of a historical village against a deepening twilight sky. The sun is just dipping below the horizon, casting long, sharp shadows across the parchment-beige and warm-brown paper textures of the buildings. The protagonist, a weathered figure in period-accurate clothing made of layered cardstock, stands in the foreground with their back to the viewer, head tilted up, listening intently. The scene is composed of distinct physical layers with visible paper fiber texture and slightly imperfect handmade cut edges. Soft cinematic lighting creates delicate drop shadows between the overlapping paper shapes, emphasizing the depth of the architectural layers. The color palette is muted, featuring dusty orange, charcoal, and aged paper tones. No text, no modern objects, strictly 2D cutout aesthetic.
+
+---
+
+IMAGE 014
+START: 70.91
+END: 74.52
+DURATION: 3.61
+
+NARRATION:
+Because out here the quiet isn't safety,
+
+PROMPT:
+A wide establishing shot in a layered paper-cutout style showing a dimly lit, rustic interior or forest clearing. The protagonist stands perfectly still in the center, constructed from flat illustrated shapes with subtle dimensional layering and visible paper texture. Their eyes are wide and fixed on a specific point off-camera to the right, conveying intense alertness. The environment features muted naval blue and olive tones for the shadows, contrasting with the warm brown and parchment beige of the foreground elements. The lighting is soft and cinematic, casting delicate paper-like drop shadows that create physical depth between the character and the background scenery. The character's clothing appears as paper-crafted fabric with clear silhouettes. The atmosphere is tense and static, capturing a moment of suspended breath. Strictly clean artwork with no text or modern elements, maintaining the premium 2D cutout animation aesthetic.
+
+---
+
+IMAGE 015
+START: 74.52
+END: 79.77
+DURATION: 5.25
+
+NARRATION:
+it's just the terrible calm between the splintering of wood and the first scream.
+
+PROMPT:
+A dramatic focal perspective in a layered paper-cutout illustration highlighting the terrible calm before a storm. The scene focuses on the protagonist's face, rendered with weathered, expressive features using flat illustrated shapes and visible paper fiber texture. The background is a blur of muted historical colors—dusty orange and charcoal—suggesting the approaching danger without showing it directly. The lighting is low and moody, with soft cinematic shadows falling across the layered paper anatomy of the character. The composition emphasizes the tension in the character's expression, with slightly imperfect handmade cut edges adding to the tactile, physical quality of the artwork. The palette remains warm and muted, using aged paper tones and subdued cream. No text, no photorealism, strictly adhering to the 2D historical paper-cutout style with distinct physical layers and drop shadows.
