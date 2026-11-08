@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg_fces" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4C0519"/>
+      <stop offset="50%" stop-color="#9F1239"/>
+      <stop offset="100%" stop-color="#1F040E"/>
+    </linearGradient>
+    <linearGradient id="warm_coral" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDA4AF"/>
+      <stop offset="100%" stop-color="#FB7185"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg_fces)"/>
+  <circle cx="60" cy="46" r="16" fill="#881337" stroke="#F43F5E" stroke-width="2"/>
+  <path d="M 37 94 C 37 75 47 68 60 68 C 73 68 83 75 83 94 Z" fill="#881337" stroke="#F43F5E" stroke-width="2"/>
+  <!-- Coral headphones -->
+  <path d="M 40 46 A 20 20 0 0 1 80 46" fill="none" stroke="url(#warm_coral)" stroke-width="3.5" stroke-linecap="round"/>
+  <rect x="37" y="40" width="6" height="14" rx="3" fill="#FFE4E6"/>
+  <rect x="77" y="40" width="6" height="14" rx="3" fill="#FFE4E6"/>
+  <!-- Sound Ripple Heart -->
+  <path d="M 60 70 C 56 64 48 68 53 76 L 60 82 L 67 76 C 72 68 64 64 60 70 Z" fill="url(#warm_coral)"/>
+</svg>

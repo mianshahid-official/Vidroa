@@ -1,0 +1,8 @@
+{
+  "id": "custom_steampunk_blueprint",
+  "name": "Steampunk Blueprint",
+  "category": "Custom",
+  "description": "Cyanotype technical blueprint with brass clockwork annotations.",
+  "system_instructions": "Render as a cyanotype Prussian blue blueprint with technical schematic lines and Victorian brass machinery details.",
+  "is_custom": true
+}

@@ -1,0 +1,68 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments & Virtual Envs
+.env
+.env.*
+!.env.example
+env/
+venv/
+.venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# IDE & Operating System
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Archives & Temporary artifacts
+*.rar
+*.zip
+*.7z
+*.tar.gz
+*.tmp
+*.log
+cookies_dump.tmp
+
+# User Browser Profiles & Active Sessions (DO NOT COMMIT COOKIES/CREDENTIALS)
+data/
+data/**
+
+# API Keys & Local Secrets (DO NOT COMMIT SECRETS)
+groq api.txt
+*api*.txt
+*key*.txt
+*.pem
+*.key
+*.p8
+*.crt
+
+# User Generated Projects & Audio/Video Renders
+projects/*
+!projects/.gitkeep
+
+# Large ONNX / Model weights (if re-downloaded)
+models/kokoro/*.onnx
+models/kokoro/*.bin
+models/kokoro/*.bin.npz
+models/piper/*.onnx

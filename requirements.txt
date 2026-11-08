@@ -1,0 +1,39 @@
+# ==============================================================================
+# PromptBeast Desktop Studio Pro - Production Runtime Dependencies
+# ==============================================================================
+
+# Desktop GUI Interface (Qt6)
+PySide6>=6.6.0
+
+# Core Data Modeling & Settings
+pydantic>=2.7.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Fast LLM Inference & Cloud API Engines
+httpx>=0.27.0
+groq>=0.11.0
+fastapi>=0.110.0
+uvicorn>=0.28.0
+modal>=0.60.0
+
+# Audio Processing, Faster-Whisper Transcription & Word Alignment
+faster-whisper>=1.0.0
+onnxruntime>=1.16.0
+soundfile>=0.12.0
+pydub>=0.25.1
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Image, Visual Asset & Media Processing
+Pillow>=10.0.0
+imageio>=2.30.0
+imageio-ffmpeg>=0.5.0
+
+# Utilities
+qrcode>=7.4.0
+requests>=2.31.0
+
+# Quality Assurance & Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

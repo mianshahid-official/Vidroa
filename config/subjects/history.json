@@ -1,0 +1,7 @@
+{
+  "id": "history",
+  "name": "History",
+  "category": "Historical & Documentary",
+  "description": "Historical accuracy, period-appropriate environments, clothing, tools, and social context.",
+  "system_instructions": "Focus strictly on historical accuracy, period-appropriate environments, architecture, clothing, hairstyles, tools, transportation, social context, geography, and material culture. Do not introduce modern or anachronistic objects unless explicitly commanded. Emphasize physical realism and cultural authenticity appropriate to the era."
+}

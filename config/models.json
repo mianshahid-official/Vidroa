@@ -1,0 +1,44 @@
+{
+  "default_model": "Qwen3-30B-A3B-Instruct-2507",
+  "models": [
+    {
+      "name": "Qwen3-30B-A3B-Instruct-2507",
+      "display_name": "Qwen3 30B A3B Instruct (2507)",
+      "provider": "modal",
+      "recommended_gpu": "NVIDIA L4 24GB",
+      "alternative_gpus": ["NVIDIA A10G 24GB", "NVIDIA A100 40GB", "NVIDIA H100 80GB"],
+      "context_window": 32768,
+      "max_output_tokens": 8192,
+      "default_temperature": 0.3,
+      "default_top_p": 0.9,
+      "supports_structured_json": true,
+      "supports_batching": true
+    },
+    {
+      "name": "Qwen2.5-32B-Instruct",
+      "display_name": "Qwen 2.5 32B Instruct",
+      "provider": "modal",
+      "recommended_gpu": "NVIDIA L4 24GB",
+      "alternative_gpus": ["NVIDIA A10G 24GB", "NVIDIA A100 40GB"],
+      "context_window": 32768,
+      "max_output_tokens": 8192,
+      "default_temperature": 0.3,
+      "default_top_p": 0.9,
+      "supports_structured_json": true,
+      "supports_batching": true
+    },
+    {
+      "name": "Qwen2.5-14B-Instruct",
+      "display_name": "Qwen 2.5 14B Instruct (Fast / Light)",
+      "provider": "modal",
+      "recommended_gpu": "NVIDIA L4 24GB",
+      "alternative_gpus": ["NVIDIA T4 16GB"],
+      "context_window": 32768,
+      "max_output_tokens": 4096,
+      "default_temperature": 0.3,
+      "default_top_p": 0.9,
+      "supports_structured_json": true,
+      "supports_batching": true
+    }
+  ]
+}

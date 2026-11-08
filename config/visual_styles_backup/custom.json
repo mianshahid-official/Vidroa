@@ -1,0 +1,7 @@
+{
+  "id": "custom",
+  "name": "Custom Style",
+  "category": "Custom",
+  "description": "User-defined visual style prompt instructions.",
+  "system_instructions": "Apply the user's custom style instructions verbatim as the governing artistic guideline."
+}

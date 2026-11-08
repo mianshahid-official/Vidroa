@@ -1,0 +1,7 @@
+{
+  "id": "custom",
+  "name": "Custom Subject",
+  "category": "Custom",
+  "description": "User-defined subject guidance and custom domain rules.",
+  "system_instructions": "Follow user-provided custom subject instructions precisely, adapting tone, accuracy, and framing accordingly."
+}

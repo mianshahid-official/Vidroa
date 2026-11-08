@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>PromptBeast Studio — One-Page Production Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            background: "#0b0f19",
+            surface: "#0f172a",
+            "surface-low": "#131c31",
+            "surface-high": "#1e293b",
+            "surface-highest": "#283548",
+            primary: "#38bdf8",
+            "primary-container": "#0369a1",
+            "on-primary": "#001e2b",
+            secondary: "#c084fc",
+            tertiary: "#34d399",
+            warning: "#fbbf24",
+            error: "#f87171",
+            outline: "#475569",
+            "on-surface": "#f1f5f9",
+            "on-surface-variant": "#94a3b8"
+          },
+          fontFamily: {
+            headline: ["Space Grotesk", "sans-serif"],
+            code: ["JetBrains Mono", "monospace"],
+            body: ["Inter", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-background font-body text-sm text-on-surface antialiased select-none min-h-screen flex flex-col">
+
+  <!-- ========================================================================= -->
+  <!-- TOP STUDIO HEADER                                                         -->
+  <!-- ========================================================================= -->
+  <header class="fixed top-0 left-0 right-0 h-14 bg-[#080c14] border-b border-surface-high/60 z-50 flex items-center justify-between px-4">
+    <div class="flex items-center gap-3">
+      <!-- Window Dots / App Tag -->
+      <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-full bg-error/90 hover:opacity-80 cursor-pointer"></span>
+        <span class="w-3 h-3 rounded-full bg-warning/90 hover:opacity-80 cursor-pointer"></span>
+        <span class="w-3 h-3 rounded-full bg-tertiary/90 hover:opacity-80 cursor-pointer"></span>
+      </div>
+      <div class="h-4 w-px bg-surface-high mx-1"></div>
+
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded bg-primary/20 border border-primary/40 flex items-center justify-center text-primary">
+          <span class="material-symbols-outlined text-[16px]">bolt</span>
+        </div>
+        <span class="font-headline font-bold text-base text-on-surface tracking-tight">PromptBeast<span class="text-primary font-code text-xs ml-1.5 px-1.5 py-0.5 rounded bg-surface-high border border-primary/30 uppercase">Studio</span></span>
+      </div>
+      <div class="h-4 w-px bg-surface-high mx-1"></div>
+
+      <!-- Active Project Pill -->
+      <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-surface-low border border-surface-high hover:border-primary/50 transition-colors cursor-pointer" onclick="openProjectHistory()">
+        <span class="material-symbols-outlined text-primary text-[15px]">folder_open</span>
+        <span class="font-code text-xs text-on-surface font-medium" id="currentProjectLabel">The_Last_Dawn_of_Pompeii</span>
+        <span class="material-symbols-outlined text-on-surface-variant text-[14px]">unfold_more</span>
+      </div>
+
+      <!-- Auto-Save Status -->
+      <div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-tertiary/10 border border-tertiary/20">
+        <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+        <span class="font-code text-[11px] text-tertiary uppercase font-medium">Auto-Sync (59 Scenes Saved)</span>
+      </div>
+    </div>
+
+    <!-- Right Header Tools -->
+    <div class="flex items-center gap-3">
+      <!-- LLM Engine Switcher -->
+      <div class="flex items-center rounded bg-surface-low border border-surface-high p-0.5 font-code text-xs">
+        <div class="flex items-center gap-1 px-2.5 py-0.5 rounded bg-surface-high text-primary font-medium border border-primary/30">
+          <span class="material-symbols-outlined text-[14px]">psychology</span>
+          <span>qwen/qwen3.8-27b</span>
+        </div>
+        <div class="px-2 py-0.5 text-on-surface-variant hover:text-on-surface cursor-pointer">
+          <span>gpt-oss-120b</span>
+        </div>
+      </div>
+
+      <!-- Groq LPU Array Health -->
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-low border border-surface-high">
+        <span class="w-2 h-2 rounded-full bg-tertiary"></span>
+        <span class="font-code text-xs text-on-surface-variant">Groq LPU Array:</span>
+        <span class="font-code text-xs text-tertiary font-semibold">11 Keys Active (825ms)</span>
+      </div>
+
+      <!-- Pacing Rule Badge -->
+      <div class="flex items-center gap-1 px-2 py-1 rounded bg-surface-low border border-surface-high font-code text-xs text-secondary">
+        <span class="material-symbols-outlined text-[14px]">timer</span>
+        <span>3.0s - 6.0s Strict</span>
+      </div>
+
+      <!-- Settings & History -->
+      <button class="flex items-center gap-1 px-2.5 py-1 rounded bg-surface-low hover:bg-surface-high border border-surface-high text-on-surface text-xs font-medium transition-colors" onclick="openProjectHistory()">
+        <span class="material-symbols-outlined text-[15px] text-primary">history</span>
+        <span>Projects (Ctrl+H)</span>
+      </button>
+
+      <button class="w-8 h-8 rounded bg-surface-low hover:bg-surface-high border border-surface-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Settings">
+        <span class="material-symbols-outlined text-[18px]">settings</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- LEFT ICON SIDEBAR (COLLAPSED WORKSPACE RAIL)                                -->
+  <!-- ========================================================================= -->
+  <aside class="fixed left-0 top-14 bottom-7 w-12 bg-[#080c14] border-r border-surface-high/60 z-40 flex flex-col items-center py-3 justify-between">
+    <nav class="w-full flex flex-col items-center gap-1.5">
+      <a class="w-9 h-9 rounded flex items-center justify-center bg-surface-high text-primary border-l-2 border-primary" href="#sectionSource" title="Source & Image Settings">
+        <span class="material-symbols-outlined text-[20px]">terminal</span>
+      </a>
+      <a class="w-9 h-9 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors" href="#sectionBible" title="Story Bible & Entities">
+        <span class="material-symbols-outlined text-[20px]">auto_stories</span>
+      </a>
+      <a class="w-9 h-9 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors" href="#sectionPlan" title="Scene Plan Breakdown">
+        <span class="material-symbols-outlined text-[20px]">format_list_numbered</span>
+      </a>
+      <a class="w-9 h-9 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors" href="#sectionPrompts" title="Generated Image Prompts Matrix">
+        <span class="material-symbols-outlined text-[20px]">photo_library</span>
+      </a>
+      <a class="w-9 h-9 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors" href="#sectionRender" title="Subtitles & Video Render">
+        <span class="material-symbols-outlined text-[20px]">movie</span>
+      </a>
+    </nav>
+    <div class="flex flex-col items-center gap-1">
+      <button class="w-9 h-9 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors" onclick="toggleAllSections()" title="Expand/Collapse All Sections">
+        <span class="material-symbols-outlined text-[18px]">unfold_more</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE CONTENT CONTAINER (ONE-PAGE APP DASHBOARD)                 -->
+  <!-- ========================================================================= -->
+  <div class="pl-12 pt-14 pb-8 flex-1">
+    <main class="w-full px-5 py-4 flex flex-col gap-4 max-w-[1780px] mx-auto">
+
+      <!-- SUB-NAV STATUS STRIP -->
+      <div class="w-full bg-surface-low rounded border border-surface-high/70 px-4 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-tertiary"></span>
+            <span class="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">ONE-PAGE PRODUCTION DASHBOARD</span>
+            <span class="font-code text-[11px] px-2 py-0.5 rounded bg-surface-high text-primary border border-surface-high font-semibold">V2.0-STABLE</span>
+          </div>
+          <div class="h-3 w-px bg-surface-high"></div>
+          <div class="flex items-center gap-2 text-xs text-on-surface-variant font-code">
+            <span>Subject: <strong class="text-on-surface">History (Documentary)</strong></span>
+            <span class="text-outline">|</span>
+            <span>Style: <strong class="text-secondary" id="activeStyleSummary">3D Render & CGI</strong></span>
+            <span class="text-outline">|</span>
+            <span>Pacing: <strong class="text-tertiary">Strict 3.0s – 6.0s (Avg 4.19s)</strong></span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button class="flex items-center gap-1.5 px-3 py-1 rounded bg-surface-high hover:bg-surface-highest border border-surface-high text-xs font-medium text-on-surface transition-colors" onclick="copyAllPromptsText()">
+            <span class="material-symbols-outlined text-[15px] text-tertiary">content_copy</span>
+            <span>Copy All Prompts (59)</span>
+          </button>
+          <button class="flex items-center gap-1.5 px-3.5 py-1 rounded bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary/90 transition-all shadow-md" onclick="triggerMainGeneration()">
+            <span class="material-symbols-outlined text-[16px]">bolt</span>
+            <span>GENERATE STORYBOARD + PROMPTS</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 1: SOURCE INPUT & FULL-WIDTH IMAGE GENERATION SETTINGS        -->
+      <!-- ===================================================================== -->
+      <section id="sectionSource" class="w-full bg-surface rounded border border-surface-high flex flex-col shadow-sm">
+        <!-- Section Header -->
+        <div class="w-full px-4 py-2.5 bg-surface-low border-b border-surface-high flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-[18px]">input</span>
+              <span class="font-headline font-bold text-sm tracking-tight text-on-surface uppercase">SOURCE INPUT & LLM ANALYSIS</span>
+            </div>
+            <!-- Segmented Mode Buttons -->
+            <div class="flex items-center rounded bg-background border border-surface-high p-0.5 font-code text-xs">
+              <button id="btnModeScript" class="px-3 py-1 rounded font-medium bg-surface-high text-primary border border-primary/30 flex items-center gap-1.5 transition-all" onclick="setSourceMode('script')">
+                <span class="material-symbols-outlined text-[14px]">article</span> TEXT SCRIPT
+              </button>
+              <button id="btnModeAudio" class="px-3 py-1 rounded font-medium text-on-surface-variant hover:text-on-surface flex items-center gap-1.5 transition-all" onclick="setSourceMode('audio')">
+                <span class="material-symbols-outlined text-[14px]">graphic_eq</span> AUDIO FILE (WHISPER)
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="font-code text-xs text-on-surface-variant">LPU Inference: <strong class="text-tertiary">Qwen 27B Pooled</strong> (11 Keys Active)</span>
+            <button class="w-6 h-6 rounded bg-background border border-surface-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" onclick="toggleSection('sourceBody', 'sourceChevron')">
+              <span class="material-symbols-outlined text-[16px]" id="sourceChevron">expand_less</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="sourceBody" class="w-full p-4 flex flex-col gap-4">
+          <!-- 1.1 STORY TEXT SCRIPT BOX (FULL WIDTH) -->
+          <div id="paneScript" class="w-full flex flex-col gap-2">
+            <div class="flex items-center justify-between text-xs font-code">
+              <div class="flex items-center gap-2">
+                <span class="text-on-surface font-semibold">Story Narration Script</span>
+                <span class="px-2 py-0.5 rounded bg-tertiary/15 text-tertiary font-bold text-[10px] uppercase">Word Timestamps Aligned</span>
+              </div>
+              <div class="flex items-center gap-4 text-on-surface-variant">
+                <span>Words: <strong class="text-on-surface">2,143</strong></span>
+                <span>Characters: <strong class="text-on-surface">12,840</strong></span>
+                <span>Generated Scenes: <strong class="text-primary font-bold">59 Scenes</strong></span>
+                <span>Audio Match: <strong class="text-tertiary">04:07.45 (100%)</strong></span>
+              </div>
+            </div>
+
+            <div class="relative rounded border border-surface-high bg-[#080c14] focus-within:border-primary/60 transition-all">
+              <textarea id="storyTextarea" class="w-full h-36 p-3 bg-transparent text-on-surface font-code text-xs resize-y focus:outline-none border-none leading-relaxed" spellcheck="false">It was the morning of August 24, 79 AD. Mount Vesuvius loomed silently over the Bay of Naples, its steep forested slopes shrouded in a deceitful morning mist. In the bustling paved Forum of Pompeii, Marcus the grain merchant adjusted his coarse linen toga, fastened at the left shoulder with an ancestral brass fibula clasp. The heavy basalt paving stones hummed with an almost imperceptible high-frequency tremor—water sloshed faintly inside the terracotta amphorae lined outside the bakery.
+
+Above the mountain summit, a sudden volcanic fracture tore the sky. A towering umbrella-pine eruption column of pumice, ash, and incandescent gases rocketed thirty-two kilometers into the stratosphere, turning midday Mediterranean sunlight into pitch-black suffocating obsidian gloom. The earth groaned as shockwaves battered colonnades...</textarea>
+              <div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+                <button class="px-2.5 py-1 rounded bg-surface-high border border-surface-high hover:border-primary/50 text-on-surface font-code text-xs flex items-center gap-1 transition-colors" onclick="importScriptFile()">
+                  <span class="material-symbols-outlined text-[13px] text-primary">upload_file</span> Load Script (.txt)
+                </button>
+                <button class="px-2.5 py-1 rounded bg-surface-high border border-surface-high hover:border-primary/50 text-on-surface font-code text-xs flex items-center gap-1 transition-colors" onclick="saveScriptFile()">
+                  <span class="material-symbols-outlined text-[13px] text-tertiary">save</span> Save
+                </button>
+                <button class="px-2 py-1 rounded bg-surface-high border border-surface-high hover:bg-error/20 hover:text-error text-on-surface-variant font-code text-xs transition-colors" onclick="clearScriptText()">
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1.2 AUDIO NARRATION & WHISPER BOX (FULL WIDTH - TOGGLEABLE) -->
+          <div id="paneAudio" class="hidden w-full flex flex-col gap-2">
+            <div class="flex items-center justify-between text-xs font-code">
+              <div class="flex items-center gap-2">
+                <span class="text-on-surface font-semibold">Voiceover Audio Ingestion & Whisper Transcription</span>
+                <span class="px-2 py-0.5 rounded bg-primary/15 text-primary font-bold text-[10px] uppercase">Word-Level Timestamps</span>
+              </div>
+              <div class="text-on-surface-variant">
+                <span>File: <strong class="text-on-surface">Pompeii_Narration_Master.mp3</strong> (04:07.45)</span>
+              </div>
+            </div>
+
+            <div class="p-3 rounded border border-surface-high bg-[#080c14] grid grid-cols-12 gap-4 items-center">
+              <!-- Audio Player / Waveform -->
+              <div class="col-span-5 flex flex-col gap-2 p-3 rounded bg-surface-low border border-surface-high">
+                <div class="flex items-center justify-between">
+                  <span class="font-code text-xs text-on-surface font-medium">Pompeii_Narration_Master.mp3</span>
+                  <span class="font-code text-xs text-primary font-semibold" id="audioTimecode">00:01.85 / 04:07.45</span>
+                </div>
+                <!-- Interactive Waveform Scrub -->
+                <div class="w-full h-8 bg-[#080c14] rounded border border-surface-high relative flex items-center px-1 cursor-pointer" onclick="scrubAudio(event)">
+                  <div class="w-full flex items-center justify-between h-5 opacity-70">
+                    <div class="w-1 bg-primary h-3 rounded-full"></div>
+                    <div class="w-1 bg-primary h-5 rounded-full"></div>
+                    <div class="w-1 bg-primary h-2 rounded-full"></div>
+                    <div class="w-1 bg-primary h-6 rounded-full"></div>
+                    <div class="w-1 bg-primary h-4 rounded-full"></div>
+                    <div class="w-1 bg-primary h-5 rounded-full"></div>
+                    <div class="w-1 bg-primary h-7 rounded-full"></div>
+                    <div class="w-1 bg-primary h-3 rounded-full"></div>
+                    <div class="w-1 bg-primary h-6 rounded-full"></div>
+                    <div class="w-1 bg-primary h-4 rounded-full"></div>
+                    <div class="w-1 bg-primary h-2 rounded-full"></div>
+                  </div>
+                  <!-- Playhead -->
+                  <div class="absolute top-0 bottom-0 left-[22%] w-0.5 bg-tertiary shadow-[0_0_8px_#34d399]"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="flex items-center gap-1.5">
+                    <button class="px-2.5 py-1 rounded bg-primary text-on-primary font-code text-xs font-bold flex items-center gap-1 hover:bg-primary/90" onclick="togglePlayAudio()">
+                      <span class="material-symbols-outlined text-[14px]">play_arrow</span> Play
+                    </button>
+                    <button class="px-2 py-1 rounded bg-surface-high text-on-surface font-code text-xs hover:bg-surface-highest" onclick="stopAudio()">
+                      Stop
+                    </button>
+                  </div>
+                  <button class="px-2.5 py-1 rounded bg-surface-high border border-surface-high hover:border-primary/50 text-xs font-code text-on-surface">
+                    Browse Audio File...
+                  </button>
+                </div>
+              </div>
+
+              <!-- Whisper Transcription Settings -->
+              <div class="col-span-7 flex flex-col gap-2">
+                <div class="grid grid-cols-2 gap-3 font-code text-xs">
+                  <div>
+                    <label class="text-on-surface-variant block mb-1">Whisper Transcription Engine</label>
+                    <select class="w-full bg-surface-low border border-surface-high text-on-surface px-2.5 py-1.5 rounded focus:outline-none">
+                      <option>⚡ Groq Cloud Whisper-large-v3-turbo (Ultra-Fast <2s)</option>
+                      <option>💻 Local Faster-Whisper (CUDA / CPU Offline)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-on-surface-variant block mb-1">Pre-Computed Timestamps</label>
+                    <button class="w-full bg-surface-low hover:bg-surface-high border border-surface-high text-on-surface px-2.5 py-1.5 rounded text-left flex items-center justify-between transition-colors">
+                      <span>Import Timestamps JSON</span>
+                      <span class="material-symbols-outlined text-[14px] text-primary">upload</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <span class="font-code text-xs text-tertiary flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-tertiary"></span>
+                    <span>2,143 words synchronized with exact millisecond bounds.</span>
+                  </span>
+                  <button class="px-3 py-1.5 rounded bg-tertiary text-on-primary font-headline text-xs font-bold hover:bg-tertiary/90 flex items-center gap-1.5 shadow-sm">
+                    <span class="material-symbols-outlined text-[16px]">transcribe</span>
+                    <span>Transcribe Audio & Extract Word Timestamps</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================================================================= -->
+          <!-- 1.3 FULL-WIDTH IMAGE GENERATION & TIMING SETTINGS DECK            -->
+          <!-- (MOVED BELOW STORY BOX AND EXPANDED TO FULL WIDTH)                -->
+          <!-- ================================================================= -->
+          <div class="w-full p-3.5 rounded border border-surface-high bg-surface-low flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b border-surface-high/70 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-[18px]">tune</span>
+                <span class="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">IMAGE GENERATION SETTINGS & TIMING CONTROLS (FULL WIDTH)</span>
+                <span class="font-code text-[11px] text-on-surface-variant">• 13 Curated Styles (No Duplicates)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="px-2.5 py-1 rounded bg-primary/10 border border-primary/30 text-primary font-code text-xs font-semibold hover:bg-primary/20 flex items-center gap-1 transition-colors" onclick="openStylePreviewModal()">
+                  <span class="material-symbols-outlined text-[15px]">visibility</span>
+                  <span>👁️ Preview Selected Style Artwork</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Full Width 5-Column Grid of Generation Controls -->
+            <div class="grid grid-cols-10 gap-3 font-code text-xs">
+              <!-- Col 1: Visual Style Dropdown (Span 2) -->
+              <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-on-surface-variant uppercase font-medium text-[10px]">Visual Style Preset (13 Distinct)</label>
+                <div class="flex items-center gap-1">
+                  <select id="selectStyle" class="flex-1 bg-[#080c14] border border-surface-high text-on-surface px-2.5 py-1.5 rounded focus:outline-none focus:border-primary font-code" onchange="onStyleChanged(this.value)">
+                    <option value="3d_render" selected>🎨 3D Render & CGI (Pixar/Octane)</option>
+                    <option value="stick_figure">✏️ Stick Figure Animation (2D Viral)</option>
+                    <option value="history_painting">🏛️ Old History Painting (Fine Art)</option>
+                    <option value="2d_animation">📐 2D Vector & Cartoon (Kurzgesagt)</option>
+                    <option value="photorealistic">📷 Realistic DSLR Photography (8K)</option>
+                    <option value="midjourney_hyper_realism">🌌 Midjourney Viral Hyper-Realism</option>
+                    <option value="anime_ghibli">🍃 Studio Ghibli Anime (Hand-Painted)</option>
+                    <option value="isometric_3d">📦 Isometric 3D Explainer (Vox)</option>
+                    <option value="dark_fantasy">⚔️ Dark Fantasy Gothic (Elden Ring)</option>
+                    <option value="retro_pop_art">💥 Retro Comic & Pop Art (Halftone)</option>
+                    <option value="claymation">🧱 Claymation & Stop Motion (Clay)</option>
+                    <option value="vintage_photograph">📜 Century-Old Photograph (1900s)</option>
+                    <option value="watercolor">🖌️ Watercolor Storybook (Wet Pigment)</option>
+                    <option value="custom">⚙️ Custom Style...</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Col 2: Subject Domain (Span 2) -->
+              <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-on-surface-variant uppercase font-medium text-[10px]">Subject Domain / Category</label>
+                <select class="w-full bg-[#080c14] border border-surface-high text-on-surface px-2.5 py-1.5 rounded focus:outline-none focus:border-primary font-code">
+                  <option selected>History (Historical Accuracy & Context)</option>
+                  <option>Historical Documentary</option>
+                  <option>Educational Explainer</option>
+                  <option>Finance & Economics</option>
+                  <option>Science & Astronomy</option>
+                  <option>Technology & AI</option>
+                  <option>Dark Mystery & True Crime</option>
+                </select>
+              </div>
+
+              <!-- Col 3: Timing Rule (3-6s Strict Rule) (Span 2) -->
+              <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-on-surface-variant uppercase font-medium text-[10px]">Pacing & Scene Duration Rule</label>
+                <div class="flex items-center justify-between px-2.5 py-1.5 bg-[#080c14] border border-surface-high rounded">
+                  <span class="text-tertiary font-bold">3.0s – 6.0s Strict</span>
+                  <span class="text-on-surface-variant text-[11px]">(Pref: 4.5s)</span>
+                </div>
+              </div>
+
+              <!-- Col 4: Aspect Ratio Buttons (Span 2) -->
+              <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-on-surface-variant uppercase font-medium text-[10px]">Aspect Ratio</label>
+                <div class="grid grid-cols-3 gap-1">
+                  <button class="py-1 text-center rounded bg-primary/20 text-primary font-bold border border-primary/40">16:9</button>
+                  <button class="py-1 text-center rounded bg-[#080c14] text-on-surface-variant hover:text-on-surface border border-surface-high">9:16</button>
+                  <button class="py-1 text-center rounded bg-[#080c14] text-on-surface-variant hover:text-on-surface border border-surface-high">1:1</button>
+                </div>
+              </div>
+
+              <!-- Col 5: Image Target Engine / Model (Span 2) -->
+              <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-on-surface-variant uppercase font-medium text-[10px]">Target Image Generation Engine</label>
+                <select class="w-full bg-[#080c14] border border-surface-high text-on-surface px-2.5 py-1.5 rounded focus:outline-none focus:border-primary font-code">
+                  <option selected>Midjourney v6.1 (--ar 16:9 --v 6.1)</option>
+                  <option>FLUX.1 [dev] (Detailed Prompt)</option>
+                  <option>Stable Diffusion XL (SDXL Base + Refiner)</option>
+                  <option>DALL-E 3 (High Detail Descriptive)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Bottom Continuity Locks Strip -->
+            <div class="pt-2 border-t border-surface-high/60 flex items-center justify-between font-code text-xs">
+              <div class="flex items-center gap-5">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 accent-primary rounded bg-background border-surface-high"/>
+                  <span class="text-on-surface">Enforce Character Bible Consistency Locks (Marcus 42yo)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 accent-primary rounded bg-background border-surface-high"/>
+                  <span class="text-on-surface">Inject Location & Architecture Tokens (Pompeii 79 AD)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 accent-primary rounded bg-background border-surface-high"/>
+                  <span class="text-on-surface">Strict Negative Prompt Shield</span>
+                </label>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <span class="text-on-surface-variant">Estimated Count: <strong class="text-primary">59 Scenes</strong></span>
+                <span class="text-outline">•</span>
+                <span class="text-on-surface-variant">Batch Size: <strong class="text-secondary">6 Prompts / Chunk</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 2: COLLAPSIBLE STORY ANALYSIS & STORY BIBLE                   -->
+      <!-- ===================================================================== -->
+      <section id="sectionBible" class="w-full bg-surface rounded border border-surface-high flex flex-col shadow-sm">
+        <div class="w-full px-4 py-2.5 bg-surface-low border-b border-surface-high flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-secondary text-[18px]">auto_stories</span>
+            <span class="font-headline font-bold text-sm tracking-tight text-on-surface uppercase">STORY ANALYSIS & STORY BIBLE</span>
+            <span class="px-2 py-0.5 rounded bg-secondary/15 text-secondary font-code text-xs font-semibold border border-secondary/30">7 ENTITIES LOCKED</span>
+            <span class="text-xs text-on-surface-variant">Persistent visual anchors injected directly into every scene prompt</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button class="px-2.5 py-1 rounded bg-surface-high hover:bg-surface-highest border border-surface-high text-xs font-code text-on-surface flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px] text-secondary">edit</span> Edit Bible
+            </button>
+            <button class="w-6 h-6 rounded bg-background border border-surface-high flex items-center justify-center text-on-surface-variant hover:text-on-surface" onclick="toggleSection('bibleBody', 'bibleChevron')">
+              <span class="material-symbols-outlined text-[16px]" id="bibleChevron">expand_less</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="bibleBody" class="w-full p-4 grid grid-cols-12 gap-4">
+          <!-- Col 1: Protagonist Profile -->
+          <div class="col-span-4 bg-surface-low p-3.5 rounded border border-surface-high flex flex-col gap-2">
+            <div class="flex items-center justify-between border-b border-surface-high pb-1.5">
+              <span class="font-code text-xs font-bold text-primary uppercase flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[15px]">person</span> Main Character: Marcus
+              </span>
+              <span class="font-code text-[11px] text-tertiary">100% Scene Consistency</span>
+            </div>
+            <div class="flex flex-col gap-1 text-xs text-on-surface-variant font-body">
+              <div><strong class="text-on-surface font-code">Identity:</strong> Roman grain merchant, 42 years old.</div>
+              <div><strong class="text-on-surface font-code">Face & Hair:</strong> Weathered sun-browned skin, deep crow's feet, tightly curled grizzled dark brown hair, Roman aquiline nose.</div>
+              <div><strong class="text-on-surface font-code">Attire:</strong> Coarse off-white linen tunic, dark crimson wool border, fastened at left shoulder with an ancestral brass fibula clasp.</div>
+              <div class="mt-1 p-2 rounded bg-[#080c14] font-code text-[11px] text-secondary border border-surface-high">
+                <span class="text-outline">Token Anchor:</span> `marcus_roman_merchant_42yo, coiled_brass_fibula, coarse_linen_toga`
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 2: Locations & Historical Era -->
+          <div class="col-span-4 bg-surface-low p-3.5 rounded border border-surface-high flex flex-col gap-2">
+            <div class="flex items-center justify-between border-b border-surface-high pb-1.5">
+              <span class="font-code text-xs font-bold text-on-surface uppercase flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[15px]">apartment</span> Environments & Period
+              </span>
+              <span class="font-code text-[11px] text-on-surface-variant">Pompeii 79 AD</span>
+            </div>
+            <div class="flex flex-col gap-1 text-xs text-on-surface-variant font-body">
+              <div><strong class="text-on-surface font-code">Macro Setting:</strong> Ancient Pompeii forum, stone alleys & Herculaneum harbor basin.</div>
+              <div><strong class="text-on-surface font-code">Architecture:</strong> Fluted Doric stone colonnades, polychromatic fresco walls, dark basalt cobblestone streets.</div>
+              <div><strong class="text-on-surface font-code">Sky Evolution:</strong> Morning golden mist (7:00 AM) transitioning to sickly amber ash twilight, then complete Plinian blackout.</div>
+              <div class="mt-1 p-2 rounded bg-[#080c14] font-code text-[11px] text-on-surface border border-surface-high">
+                <span class="text-outline">Location Anchor:</span> `pompeii_stone_forum_79ad, basalt_streets, doric_colonnade`
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 3: Style Directives & Continuity Rules -->
+          <div class="col-span-4 bg-surface-low p-3.5 rounded border border-surface-high flex flex-col gap-2">
+            <div class="flex items-center justify-between border-b border-surface-high pb-1.5">
+              <span class="font-code text-xs font-bold text-tertiary uppercase flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[15px]">verified</span> Style Directives & Guards
+              </span>
+              <span class="font-code text-[11px] text-tertiary">STRICT ENFORCEMENT</span>
+            </div>
+            <div class="flex flex-col gap-1 text-xs text-on-surface-variant font-body">
+              <div><strong class="text-on-surface font-code">Renderer Emulation:</strong> Octane 3D CGI, soft clay subsurface scattering, raytraced volumetric dust, anamorphic lens flare.</div>
+              <div><strong class="text-on-surface font-code">Negative Guard:</strong> <span class="text-error font-code">anime, flat 2d, modern eyeglasses, asphalt, concrete, deformed hands, blurry faces</span>.</div>
+              <div><strong class="text-on-surface font-code">Props In Play:</strong> Terracotta amphorae with clay seals, bronze coin pouch, feather-filled linen pillows tied to heads.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 3: COLLAPSIBLE SCENE PLAN & TEMPORAL BREAKDOWN                -->
+      <!-- ===================================================================== -->
+      <section id="sectionPlan" class="w-full bg-surface rounded border border-surface-high flex flex-col shadow-sm">
+        <div class="w-full px-4 py-2.5 bg-surface-low border-b border-surface-high flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-[18px]">format_list_numbered</span>
+            <span class="font-headline font-bold text-sm tracking-tight text-on-surface uppercase">SCENE PLAN & TEMPORAL BREAKDOWN</span>
+            <span class="px-2 py-0.5 rounded bg-primary/20 text-primary font-code text-xs font-semibold border border-primary/30">59 SCENES SCHEDULED</span>
+            <span class="text-xs text-on-surface-variant">Pacing strictly bounded between 3.0s and 6.0s</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button class="px-2.5 py-1 rounded bg-surface-high hover:bg-surface-highest border border-surface-high text-xs font-code text-on-surface flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px] text-primary">download</span> Export Timeline (.json/.csv)
+            </button>
+            <button class="w-6 h-6 rounded bg-background border border-surface-high flex items-center justify-center text-on-surface-variant hover:text-on-surface" onclick="toggleSection('planBody', 'planChevron')">
+              <span class="material-symbols-outlined text-[16px]" id="planChevron">expand_more</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="planBody" class="hidden w-full overflow-x-auto">
+          <table class="w-full text-left font-code text-xs border-collapse">
+            <thead>
+              <tr class="bg-surface-high text-on-surface-variant border-b border-surface-high uppercase text-[10px]">
+                <th class="py-2 px-4">Scene #</th>
+                <th class="py-2 px-3">Timecode</th>
+                <th class="py-2 px-3">Duration</th>
+                <th class="py-2 px-4">Spoken Narration Reference</th>
+                <th class="py-2 px-4">Visual Goal & Framing</th>
+                <th class="py-2 px-4">Locked Entities</th>
+                <th class="py-2 px-4 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-high text-on-surface-variant">
+              <tr class="hover:bg-surface-low transition-colors">
+                <td class="py-2 px-4 font-bold text-primary">SCENE 01</td>
+                <td class="py-2 px-3 text-on-surface">00:00 - 00:04.25</td>
+                <td class="py-2 px-3 text-tertiary font-bold">4.25s</td>
+                <td class="py-2 px-4 italic text-on-surface">"It was the morning of August 24, 79 AD. Mount Vesuvius loomed..."</td>
+                <td class="py-2 px-4">Wide establishing panoramic shot over bay and tranquil volcano</td>
+                <td class="py-2 px-4"><span class="px-1.5 py-0.5 rounded bg-surface-high text-[11px]">Vesuvius</span></td>
+                <td class="py-2 px-4 text-right"><span class="text-tertiary font-bold">READY</span></td>
+              </tr>
+              <tr class="hover:bg-surface-low transition-colors">
+                <td class="py-2 px-4 font-bold text-primary">SCENE 02</td>
+                <td class="py-2 px-3 text-on-surface">00:04.25 - 00:08.10</td>
+                <td class="py-2 px-3 text-tertiary font-bold">3.85s</td>
+                <td class="py-2 px-4 italic text-on-surface">"In the bustling paved Forum of Pompeii, Marcus the grain merchant..."</td>
+                <td class="py-2 px-4">Medium tracking profile of Marcus adjusting brass fibula clasp</td>
+                <td class="py-2 px-4"><span class="px-1.5 py-0.5 rounded bg-surface-high text-[11px] text-secondary">Marcus</span></td>
+                <td class="py-2 px-4 text-right"><span class="text-tertiary font-bold">READY</span></td>
+              </tr>
+              <tr class="hover:bg-surface-low transition-colors">
+                <td class="py-2 px-4 font-bold text-primary">SCENE 03</td>
+                <td class="py-2 px-3 text-on-surface">00:08.10 - 00:12.05</td>
+                <td class="py-2 px-3 text-tertiary font-bold">3.95s</td>
+                <td class="py-2 px-4 italic text-on-surface">"The heavy basalt paving stones hummed with high-frequency tremor..."</td>
+                <td class="py-2 px-4">Macro ground-level shot of vibrating water inside terracotta amphorae</td>
+                <td class="py-2 px-4"><span class="px-1.5 py-0.5 rounded bg-surface-high text-[11px]">Amphorae</span></td>
+                <td class="py-2 px-4 text-right"><span class="text-tertiary font-bold">READY</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 4: GENERATED IMAGE PROMPTS MATRIX & TELEMETRY                 -->
+      <!-- ===================================================================== -->
+      <section id="sectionPrompts" class="w-full flex flex-col gap-3">
+        <!-- Control Header -->
+        <div class="w-full bg-surface-low rounded p-4 border border-surface-high flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded bg-primary/20 text-primary flex items-center justify-center border border-primary/30">
+                  <span class="material-symbols-outlined text-[18px]">photo_library</span>
+                </div>
+                <span class="font-headline font-bold text-base text-on-surface uppercase tracking-tight">GENERATED IMAGE PROMPTS MATRIX</span>
+              </div>
+              <!-- Stat Badges -->
+              <div class="flex items-center gap-2 font-code text-xs">
+                <div class="px-2.5 py-0.5 rounded bg-background border border-surface-high">
+                  <span class="text-on-surface-variant">Total:</span> <strong class="text-on-surface">59 Planned</strong>
+                </div>
+                <div class="px-2.5 py-0.5 rounded bg-background border border-surface-high">
+                  <span class="text-on-surface-variant">Batch:</span> <strong class="text-secondary">01 / 10</strong>
+                </div>
+                <div class="px-2.5 py-0.5 rounded bg-background border border-surface-high flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                  <span class="text-on-surface-variant">Generated:</span> <strong class="text-tertiary">59 / 59 (100%)</strong>
+                </div>
+                <div class="px-2.5 py-0.5 rounded bg-background border border-surface-high">
+                  <span class="text-on-surface-variant">Pacing:</span> <strong class="text-primary">3.28s - 5.02s</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 font-code text-xs">
+              <button class="px-3 py-1 rounded bg-background hover:bg-surface-high border border-surface-high text-on-surface font-medium flex items-center gap-1.5 transition-colors" onclick="copyAllPromptsText()">
+                <span class="material-symbols-outlined text-[14px] text-tertiary">content_copy</span>
+                <span>Copy All Prompts</span>
+              </button>
+              <button class="px-3 py-1 rounded bg-background hover:bg-surface-high border border-surface-high text-on-surface font-medium flex items-center gap-1.5 transition-colors" onclick="downloadPromptsTxt()">
+                <span class="material-symbols-outlined text-[14px] text-primary">download</span>
+                <span>Download Prompts (.txt)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar & Batch Controls -->
+          <div class="w-full pt-2 border-t border-surface-high/60 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1.5 rounded bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary/90 flex items-center gap-1.5 shadow-sm" onclick="triggerMainGeneration()">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+                <span>Regenerate All 59 Prompts</span>
+              </button>
+              <button class="px-3 py-1.5 rounded bg-surface-high hover:bg-surface-highest border border-surface-high text-on-surface font-code text-xs font-medium">
+                Regenerate Incomplete Only
+              </button>
+            </div>
+
+            <div class="flex items-center gap-4 font-code text-xs text-on-surface-variant">
+              <span>Groq LPU Latency: <strong class="text-tertiary">1.18s / prompt</strong></span>
+              <span class="text-outline">•</span>
+              <span>Model: <strong class="text-on-surface">qwen/qwen3.8-27b</strong></span>
+              <span class="text-outline">•</span>
+              <span>Visual Style: <strong class="text-secondary">3D Render & CGI</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STRICT PROMPT CARDS (6 PER ROW) -->
+        <div class="w-full flex flex-col gap-3" id="promptCardsGrid">
+          <div class="flex items-center justify-between px-1">
+            <div class="flex items-center gap-2">
+              <span class="font-code text-xs font-bold text-secondary uppercase tracking-wider">BATCH 01 // SCENES 01 TO 06</span>
+              <span class="h-3 w-px bg-surface-high"></span>
+              <span class="font-code text-xs text-on-surface-variant">Morning Peace, Marcus Introduction, & Early Tremors</span>
+            </div>
+            <span class="font-code text-xs text-tertiary">6 of 6 Prompts Validated (100%)</span>
+          </div>
+
+          <!-- The 6-Column Card Grid -->
+          <div class="grid grid-cols-6 gap-3 w-full">
+            <!-- CARD 01 -->
+            <div class="bg-surface p-3 rounded border border-surface-high hover:border-primary/60 transition-all flex flex-col justify-between group">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="font-code text-xs font-bold px-1.5 py-0.5 rounded bg-surface-high text-primary border border-surface-high">#01</span>
+                  <span class="font-code text-[11px] text-on-surface-variant">00:00 - 00:04.25</span>
+                  <span class="font-code text-[10px] px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary font-bold uppercase">4.25s</span>
+                </div>
+                <div class="font-headline font-semibold text-xs text-on-surface truncate" title="Establishing Wide Panoramic">Establishing Wide Panoramic</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-secondary">Vesuvius</span>
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-on-surface-variant">Bay of Naples</span>
+                </div>
+                <p class="font-body text-[11px] text-on-surface-variant italic line-clamp-2">"It was the morning of August 24, 79 AD. Mount Vesuvius loomed silently..."</p>
+                <!-- Prompt Code -->
+                <div class="p-2 rounded bg-[#080c14] border border-surface-high font-code text-[11px] text-on-surface h-24 overflow-y-auto leading-tight">
+                  <code>/imagine prompt: A cinematic wide establishing panoramic shot of ancient Pompeii in 79 AD, tranquil morning light illuminating Roman villas and Mount Vesuvius towering in background under clear azure sky, volumetric morning mist rolling over olive groves, Octane Render 3D photorealistic, hyper-detailed terracotta roofs, Panavision 35mm lens --ar 16:9 --v 6.1</code>
+                </div>
+              </div>
+              <div class="mt-2 pt-1.5 border-t border-surface-high flex items-center justify-between font-code text-xs">
+                <button class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface text-[11px] flex items-center gap-1" onclick="copyCardPrompt(this)">
+                  <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy
+                </button>
+                <div class="flex items-center gap-1 text-on-surface-variant">
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-primary" title="Regenerate"><span class="material-symbols-outlined text-[14px]">refresh</span></button>
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-secondary" title="Edit Prompt"><span class="material-symbols-outlined text-[14px]">edit</span></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 02 -->
+            <div class="bg-surface p-3 rounded border border-surface-high hover:border-primary/60 transition-all flex flex-col justify-between group">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="font-code text-xs font-bold px-1.5 py-0.5 rounded bg-surface-high text-primary border border-surface-high">#02</span>
+                  <span class="font-code text-[11px] text-on-surface-variant">00:04.25 - 00:08.10</span>
+                  <span class="font-code text-[10px] px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary font-bold uppercase">3.85s</span>
+                </div>
+                <div class="font-headline font-semibold text-xs text-on-surface truncate" title="Marcus Forum Introduction">Marcus Forum Introduction</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-primary">Marcus 42yo</span>
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-secondary">Forum Colonnade</span>
+                </div>
+                <p class="font-body text-[11px] text-on-surface-variant italic line-clamp-2">"In the bustling paved Forum of Pompeii, Marcus the grain merchant adjusted his coarse linen toga..."</p>
+                <div class="p-2 rounded bg-[#080c14] border border-surface-high font-code text-[11px] text-on-surface h-24 overflow-y-auto leading-tight">
+                  <code>/imagine prompt: Medium shot of Marcus, a 42-year-old Roman merchant with sun-weathered face, short dark curly hair, wearing an off-white linen toga secured by an intricate coiled brass fibula at left shoulder, standing amidst the stone Forum of Pompeii, bustling market background with merchants, 3D CGI photoreal --ar 16:9 --v 6.1</code>
+                </div>
+              </div>
+              <div class="mt-2 pt-1.5 border-t border-surface-high flex items-center justify-between font-code text-xs">
+                <button class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface text-[11px] flex items-center gap-1" onclick="copyCardPrompt(this)">
+                  <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy
+                </button>
+                <div class="flex items-center gap-1 text-on-surface-variant">
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-primary" title="Regenerate"><span class="material-symbols-outlined text-[14px]">refresh</span></button>
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-secondary" title="Edit Prompt"><span class="material-symbols-outlined text-[14px]">edit</span></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 03 -->
+            <div class="bg-surface p-3 rounded border border-surface-high hover:border-primary/60 transition-all flex flex-col justify-between group">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="font-code text-xs font-bold px-1.5 py-0.5 rounded bg-surface-high text-primary border border-surface-high">#03</span>
+                  <span class="font-code text-[11px] text-on-surface-variant">00:08.10 - 00:12.05</span>
+                  <span class="font-code text-[10px] px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary font-bold uppercase">3.95s</span>
+                </div>
+                <div class="font-headline font-semibold text-xs text-on-surface truncate" title="Tremor Reaction Macro">Tremor Reaction Macro</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-secondary">Basalt Road</span>
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-on-surface-variant">Amphorae</span>
+                </div>
+                <p class="font-body text-[11px] text-on-surface-variant italic line-clamp-2">"The heavy basalt paving stones hummed with an almost imperceptible tremor—water sloshed faintly..."</p>
+                <div class="p-2 rounded bg-[#080c14] border border-surface-high font-code text-[11px] text-on-surface h-24 overflow-y-auto leading-tight">
+                  <code>/imagine prompt: Close-up macro low-angle on ancient Pompeii dark basalt paving stones, water sloshing in fine ripples inside a rustic terracotta amphora on the stone ledge, dust particles dancing from micro-vibrations, morning golden hour side lighting, realistic fluid dynamics, Octane CGI 8k --ar 16:9 --v 6.1</code>
+                </div>
+              </div>
+              <div class="mt-2 pt-1.5 border-t border-surface-high flex items-center justify-between font-code text-xs">
+                <button class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface text-[11px] flex items-center gap-1" onclick="copyCardPrompt(this)">
+                  <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy
+                </button>
+                <div class="flex items-center gap-1 text-on-surface-variant">
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-primary" title="Regenerate"><span class="material-symbols-outlined text-[14px]">refresh</span></button>
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-secondary" title="Edit Prompt"><span class="material-symbols-outlined text-[14px]">edit</span></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 04 -->
+            <div class="bg-surface p-3 rounded border border-surface-high hover:border-primary/60 transition-all flex flex-col justify-between group">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="font-code text-xs font-bold px-1.5 py-0.5 rounded bg-surface-high text-primary border border-surface-high">#04</span>
+                  <span class="font-code text-[11px] text-on-surface-variant">00:12.05 - 00:16.15</span>
+                  <span class="font-code text-[10px] px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary font-bold uppercase">4.10s</span>
+                </div>
+                <div class="font-headline font-semibold text-xs text-on-surface truncate" title="Summit Plinian Breach">Summit Plinian Breach</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-error font-bold">Volcanic Blast</span>
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-on-surface-variant">Sky Breach</span>
+                </div>
+                <p class="font-body text-[11px] text-on-surface-variant italic line-clamp-2">"Above the summit, a sudden volcanic fracture tore the sky. A towering umbrella-pine eruption column..."</p>
+                <div class="p-2 rounded bg-[#080c14] border border-surface-high font-code text-[11px] text-on-surface h-24 overflow-y-auto leading-tight">
+                  <code>/imagine prompt: Epic cinematic wide angle of Mount Vesuvius violently erupting, massive Plinian umbrella-pine ash column rocketing 30km into the sky, fiery magma fissures illuminating dark billowing pyrocumulus, shockwave blowing through clouds, dramatic volumetric god-rays fractured by pumice dust, high-end VFX render --ar 16:9 --v 6.1</code>
+                </div>
+              </div>
+              <div class="mt-2 pt-1.5 border-t border-surface-high flex items-center justify-between font-code text-xs">
+                <button class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface text-[11px] flex items-center gap-1" onclick="copyCardPrompt(this)">
+                  <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy
+                </button>
+                <div class="flex items-center gap-1 text-on-surface-variant">
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-primary" title="Regenerate"><span class="material-symbols-outlined text-[14px]">refresh</span></button>
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-secondary" title="Edit Prompt"><span class="material-symbols-outlined text-[14px]">edit</span></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 05 -->
+            <div class="bg-surface p-3 rounded border border-surface-high hover:border-primary/60 transition-all flex flex-col justify-between group">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="font-code text-xs font-bold px-1.5 py-0.5 rounded bg-surface-high text-primary border border-surface-high">#05</span>
+                  <span class="font-code text-[11px] text-on-surface-variant">00:16.15 - 00:20.40</span>
+                  <span class="font-code text-[10px] px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary font-bold uppercase">4.25s</span>
+                </div>
+                <div class="font-headline font-semibold text-xs text-on-surface truncate" title="Midday Obsidian Gloom">Midday Obsidian Gloom</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-secondary">Ash Canopy</span>
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-on-surface-variant">Market Terror</span>
+                </div>
+                <p class="font-body text-[11px] text-on-surface-variant italic line-clamp-2">"Turning midday Mediterranean sunlight into pitch-black suffocating obsidian gloom. The earth groaned..."</p>
+                <div class="p-2 rounded bg-[#080c14] border border-surface-high font-code text-[11px] text-on-surface h-24 overflow-y-auto leading-tight">
+                  <code>/imagine prompt: Dramatic eye-level tracking shot of Roman citizens freezing in terror in the Pompeii Forum, Marcus clutching his ledger chest as dark grey ash rain begins to fall, daylight fading into sickly amber twilight, fluted columns covered in light pumice grit, atmospheric dread, 3D CGI photoreal --ar 16:9 --v 6.1</code>
+                </div>
+              </div>
+              <div class="mt-2 pt-1.5 border-t border-surface-high flex items-center justify-between font-code text-xs">
+                <button class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface text-[11px] flex items-center gap-1" onclick="copyCardPrompt(this)">
+                  <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy
+                </button>
+                <div class="flex items-center gap-1 text-on-surface-variant">
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-primary" title="Regenerate"><span class="material-symbols-outlined text-[14px]">refresh</span></button>
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-secondary" title="Edit Prompt"><span class="material-symbols-outlined text-[14px]">edit</span></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 06 -->
+            <div class="bg-surface p-3 rounded border border-surface-high hover:border-primary/60 transition-all flex flex-col justify-between group">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="font-code text-xs font-bold px-1.5 py-0.5 rounded bg-surface-high text-primary border border-surface-high">#06</span>
+                  <span class="font-code text-[11px] text-on-surface-variant">00:20.40 - 00:24.30</span>
+                  <span class="font-code text-[10px] px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary font-bold uppercase">3.90s</span>
+                </div>
+                <div class="font-headline font-semibold text-xs text-on-surface truncate" title="Pumice Roof Hail">Pumice Roof Hail</div>
+                <div class="flex flex-wrap gap-1">
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-secondary">Villa Roofs</span>
+                  <span class="px-1 py-0.2 rounded bg-background font-code text-[10px] text-on-surface-variant">Pumice Hail</span>
+                </div>
+                <p class="font-body text-[11px] text-on-surface-variant italic line-clamp-2">"Pumice stones rained like white hail onto tiled roofs, shattering terracotta shingles..."</p>
+                <div class="p-2 rounded bg-[#080c14] border border-surface-high font-code text-[11px] text-on-surface h-24 overflow-y-auto leading-tight">
+                  <code>/imagine prompt: Dynamic angle looking up at Pompeii villa clay tiled rooftops being hammered by falling white pumice stones, roof tiles cracking under weight, clouds of pulverized stone dust exploding on impact, heavy falling debris streaks, cinematic action shutter speed, harsh directional lightning flash --ar 16:9 --v 6.1</code>
+                </div>
+              </div>
+              <div class="mt-2 pt-1.5 border-t border-surface-high flex items-center justify-between font-code text-xs">
+                <button class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface text-[11px] flex items-center gap-1" onclick="copyCardPrompt(this)">
+                  <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy
+                </button>
+                <div class="flex items-center gap-1 text-on-surface-variant">
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-primary" title="Regenerate"><span class="material-symbols-outlined text-[14px]">refresh</span></button>
+                  <button class="p-1 rounded hover:bg-surface-high hover:text-secondary" title="Edit Prompt"><span class="material-symbols-outlined text-[14px]">edit</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 5: SUBTITLES, VIDEO MOTION & FINAL 1-CLICK RENDER BAR         -->
+      <!-- ===================================================================== -->
+      <section id="sectionRender" class="w-full bg-surface-low rounded border border-surface-high p-4 flex flex-col gap-3 shadow-md">
+        <div class="flex items-center justify-between border-b border-surface-high pb-2">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[20px]">movie</span>
+            <span class="font-headline font-bold text-sm uppercase tracking-tight text-on-surface">SUBTITLES, KEN BURNS MOTION & FINAL VIDEO RENDER</span>
+            <span class="font-code text-xs text-on-surface-variant">• 1-Click Hardware-Accelerated MP4 Export</span>
+          </div>
+
+          <div class="flex items-center gap-2 font-code text-xs">
+            <span>Target Output: <strong class="text-on-surface">1920x1080 (16:9 30fps)</strong></span>
+            <span class="text-outline">•</span>
+            <span>Total Duration: <strong class="text-tertiary">04:07.45</strong></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-4 items-center">
+          <!-- Subtitle Preset Selector -->
+          <div class="col-span-4 flex flex-col gap-1 font-code text-xs">
+            <label class="text-on-surface-variant uppercase font-medium text-[10px]">Karaoke Subtitle Style Preset</label>
+            <select class="w-full bg-[#080c14] border border-surface-high text-on-surface px-2.5 py-1.5 rounded focus:outline-none focus:border-primary">
+              <option selected>🔥 Hormozi Viral (Bold Impact + Bright Yellow Active Word)</option>
+              <option>🎬 Cinematic Gold (Warm Gold Montserrat + Soft Shadow)</option>
+              <option>⚡ Neon Cyberpunk (Electric Cyan & Lime Glow)</option>
+              <option>💥 MrBeast Bold (High-Energy Red & Yellow Stroke)</option>
+              <option>✨ Minimalist Modern (Clean White Sans-Serif)</option>
+              <option>⬛ Dark Boxed (Translucent Slate Card Backplate)</option>
+            </select>
+          </div>
+
+          <!-- Motion & Overlay -->
+          <div class="col-span-4 flex flex-col gap-1 font-code text-xs">
+            <label class="text-on-surface-variant uppercase font-medium text-[10px]">Camera Motion & Cinematic FX</label>
+            <div class="grid grid-cols-2 gap-2">
+              <select class="w-full bg-[#080c14] border border-surface-high text-on-surface px-2 py-1.5 rounded focus:outline-none">
+                <option selected>🎬 Alternating Zoom In/Out</option>
+                <option>Slow Zoom In (Dramatic)</option>
+                <option>Slow Pan Left to Right</option>
+                <option>Static (No Camera Motion)</option>
+              </select>
+              <div class="flex items-center gap-3 px-2 py-1 bg-[#080c14] border border-surface-high rounded">
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 accent-primary"/>
+                  <span class="text-[11px] text-on-surface">2.35:1 Bar</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="checkbox" checked class="w-3.5 h-3.5 accent-primary"/>
+                  <span class="text-[11px] text-on-surface">Vignette</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Big Render Button -->
+          <div class="col-span-4 flex items-center justify-end gap-2">
+            <button class="px-4 py-2 rounded bg-surface-high hover:bg-surface-highest border border-surface-high font-headline text-xs font-semibold text-on-surface flex items-center gap-1.5 transition-colors">
+              <span class="material-symbols-outlined text-[16px] text-primary">preview</span>
+              <span>Preview Live Video</span>
+            </button>
+            <button class="px-5 py-2.5 rounded bg-tertiary text-on-primary font-headline text-sm font-bold hover:bg-tertiary/90 flex items-center gap-2 shadow-lg transition-all" onclick="renderVideo()">
+              <span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+              <span>RENDER FINAL VIDEO (MP4)</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: VISUAL STYLE GALLERY & PROMPT PREVIEWER                            -->
+  <!-- ========================================================================= -->
+  <div id="styleModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-surface rounded-lg border border-surface-high w-full max-w-3xl flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Modal Header -->
+      <div class="px-4 py-3 bg-surface-low border-b border-surface-high flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[20px]">palette</span>
+          <span class="font-headline font-bold text-sm text-on-surface uppercase">Visual Style Gallery & Prompt Blueprint</span>
+        </div>
+        <button class="w-7 h-7 rounded bg-background border border-surface-high flex items-center justify-center text-on-surface-variant hover:text-on-surface" onclick="closeStylePreviewModal()">
+          <span class="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 flex flex-col gap-4">
+        <!-- Style Image Display -->
+        <div class="w-full h-72 rounded-lg bg-[#080c14] border border-surface-high flex items-center justify-center overflow-hidden relative group">
+          <img id="modalStyleImage" src="../app/assets/style_previews/3d_render.png" class="w-full h-full object-contain" alt="Style Preview"/>
+          <div class="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-black/70 backdrop-blur-md border border-white/10 font-code text-xs text-primary font-semibold">
+            <span id="modalStyleBadge">3D Render & CGI (Pixar/Octane)</span>
+          </div>
+        </div>
+
+        <!-- Description Box -->
+        <div class="p-3 rounded bg-surface-low border border-surface-high flex flex-col gap-1">
+          <span class="font-headline font-semibold text-xs text-primary" id="modalStyleTitle">3D Render & CGI (Feature Animation)</span>
+          <p class="font-body text-xs text-on-surface-variant" id="modalStyleDesc">
+            High-end 3D animated CGI render with subsurface scattering and studio lighting (Pixar / Dreamworks style).
+          </p>
+        </div>
+
+        <!-- Blueprint Code Box -->
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center justify-between">
+            <span class="font-code text-xs text-secondary font-semibold">Hidden AI Image Prompt Blueprint (System Instructions):</span>
+            <button class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-primary font-code text-[11px] font-semibold" onclick="copyModalInstructions()">
+              📋 Copy Blueprint
+            </button>
+          </div>
+          <div class="p-2.5 rounded bg-[#080c14] border border-surface-high font-code text-xs text-on-surface-variant h-20 overflow-y-auto leading-relaxed" id="modalStyleInstructions">
+            Render as a high-end 3D animated feature film still. Appealing stylized proportions, soft subsurface scattering on skin, rich tactile materials (brushed metal, polished wood, woven cloth), vibrant cinematic 3-point studio lighting, creamy depth of field bokeh, Pixar and Octane Render quality.
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-4 py-3 bg-surface-low border-t border-surface-high flex items-center justify-between">
+        <div class="flex items-center gap-1.5 font-code text-xs">
+          <button class="px-2.5 py-1 rounded bg-background border border-surface-high text-on-surface hover:bg-surface-high" onclick="prevModalStyle()">◀ Prev</button>
+          <button class="px-2.5 py-1 rounded bg-background border border-surface-high text-on-surface hover:bg-surface-high" onclick="nextModalStyle()">Next ▶</button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-1.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface font-code text-xs" onclick="closeStylePreviewModal()">Close</button>
+          <button class="px-4 py-1.5 rounded bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary/90" onclick="applyModalStyle()">
+            ✅ Apply This Style
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- PERSISTENT FOOTER STATUS BAR                                              -->
+  <!-- ========================================================================= -->
+  <footer class="fixed bottom-0 left-0 right-0 h-7 bg-[#080c14] border-t border-surface-high/60 z-50 flex items-center justify-between px-4 font-code text-[11px]">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1.5 text-on-surface-variant">
+        <span class="w-2 h-2 rounded-full bg-tertiary"></span>
+        <span>Engine: <strong class="text-on-surface">PromptBeast Local v2.0</strong></span>
+      </div>
+      <div class="h-3 w-px bg-surface-high"></div>
+      <div class="flex items-center gap-1 text-on-surface-variant">
+        <span>Active Model:</span> <strong class="text-primary">qwen/qwen3.8-27b (Groq 11-Key Array)</strong>
+      </div>
+      <div class="h-3 w-px bg-surface-high"></div>
+      <div class="flex items-center gap-1 text-on-surface-variant">
+        <span>Scenes:</span> <strong class="text-tertiary">59 / 59 Validated</strong>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-1 text-on-surface-variant">
+        <span>Pacing Rule:</span> <strong class="text-secondary">3.0s – 6.0s Strict</strong>
+      </div>
+      <div class="h-3 w-px bg-surface-high"></div>
+      <div class="flex items-center gap-1 text-on-surface-variant">
+        <span>Latency:</span> <strong class="text-tertiary">825ms</strong>
+      </div>
+      <div class="h-3 w-px bg-surface-high"></div>
+      <div class="text-on-surface-variant">
+        <span>UTF-8 Windows Local</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT JAVASCRIPT LOGIC                                                   -->
+  <!-- ========================================================================= -->
+  <script>
+    const STYLES_DATA = {
+      "3d_render": {
+        name: "3D Render & CGI",
+        category: "3D CGI (Pixar/Octane)",
+        desc: "High-end 3D animated CGI render with soft subsurface scattering and studio lighting.",
+        instructions: "Render as a high-end 3D animated feature film still. Appealing stylized proportions, soft subsurface scattering on skin, rich tactile materials, vibrant cinematic 3-point studio lighting, creamy depth of field bokeh, Pixar and Octane Render quality.",
+        image: "../app/assets/style_previews/3d_render.png"
+      },
+      "stick_figure": {
+        name: "Stick Figure Animation",
+        category: "2D Animation",
+        desc: "Clean, viral 2D stick figure animation with expressive poses and chalkboard aesthetic.",
+        instructions: "Create a clean 2D viral stick-figure educational explainer illustration. Simple expressive stick figure with black line anatomy, white vector chalk lines on a dark slate chalkboard background, dynamic readable poses, clear infographics diagrams, MinutePhysics visual style.",
+        image: "../app/assets/style_previews/stick_figure.png"
+      },
+      "history_painting": {
+        name: "Old History Painting",
+        category: "Fine Art Masterpiece",
+        desc: "Monumental 19th-century academic neoclassical or romantic oil masterpiece.",
+        instructions: "Render as a monumental 19th-century history oil painting in the grand academic tradition of Jacques-Louis David, Delacroix, and Jean-Léon Gérôme. Rich impasto oil paint texture, dramatic Caravaggio chiaroscuro lighting, deep theatrical shadow glazes, classical proportions, museum masterwork quality.",
+        image: "../app/assets/style_previews/history_painting.png"
+      },
+      "2d_animation": {
+        name: "2D Vector & Cartoon",
+        category: "Modern Flat Animation",
+        desc: "Modern vibrant flat vector illustration with rich geometric palettes (Kurzgesagt style).",
+        instructions: "Illustrate in a modern, vibrant 2D vector animation style inspired by Kurzgesagt and Polymatter. Bold flat shapes, clean geometric silhouettes, rich saturated color gradients, subtle starfield particle effects, highly polished explainer graphic aesthetic.",
+        image: "../app/assets/style_previews/2d_animation.png"
+      },
+      "photorealistic": {
+        name: "Realistic DSLR Photography",
+        category: "8K Photorealism",
+        desc: "Ultra-sharp 8K lifelike photography with authentic optical depth and natural light.",
+        instructions: "Produce an ultra-sharp, lifelike modern digital photograph. Precise optical focus, authentic skin pores and micro-textures, balanced dynamic range, natural ambient lighting, 85mm f/1.4 lens depth of field with realistic background blur, Hasselblad 8k documentary clarity.",
+        image: "../app/assets/style_previews/photorealistic.jpg"
+      },
+      "midjourney_hyper_realism": {
+        name: "Midjourney Viral Hyper-Realism",
+        category: "Cinematic & Viral",
+        desc: "Unreal Engine 5 cinematic render with volumetric god rays and anamorphic film lens.",
+        instructions: "Render in high-end Midjourney cinematic hyper-realism. Unreal Engine 5 octane render look, 8k resolution, photorealistic micro-details, dramatic volumetric atmospheric haze, anamorphic lens flare, shallow depth of field with creamy bokeh, color graded like a blockbuster cinematic film.",
+        image: "../app/assets/style_previews/midjourney_hyper_realism.jpg"
+      },
+      "anime_ghibli": {
+        name: "Studio Ghibli Anime",
+        category: "Anime & Lofi",
+        desc: "Hand-painted watercolor background, nostalgic warm sunlight, whimsical cel animation.",
+        instructions: "Create in the iconic Studio Ghibli hand-painted anime aesthetic. Lush painted background landscapes, whimsical vibrant cumulus clouds, nostalgic warm late-afternoon sunlight, gentle watercolor textures, hand-drawn character cel animation style, emotionally resonant viral lofi storytelling mood.",
+        image: "../app/assets/style_previews/anime_ghibli.png"
+      },
+      "isometric_3d": {
+        name: "Isometric 3D Explainer",
+        category: "3D & Educational",
+        desc: "Miniature isometric diorama with matte clay materials and tilt-shift camera (Vox style).",
+        instructions: "Construct as an isometric 3D miniature diorama. Clean geometric architectural shapes, smooth tactile matte clay materials, soft diffused studio light with gentle pastel ambient occlusion, tilt-shift miniature camera perspective.",
+        image: "../app/assets/style_previews/isometric_3d.png"
+      },
+      "dark_fantasy": {
+        name: "Dark Fantasy Gothic",
+        category: "Dark & Atmospheric",
+        desc: "Ethereal dark fantasy with deep brooding shadows, mist, and dying embers (Elden style).",
+        instructions: "Depict in a brooding Dark Fantasy Gothic visual aesthetic inspired by Elden Ring and classic dark romanticism. Heavy chiaroscuro lighting, deep cavernous shadows, pale moonlight or dying ember glow, weathered ancient architecture, eerie fog, desaturated color palette with intense focal accents.",
+        image: "../app/assets/style_previews/dark_fantasy.png"
+      },
+      "retro_pop_art": {
+        name: "Retro Comic & Pop Art",
+        category: "Graphic & Stylized",
+        desc: "Vintage Roy Lichtenstein pop art with bold ink outlines and Ben-Day halftone dots.",
+        instructions: "Illustrate as a vintage 1960s pop art comic book panel. Bold black ink linework, visible colored Ben-Day halftone dot printing pattern, dynamic action angles, saturated CMYK primary palette, paper texture grain.",
+        image: "../app/assets/style_previews/retro_pop_art.png"
+      },
+      "claymation": {
+        name: "Claymation & Stop Motion",
+        category: "Tactile Animation",
+        desc: "Handmade plasticine clay with visible thumbprints and warm macro studio lighting.",
+        instructions: "Render in authentic handmade plasticine clay stop-motion style. Visible hand-sculpted clay fingerprints, slightly imperfect tactile surfaces, miniature scale props, shallow macro depth of field, warm directional studio incandescent lighting, Aardman and viral stop-motion aesthetic.",
+        image: "../app/assets/style_previews/claymation.png"
+      },
+      "vintage_photograph": {
+        name: "Century-Old Photograph",
+        category: "Archival Vintage",
+        desc: "Authentic 1900s archival photograph with silver gelatin sepia tones and aged emulsion.",
+        instructions: "Produce an authentic early 20th-century archival photograph. Aged silver gelatin print with subtle sepia toning, realistic physical emulsion grain, soft lens corner vignetting, subtle chemical fading, historically accurate antique plate camera characteristics.",
+        image: "../app/assets/style_previews/vintage_photograph.png"
+      },
+      "watercolor": {
+        name: "Watercolor Storybook",
+        category: "Fine Art Storybook",
+        desc: "Soft flowing wet-on-wet pigments on textured cold-press cotton paper.",
+        instructions: "Illustrate in delicate, luminous watercolor storybook art. Soft wet-on-wet pigment blooms, textured cold-press cotton rag paper grain, gentle bleeding edges, elegant ink line accents, dreamy atmospheric washes, evocative fairytale storybook illustration style.",
+        image: "../app/assets/style_previews/watercolor.png"
+      }
+    };
+
+    let currentSelectedStyleKey = "3d_render";
+
+    function setSourceMode(mode) {
+      const btnScript = document.getElementById('btnModeScript');
+      const btnAudio = document.getElementById('btnModeAudio');
+      const paneScript = document.getElementById('paneScript');
+      const paneAudio = document.getElementById('paneAudio');
+
+      if (mode === 'script') {
+        btnScript.className = "px-3 py-1 rounded font-medium bg-surface-high text-primary border border-primary/30 flex items-center gap-1.5 transition-all";
+        btnAudio.className = "px-3 py-1 rounded font-medium text-on-surface-variant hover:text-on-surface flex items-center gap-1.5 transition-all";
+        paneScript.classList.remove('hidden');
+        paneAudio.classList.add('hidden');
+      } else {
+        btnAudio.className = "px-3 py-1 rounded font-medium bg-surface-high text-primary border border-primary/30 flex items-center gap-1.5 transition-all";
+        btnScript.className = "px-3 py-1 rounded font-medium text-on-surface-variant hover:text-on-surface flex items-center gap-1.5 transition-all";
+        paneAudio.classList.remove('hidden');
+        paneScript.classList.add('hidden');
+      }
+    }
+
+    function toggleSection(bodyId, chevronId) {
+      const el = document.getElementById(bodyId);
+      const ch = document.getElementById(chevronId);
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        ch.textContent = 'expand_less';
+      } else {
+        el.classList.add('hidden');
+        ch.textContent = 'expand_more';
+      }
+    }
+
+    function toggleAllSections() {
+      ['sourceBody', 'bibleBody', 'planBody'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.toggle('hidden');
+      });
+    }
+
+    function onStyleChanged(val) {
+      currentSelectedStyleKey = val;
+      const s = STYLES_DATA[val];
+      if (s) {
+        document.getElementById('activeStyleSummary').textContent = s.name;
+      }
+    }
+
+    function openStylePreviewModal() {
+      const modal = document.getElementById('styleModal');
+      modal.classList.remove('hidden');
+      updateModalContent(currentSelectedStyleKey);
+    }
+
+    function closeStylePreviewModal() {
+      document.getElementById('styleModal').classList.add('hidden');
+    }
+
+    function updateModalContent(key) {
+      const s = STYLES_DATA[key];
+      if (!s) return;
+      document.getElementById('modalStyleBadge').textContent = s.name + " (" + s.category + ")";
+      document.getElementById('modalStyleTitle').textContent = s.name;
+      document.getElementById('modalStyleDesc').textContent = s.desc;
+      document.getElementById('modalStyleInstructions').textContent = s.instructions;
+      document.getElementById('modalStyleImage').src = s.image;
+    }
+
+    function prevModalStyle() {
+      const keys = Object.keys(STYLES_DATA);
+      let idx = keys.indexOf(currentSelectedStyleKey);
+      idx = (idx - 1 + keys.length) % keys.length;
+      currentSelectedStyleKey = keys[idx];
+      updateModalContent(currentSelectedStyleKey);
+    }
+
+    function nextModalStyle() {
+      const keys = Object.keys(STYLES_DATA);
+      let idx = keys.indexOf(currentSelectedStyleKey);
+      idx = (idx + 1) % keys.length;
+      currentSelectedStyleKey = keys[idx];
+      updateModalContent(currentSelectedStyleKey);
+    }
+
+    function applyModalStyle() {
+      document.getElementById('selectStyle').value = currentSelectedStyleKey;
+      onStyleChanged(currentSelectedStyleKey);
+      closeStylePreviewModal();
+    }
+
+    function copyCardPrompt(btn) {
+      const card = btn.closest('.group');
+      const code = card.querySelector('code');
+      if (code) {
+        navigator.clipboard.writeText(code.innerText.trim()).then(() => {
+          const orig = btn.innerHTML;
+          btn.innerHTML = '<span class="material-symbols-outlined text-[12px] text-tertiary">check</span> Copied';
+          setTimeout(() => { btn.innerHTML = orig; }, 1800);
+        });
+      }
+    }
+
+    function copyAllPromptsText() {
+      const codes = document.querySelectorAll('#promptCardsGrid code');
+      let full = "";
+      codes.forEach((c, i) => {
+        full += `[SCENE ${i + 1}]\n${c.innerText.trim()}\n\n`;
+      });
+      navigator.clipboard.writeText(full).then(() => {
+        alert("All prompts copied to clipboard in standard format.");
+      });
+    }
+
+    function downloadPromptsTxt() {
+      const codes = document.querySelectorAll('#promptCardsGrid code');
+      let full = "";
+      codes.forEach((c, i) => {
+        full += `[SCENE ${i + 1}]\n${c.innerText.trim()}\n\n`;
+      });
+      const blob = new Blob([full], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'image_prompts.txt';
+      a.click();
+    }
+
+    function copyModalInstructions() {
+      const text = document.getElementById('modalStyleInstructions').innerText.trim();
+      navigator.clipboard.writeText(text);
+      alert("Style system prompt blueprint copied to clipboard!");
+    }
+
+    function triggerMainGeneration() {
+      alert("Inference triggered via Groq Qwen 27B LPU Array. Processing 59 scenes strictly bounded between 3.0s and 6.0s duration.");
+    }
+
+    function renderVideo() {
+      alert("Hardware-accelerated MP4 render initiated with FFmpeg! Karaoke subtitles and Ken Burns motion will be compiled into output video.");
+    }
+
+    function openProjectHistory() {
+      alert("Opening Project Workspace Browser (Projects: The Last Dawn of Pompeii, Rome Cataclysm, etc.)");
+    }
+
+    function clearScriptText() {
+      if (confirm("Are you sure you want to clear the narration script?")) {
+        document.getElementById('storyTextarea').value = "";
+      }
+    }
+  </script>
+</body>
+</html>
+

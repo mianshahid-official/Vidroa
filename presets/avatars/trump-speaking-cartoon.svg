@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg_trumpsp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E1B4B"/>
+      <stop offset="50%" stop-color="#312E81"/>
+      <stop offset="100%" stop-color="#0F0C2E"/>
+    </linearGradient>
+    <linearGradient id="golden_hair2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A"/>
+      <stop offset="60%" stop-color="#FACC15"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <linearGradient id="red_tie2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DC2626"/>
+      <stop offset="100%" stop-color="#991B1B"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg_trumpsp)"/>
+  <!-- Dynamic Speech Waves -->
+  <path d="M 78 40 Q 88 46 78 52" fill="none" stroke="#FDE047" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 84 34 Q 96 46 84 58" fill="none" stroke="#FDE047" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <!-- Hair & Profile -->
+  <path d="M 38 42 C 38 24 50 18 72 20 C 82 21 86 28 85 36 C 81 33 70 30 60 32 C 50 34 44 38 42 45 Z" fill="url(#golden_hair2)"/>
+  <circle cx="58" cy="46" r="14" fill="#FED7AA"/>
+  <!-- Navy Suit & Red Tie -->
+  <path d="M 34 94 C 34 74 44 68 58 68 C 72 68 82 74 82 94 Z" fill="#1E293B" stroke="#334155" stroke-width="2"/>
+  <polygon points="52,68 58,74 64,68" fill="#FFFFFF"/>
+  <polygon points="56,74 60,74 62,94 54,94" fill="url(#red_tie2)"/>
+  <!-- Podium Golden Mic -->
+  <rect x="74" y="66" width="6" height="12" rx="3" fill="#FACC15"/>
+  <line x1="77" y1="78" x2="77" y2="90" stroke="#CBD5E1" stroke-width="2"/>
+</svg>

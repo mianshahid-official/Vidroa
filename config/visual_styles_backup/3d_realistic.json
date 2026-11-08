@@ -1,0 +1,7 @@
+{
+  "id": "3d_realistic",
+  "name": "3D Realistic",
+  "category": "3D & CGI",
+  "description": "Physically-based 3D CGI rendering with photorealistic shaders and global illumination.",
+  "system_instructions": "Produce as high-end physically-based 3D computer graphics. Raytraced global illumination, micro-surface roughness, accurate refractive caustics, volumetric lighting, and hyper-detailed photorealistic asset modeling."
+}
