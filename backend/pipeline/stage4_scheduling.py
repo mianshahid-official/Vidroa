@@ -374,15 +374,24 @@ class Stage4TemporalScheduler:
 
                 if beat_words:
                     last_w = beat_words[-1]
+                    prev_w = beat_words[-2] if len(beat_words) >= 2 else None
+                    expected_en = cur_w_idx + len(beat_words) - 1
                     min_step = max(1, len(beat_words) // 2)
                     max_step = min(total_words - (num_beats - b_idx - 1), cur_w_idx + max(len(beat_words) + 12, 28))
                     match_found = False
 
+                    candidates = []
                     for s_idx in range(cur_w_idx + min_step, max_step):
-                        if raw_words[s_idx] == last_w:
-                            en_idx = s_idx
-                            match_found = True
-                            break
+                        if raw_words[s_idx] == last_w and is_valid_split_point([w.word for w in words], s_idx):
+                            if prev_w and s_idx > cur_w_idx and raw_words[s_idx - 1] == prev_w:
+                                candidates.append((0, abs(s_idx - expected_en), s_idx))
+                            else:
+                                candidates.append((1, abs(s_idx - expected_en), s_idx))
+
+                    if candidates:
+                        candidates.sort()
+                        en_idx = candidates[0][2]
+                        match_found = True
 
                     if not match_found:
                         rem_beats = num_beats - b_idx

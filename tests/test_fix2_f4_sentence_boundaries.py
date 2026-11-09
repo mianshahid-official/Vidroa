@@ -474,3 +474,74 @@ def test_stage4_skips_invalid_comma_and_extends_past_8s_without_cutting_at_worse
     assert words_list[split_pt] != "worse,"
     assert split_pt == either_idx
     assert words_list[split_pt] == "either."
+
+
+def test_stage4_does_not_prematurely_match_unpunctuated_word_mid_sentence():
+    """
+    Regression test for Scene #078 cutting mid-sentence at 'You':
+    Transcript:
+    'He drops bleeding onto the tile. There is no time to be angry.
+     You haul him up and drag him up the hidden stairs, locking each chain fire door behind you.'
+
+    The beat ends with 'behind you.'.
+    A naive search for the word 'you' finds 'You' at the start of 'You haul him up...'
+    which has no punctuation and cuts the scene mid-sentence.
+    Verifies that the timestamp alignment:
+    1. Rejects unpunctuated mid-sentence matches.
+    2. Matches the true sentence boundary ending at 'behind you.'.
+    3. assert_sentence_boundary_validity passes with no scene ending on 'You'.
+    """
+    beat_text = (
+        "He drops bleeding onto the tile. There is no time to be angry. "
+        "You haul him up and drag him up the hidden stairs, locking each chain fire door behind you."
+    )
+    words_list = beat_text.split()
+    words = []
+    t = 0.0
+    for w in words_list:
+        dur = 0.35
+        words.append(WordTimestamp(word=w, start=t, end=round(t + dur, 2)))
+        t = round(t + dur + 0.05, 2)
+
+    total_dur = words[-1].end
+    narration_data = NarrationData(
+        duration_seconds=total_dur,
+        words=words,
+        transcript=beat_text
+    )
+
+    plan = VisualBeatPlan(
+        visual_beats=[
+            VisualBeat(
+                beat_id="VB-001",
+                exact_narration_segment=beat_text,
+                narrative_purpose="Escaping up the stairs",
+                primary_visual_concept="Survivor hauling injured comrade up stairs",
+                what_new_information_is_shown="Injury and retreat",
+                composition="Tracking medium shot",
+                lighting_and_atmosphere="Emergency shadows",
+                why_this_is_not_repetitive="Climax of evacuation",
+                continuity_references=[]
+            )
+        ]
+    )
+
+    storyboard = Stage4TemporalScheduler.execute(
+        engine=None,
+        visual_plan=plan,
+        narration=narration_data,
+        story_text=beat_text,
+        total_audio_duration=total_dur
+    )
+
+    # Must NOT cut on unpunctuated 'You'
+    for sc in storyboard.scenes:
+        assert not sc.narration_text.strip().endswith("angry. You")
+        assert not sc.narration_text.strip().endswith(" You")
+        assert sc.narration_text.strip()[-1] in [".", "!", "?", ";", ",", "—", "–"]
+
+    # Final scene terminates at 'behind you.'
+    assert storyboard.scenes[-1].narration_text.strip().endswith("behind you.")
+
+    # Invariant validator must pass cleanly
+    assert_sentence_boundary_validity(storyboard.scenes)
