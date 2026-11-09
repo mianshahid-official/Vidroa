@@ -297,7 +297,8 @@ class Stage4TemporalScheduler:
             summary1 = derive_progressive_subsegment_concept(last.visual_summary, w_part1, 0, 2)
             summary2 = derive_progressive_subsegment_concept(last.visual_summary, w_part2, 1, 2)
 
-            last_narr_ids = list(last.source_narrative_beat_ids) if last.source_narrative_beat_ids else ["BEAT-040"]
+            fallback_last_beat_id = f"BEAT-{len(visual_plan.visual_beats):03d}" if visual_plan and visual_plan.visual_beats else "BEAT-001"
+            last_narr_ids = list(last.source_narrative_beat_ids) if last.source_narrative_beat_ids else [fallback_last_beat_id]
             last_vis_ids = list(last.source_visual_beat_ids) if last.source_visual_beat_ids else [last.beat_id]
 
             idx1 = len(final_scenes) + 1

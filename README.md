@@ -27,6 +27,7 @@ Built with a modern obsidian and neon glassmorphism UI (`#080D14` canvas, `#A6FF
 - **Auto-Project Creation**: Automatically transcribes your audio, extracts the first few spoken words, appends the current date & time, and provisions the project workspace folder in `./projects/`.
 - **Sub-Second Word-Level Synchronization**: Uses `faster-whisper` and Groq Whisper Cloud to align every spoken token to exact millisecond timestamps.
 - **8-Stage Storyboard Pipeline**: Automated story decomposition, character continuity bible, visual beat planning, audio word-timestamp scheduling, cinematic prompt generation, forensic audit, surgical replanning, and release gate invariant validation.
+- **Subject-Agnostic & Opt-In Story Packs**: Fully domain-agnostic architecture suitable for horror, science, fiction, and documentaries; specialized historical story packs are quarantined and strictly opt-in.
 - **Deterministic Release Gate**: Zero timeline gaps, zero negative overlaps, zero duplicate boundary words, and pacing enforcement (target: 2.0s–8.0s per visual scene, flexible up to 10.5s for natural unbroken spoken clauses).
 - **Multi-Key Groq API Pooling**: Rotates multiple Groq API keys automatically with intelligent rate-limit tracking, exponential backoff, and JSON repair parser for Qwen 2.5 / GPT-OSS models.
 - **Streamlined Scene Sync**: 1-click AI auto-pacing maps generated images across narration timestamps with interactive audio scrubbing and cut point fine-tuning.

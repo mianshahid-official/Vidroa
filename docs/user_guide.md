@@ -10,7 +10,7 @@ A step-by-step workflow guide for creating visual storyboards with PromptBeast.
 2. **Load Story**: Click **Browse...** under Story Narration Input and select your `.txt` or `.md` story file.
 3. **Load Narration Timestamps (Optional)**: Click **Browse...** under Word Timestamps and select your word-level JSON timestamps file.
    - *Note*: If omitted, PromptBeast automatically estimates natural word timing based on speech cadence and punctuation pauses.
-4. **Choose Subject & Visual Style**: Select the domain (e.g. `History`) and artistic style (e.g. `Century-Old Photograph`).
+4. **Choose Subject & Visual Style**: Select the domain (e.g. `General Documentary`, `Science`, `Horror`, or `History`) and artistic style (e.g. `2D Stick Figure`, `Paper-Cutout`, or `Century-Old Photograph`). Choosing a subject customizes the Subject Rules block and planning schema for that domain. Story packs (e.g. Constantinople, Caesar) are strictly opt-in and auto-match only when specific narrative keywords are detected.
 5. **Configure Timing**:
    - Set **Timing Mode** (`AI Decides`, `Target Duration`, or `Fixed Duration Intervals`).
    - Adjust Minimum, Preferred, and Maximum scene durations (e.g. Min 3s, Pref 5s, Max 8s).

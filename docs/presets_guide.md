@@ -1,6 +1,6 @@
 # Preset System & Visual Style Guide
 
-PromptBeast comes pre-packaged with **21 Subject Domains** and **34 Visual Styles**, each configured with domain-specific hidden prompt instructions.
+PromptBeast comes pre-packaged with **21 Subject Domains** and **9 Built-in Visual Styles**, providing structured narrative domain rules and consistent visual aesthetics. The pipeline is subject-agnostic by default (`general_documentary` / neutral aesthetics) and adapts dynamically to any script, while specialized story packs (`config/story_packs/`) remain strictly opt-in for curated narratives.
 
 ---
 
