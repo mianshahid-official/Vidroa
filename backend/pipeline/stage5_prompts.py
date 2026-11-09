@@ -148,7 +148,8 @@ class Stage5PromptGenerator:
             style_instructions += f"\nCustom Style Directive: {custom_style}"
 
         is_3d_red_blue = (style_preset.id if style_preset else "") in ("3d_red_blue_stickman", "red_blue_stickman_3d") or "3d red & blue" in style_name.lower() or "red & blue" in style_name.lower()
-        is_general_stickman = any(k in (style_preset.id if style_preset else "").lower() or k in style_name.lower() for k in ["stickman", "stick_figure"])
+        is_zombie_survival = (style_preset.id if style_preset else "") == "zombie_survival" or "zombie survival" in style_name.lower()
+        is_general_stickman = any(k in (style_preset.id if style_preset else "").lower() or k in style_name.lower() for k in ["stickman", "stick_figure", "zombie", "whatif"])
 
         # Determine authoritative character color identity
         story_text = " ".join([s.narration_text for s in scenes]) if scenes else ""
@@ -176,6 +177,29 @@ class Stage5PromptGenerator:
 3. RENDER STYLE:
    - Stylized 3D CGI toy universe, smooth rounded geometry, matte plastic/clay surfaces, warm volumetric lighting, zero photorealism.{pack_frag}
 """
+        elif is_zombie_survival:
+            stickman_faction_rules = """
+### MANDATORY ZOMBIE SURVIVAL CHARACTER & HORDE LOCKS:
+1. MAIN CHARACTER ("YOU" / Hero Narrator Lock):
+   - Whenever the protagonist appears, render identically:
+   - Round off-white head (#F5F5F0) roughly 1/3 of total body height, two small solid black dot eyes, short flat straight-line mouth. No nose, no ears, short black hair tufts on forehead and behind ears.
+   - Backwards flat-red baseball cap (#D63A2A) with dark curved brim pointing behind head and small black strap button at front brow.
+   - Dark charcoal-grey zip-up hoodie (#333333) worn over solid pure-white t-shirt (#FFFFFF).
+   - Dark leather-brown cross-body messenger bag strap (#4A2E1B) running diagonally from right shoulder down to left hip. Small silver metallic key clip at waistband.
+   - Uniformly thin black stick arms and stick legs (simple straight or bent stick ends, no detailed hands, fingers, feet, or shoes).
+2. THE OUTBREAK HORDE (Uniform Zombie Lock):
+   - ALL zombies in every scene MUST look identical in design, color, and silhouette—no different zombie variants, mutations, or mismatched styles:
+   - Round stick-head with dull pale olive-green skin fill (#8A9A66) and sparse wispy black hair tufts sticking upward.
+   - Large circular white eyes (#FFFFFF) with tiny centered black dot pupils.
+   - Wide open gaping mouths showing sharp jagged white teeth along top and bottom jaws.
+   - Oversized tattered dark-brown jackets (#5C4033) with shredded bottom hems, layered over frayed pale-grey or off-white undershirts, and dark grey torn trousers with shredded knee holes.
+   - Hunched off-balance postures, thin black stick arms extended straight forward with simplified clawed hands, thin stick legs in slow shuffled lines or dense crowd arrangements.
+   - Visual threat is derived strictly from crowd density, unblinking expressions, decaying clothing, and sharp teeth—never graphic blood, gore, or dismemberment.
+3. ART STYLE & RENDERING LOCK:
+   - Pure flat 2D cartoon, 16:9 widescreen layout. Heavy uniform near-black (#1A1A1A) outlines wrapping every character and background element.
+   - Completely flat vector fills. ABSOLUTELY ZERO 3D elements, zero volumetric shading, zero soft gradients, zero bevels, zero textures, zero photorealism.
+   - Zero realistic human proportions, zero blood, zero gore, zero dismemberment.
+"""
 
         # Build full character & location context for prompt (no arbitrary 6/4 truncation)
         chars = analysis.continuity_bible.characters if analysis and analysis.continuity_bible else []
@@ -187,6 +211,11 @@ class Stage5PromptGenerator:
             char_ctx = (
                 f"{protagonist_name}: Solid bright red 3D stick figure with smooth featureless sphere head{proto_prop_clause}, cylindrical limbs. "
                 f"Other figures ({', '.join(supporting_names)}): Solid blue 3D stick figures with smooth featureless sphere heads, cylindrical limbs."
+            )
+        elif is_zombie_survival:
+            char_ctx = (
+                "Main Character ('YOU'): 2D stick figure with round off-white head, black dot eyes, backwards red cap, dark charcoal hoodie over white t-shirt, brown diagonal messenger bag strap, thin stick limbs. "
+                "The Outbreak Horde: Identical uniform zombies with pale olive-green stick heads, circular white eyes with dot pupils, wide open mouths with sharp jagged teeth, tattered brown jackets, thin stick arms outstretched forward."
             )
         elif is_general_stickman:
             char_details = "; ".join([f"{c.name}: {c.appearance}" + (f", wearing {c.costume}" if getattr(c, 'costume', None) else "") for c in chars])
@@ -254,9 +283,10 @@ For each scene in this batch, write a standalone, vivid, production-ready image 
 Strict rules:
 1. Ground the visual in the exact narration moment. Depict only what has occurred so far (NO premature actions or spoilers).
 2. If style is 3D Red & Blue Stickman: Strictly follow character colors ({protagonist_name} = RED, supporting/opposing figures = BLUE).
-3. If style is photographic, cinematic, or historical (NOT stickman): Characters must be realistic human figures in authentic period attire. ZERO stick figures.
-4. Output concise, vivid prompts ready for image generation with composition, environment, subjects, and action.
-5. Do NOT output raw metadata tags like "Action:", "Setting:", or "Active progression:". Write natural English descriptions.
+3. If style is Zombie Survival: Strictly follow hero character lock (backwards red cap, dark charcoal hoodie, white t-shirt, brown strap) and uniform zombie lock (pale olive-green head, white circular eyes with dot pupils, sharp teeth, tattered brown jacket).
+4. If style is photographic, cinematic, or historical (NOT stickman): Characters must be realistic human figures in authentic period attire. ZERO stick figures.
+5. Output concise, vivid prompts ready for image generation with composition, environment, subjects, and action.
+6. Do NOT output raw metadata tags like "Action:", "Setting:", or "Active progression:". Write natural English descriptions.
 
 Return strictly valid JSON:
 {{
@@ -364,6 +394,8 @@ Return strictly valid JSON:
                     clean_concept = sanitize_action_summary(s.visual_summary, s.narration_text)
                     if is_3d_red_blue:
                         char_directive_single = f"Generate a single production image prompt strictly adhering to {protagonist_name} = RED 3D stickman and others = BLUE 3D stickmen."
+                    elif is_zombie_survival:
+                        char_directive_single = "Generate a single production image prompt strictly adhering to Zombie Survival style. Hero must have backwards red cap, dark charcoal hoodie, white t-shirt, brown strap. All zombies must have pale olive-green heads, round white eyes with dot pupils, sharp teeth, tattered brown jackets. Zero 3D, pure flat 2D cartoon."
                     elif is_general_stickman:
                         char_directive_single = f"Generate a single production image prompt adhering to {style_name}. Keep character visual design strictly conforming to {style_name}."
                     else:

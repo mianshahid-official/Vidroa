@@ -49,6 +49,7 @@ class PresetManager:
         "3d_stickman",
         "2d_stickman",
         "whatif_flat_vector",
+        "zombie_survival",
         "century_old_photograph",
         "vintage_photograph",
         "3d_red_blue_stickman",
@@ -78,6 +79,7 @@ class PresetManager:
             "3d_stickman",
             "2d_stickman",
             "whatif_flat_vector",
+            "zombie_survival",
             "century_old_photograph",
             "bw_vintage_historical_photography",
             "paper_quilling",
@@ -129,6 +131,8 @@ class PresetManager:
             style_id = "2d_stickman"
         elif style_id in ("whatif_flat_vector", "what_if_flat_vector", "whatif", "what_if"):
             style_id = "whatif_flat_vector"
+        elif style_id in ("zombie_survival", "zombie", "zombies", "zombie_apocalypse"):
+            style_id = "zombie_survival"
         elif style_id in ("3d_red_blue_stickman", "red_blue_stickman_3d", "red_blue_stickman"):
             style_id = "3d_red_blue_stickman"
         elif style_id in ("vintage_photo", "vintage_photographs", "century_old_photographs"):

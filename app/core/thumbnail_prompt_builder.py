@@ -20,7 +20,16 @@ def build_viral_thumbnail_prompt(
     clean_hl = headline.strip().upper() if headline and headline.strip() else "THE UNTOLD STORY"
     sid = (style_id or "").lower()
 
-    if "stickman" in sid or "3d_red_blue" in sid:
+    if "zombie" in sid:
+        return (
+            f"YouTube thumbnail cover in pure flat 2D cartoon zombie survival animation aesthetic. "
+            f'Features large bold rectangular banner typography rendered in the scene reading: "{clean_hl}" '
+            f"in high-contrast solid white lettering on a saturated red tag across the top corner. "
+            f"Dynamic wide 16:9 action composition: the hero protagonist (round off-white head, black dot eyes, straight-line mouth, backwards flat-red baseball cap, dark charcoal zip-up hoodie over white t-shirt, brown diagonal messenger bag strap, thin black stick limbs) in an intense dynamic survival stance facing a dense horde of identical uniform zombies (pale olive-green round stick heads, circular white eyes with tiny dot pupils, wide open gaping mouths with sharp jagged white teeth, shredded tattered brown jackets over frayed shirts, thin stick arms reaching forward). "
+            f"Flat 2D vector night atmosphere with deep navy-purple sky and warm localized yellow streetlamp pools. Heavy uniform near-black outlines, completely flat color fills. "
+            f"STRICT NEGATIVE: 3D render, photorealism, volumetric lighting, gradients, bevels, soft airbrush, realistic human face, realistic anatomy, blood, gore, dismemberment."
+        )
+    elif "stickman" in sid or "3d_red_blue" in sid:
         setting_desc = story_context.strip() if story_context and story_context.strip() else (era_or_setting.strip() if era_or_setting and era_or_setting.strip() else "stylized environment")
         return (
             f'YouTube thumbnail cover in 3D stylized CGI animated stickman aesthetic. '
