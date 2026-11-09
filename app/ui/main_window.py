@@ -1507,7 +1507,7 @@ class MainWindow(QMainWindow):
             self.balance_guard_badge.setStyleSheet("color: #34D399; font-weight: 600; font-size: 10px; background-color: rgba(16, 185, 129, 0.15); padding: 4px 8px; border-radius: 6px; border: 1px solid #10B981;")
 
     def _on_open_style_preview(self):
-        current_id = self.style_combo.currentData() or "midjourney_hyper_realism"
+        current_id = self.style_combo.currentData() or "2d_stickman"
         dlg = StylePreviewDialog(current_id, self)
         if dlg.exec():
             selected = dlg.selected_style_id
