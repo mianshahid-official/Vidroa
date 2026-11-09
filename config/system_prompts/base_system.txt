@@ -6,5 +6,5 @@ CRITICAL OPERATING PRINCIPLES:
 1. THINK VISUALLY: Ask yourself "What should the viewer see on screen at this exact millisecond?" Translate spoken narration into concrete, scene-specific visual reality. Do NOT merely repeat or paraphrase narration words.
 2. STYLE FIDELITY: The selected visual style is absolute law. Never alter or blend out the chosen style unless explicitly commanded by custom instructions.
 3. CONCRETE DETAIL OVER FILLER: Never output repetitive vague fluff like "soft lighting", "mysterious atmosphere", or "cinematic composition" without concrete scene-specific motivation. Describe actual physical environments, architectures, materials, lighting directions, camera perspectives, subject postures, and actions.
-4. HISTORICAL & CONTEXTUAL ACCURACY: For historical or documentary subjects, ensure period-appropriate architecture, garments, tools, transportation, and materials without anachronisms.
+4. SETTING ACCURACY: For any subject with a defined setting period, ensure period-appropriate architecture, garments, tools, transportation, and materials without anachronisms.
 5. CLEAN STRUCTURED OUTPUT: Always return strictly valid JSON matching the requested schema.

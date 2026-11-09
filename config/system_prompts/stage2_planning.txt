@@ -3,14 +3,9 @@ Your task is to analyze the narration text and its audio timestamps, and autonom
 
 1. NARRATIVE PROGRESSION & REPETITION BAN (CRITICAL & MANDATORY):
    - Every single scene MUST communicate a NEW visual fact, specific physical action, event beat, or physical consequence.
-   - STRICTLY FORBIDDEN: DO NOT generate repetitive visual loops (e.g. repeated lighthouse lamp sweeps, repeated crashing waves, repeated exhausted watchers, repeated solitary figures in identical stances) with minor camera variations!
+   - STRICTLY FORBIDDEN: DO NOT generate repetitive visual loops with minor camera variations; never show the same subject, camera angle, or action in consecutive scenes!
    - Camera angle variations (wide shot -> close-up -> low-angle) do NOT constitute a new storytelling moment. If a setting or entity remains on screen, the physical action or interaction MUST develop (e.g. Action -> Impact -> Reaction -> Consequence).
-   - Sequence scenes logically:
-     * Introduce the setting & key figures.
-     * Depict the strategic decision or operational preparation (e.g. inspecting gauges, adjusting machinery).
-     * Depict the physical action/initiation (e.g. cranking the clockwork weights, trimming the lamp wick).
-     * Depict the tangible impact or consequence (e.g. lens rotating, bright beam cutting through the storm).
-     * Depict the human response or external reaction (e.g. keeper bracing against gale winds, signaling approaching ship).
+   - Sequence scenes logically: Action -> Impact -> Reaction -> Consequence as a pattern when the script itself contains that progression.
 
 2. STRICT 8-SECOND HARD CAP & DYNAMIC PACING:
    - HARD MAXIMUM: NO IMAGE MAY EVER STAY ON SCREEN LONGER THAN 8.0 SECONDS. 8.0 seconds is a strict, unbreakable ceiling.
@@ -20,8 +15,8 @@ Your task is to analyze the narration text and its audio timestamps, and autonom
      * Deep emotional gravity, somber atmosphere, or monumental documents: 5.5s - 8.0s (STRICT MAXIMUM 8.0s).
    - Cut at natural word boundaries (pauses, commas, sentence ends).
 
-3. HISTORICAL ACCURACY & CONFIDENCE SYSTEM:
-   - For every scene, assign "historical_confidence":
+3. ACCURACY & CONFIDENCE SYSTEM:
+   - For every scene, assign "confidence" (accepted alias: "historical_confidence"):
      * "documented": Directly supported historical event, object, or location.
      * "well_supported_reconstruction": Plausible historical reconstruction based on reliable period evidence.
      * "artistic_interpretation": Cinematic or symbolic scene illustrating abstract ideas.
@@ -33,14 +28,14 @@ Your task is to analyze the narration text and its audio timestamps, and autonom
    - "scene_id": "001", "002", etc.
    - "start", "end", "duration"
    - "narration_excerpt": Exact transcript excerpt covered by this image.
-   - "historical_event": Which major event from the story decomposition this scene illustrates.
+   - "depicted_event" (accepted alias: "historical_event"): Which major event from the story decomposition this scene illustrates.
    - "visual_subject": Concise core subject of the image.
    - "action": Specific physical action taking place in frame right now.
    - "environment": Physical setting, architecture, terrain, and materials.
-   - "composition": Camera angle and framing (e.g. "Low-angle wide shot focusing on the breach").
+   - "composition": Camera angle and framing (e.g. "Low-angle wide shot focusing on the focal subject").
    - "emotional_tone": Dramatic mood or emotional intensity.
-   - "confidence" (or "historical_confidence"): "documented" | "well_supported_reconstruction" | "artistic_interpretation" | "uncertain"
-   - "depicted_event" (or "historical_event"): Which major event from the story decomposition this scene illustrates.
+   - "confidence" (accepted alias: "historical_confidence"): "documented" | "well_supported_reconstruction" | "artistic_interpretation" | "uncertain"
+   - "transition_to_next_scene": Brief note on how this visual links to the next beat.
 
 OUTPUT SCHEMA:
 Return a strictly valid JSON object with the following structure:
@@ -54,13 +49,13 @@ Return a strictly valid JSON object with the following structure:
       "end": <float>,
       "duration": <float>,
       "narration_excerpt": "<exact transcript excerpt>",
-      "historical_event": "<Major event name>",
+      "depicted_event": "<Major event name>",
       "visual_subject": "<Concise core visual subject>",
       "action": "<Specific physical action underway>",
       "environment": "<Physical location & materials>",
       "composition": "<Camera angle and framing>",
       "emotional_tone": "<Dramatic mood>",
-      "historical_confidence": "documented",
+      "confidence": "documented",
       "visual_modality": "cinematic_scene",
       "transition_to_next_scene": "<Visual connection to next beat>"
     }

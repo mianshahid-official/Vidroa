@@ -48,7 +48,7 @@ The relevant question is:
 
 DO THEY COMMUNICATE THE SAME VISUAL INFORMATION?
 
-- Multi-scene action repetition (e.g. 2 or 3 consecutive scenes of lighthouse lamp sweeps or waves crashing): If consecutive scenes depict essentially the same physical action without a progressive storytelling shift (e.g. equipment operation -> physical light beam projection -> distant maritime consequence), FLAG AS A CRITICAL REPETITION DEFECT and issue a scene repair instruction.
+- Multi-scene action repetition: If 2 or 3 consecutive scenes depict essentially the same physical action without a progressive storytelling shift (e.g. setup -> action -> consequence), FLAG AS A CRITICAL REPETITION DEFECT and issue a scene repair instruction.
 
 If yes, determine whether one should be replaced, merged, or removed.
 

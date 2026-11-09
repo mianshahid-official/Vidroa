@@ -47,13 +47,20 @@ class TestStep2NeutralExamples(unittest.TestCase):
                 f"File '{filename}' leaked story keywords: {matches}"
             )
 
-    def test_lighthouse_keeper_example_in_stage1_and_stage4(self):
-        s1 = load_system_prompt("stage1_analysis.txt")
-        self.assertIn("lighthouse", s1.lower())
-        self.assertIn("fresnel", s1.lower())
-
-        s4 = load_system_prompt("stage4_prompts.txt")
-        self.assertIn("lighthouse", s4.lower())
+    def test_no_fixed_story_example_in_any_production_txt(self):
+        forbidden_fixed_examples = re.compile(
+            r"\b(lighthouse|keeper|finch|blackwood|fresnel|lamp sweep|1453|mehmed|ottoman|byzantine|constantinople|caesar|cortes|dorothea|theodosian)\b",
+            re.IGNORECASE
+        )
+        prompt_dir = PROJECT_ROOT / "config" / "system_prompts"
+        for txt_path in prompt_dir.glob("*.txt"):
+            content = txt_path.read_text(encoding="utf-8")
+            matches = forbidden_fixed_examples.findall(content)
+            self.assertEqual(
+                matches,
+                [],
+                f"Production prompt file '{txt_path.name}' contains fixed story example keywords: {matches}"
+            )
 
     def test_3d_red_blue_stickman_json_has_no_leakage(self):
         style_file = PROJECT_ROOT / "config" / "visual_styles" / "3d_red_blue_stickman.json"

@@ -56,7 +56,7 @@ Do not combine unrelated developments into one beat.
 
 Do not split a single meaningful development into unnecessary fragments.
 
-## 3. FACTS, CLAIMS, AND HISTORICAL UNCERTAINTY
+## 3. FACTS, CLAIMS, AND UNCERTAINTY
 
 Identify factual claims, dates, statistics, historical events, and potentially disputed statements.
 
@@ -148,14 +148,14 @@ Record whether an event has already been introduced when a later beat references
 Identify what must not be visually misrepresented.
 - A future event must not appear before its narration.
 - A character must not appear in a location without narrative justification.
-- A historical event must not be depicted as documented if it is uncertain.
+- A factual claim must not be depicted as documented if it is uncertain.
 - A symbolic explanation must not be mistaken for literal historical evidence.
 - A visual must not contradict the narration.
 - Important entity continuity must be maintained.
 
 CRITICAL RULES:
-1. SETTING ACCURACY & ANCHORING: The setting period and era MUST be accurately identified from the script itself (e.g. 1910s Coastal Maritime / Isolated Watchtower; or classical antiquity for historical subjects). The user-selected visual style (e.g. Century-Old Photograph) is ONLY a rendering aesthetic; it must NEVER override the story's actual epoch or setting.
-2. NO GENERIC PLACEHOLDERS: Characters and locations must be identified with actual names from the story (e.g. Keeper Thomas Finch, Blackwood Rock Lighthouse, Storm-tossed Lantern Room). Never use placeholder text like "Key Figures" or "Primary Setting".
+1. SETTING ACCURACY & ANCHORING: The setting period and era MUST be accurately identified from the script itself. The user-selected visual style (e.g. Century-Old Photograph) is ONLY a rendering aesthetic; it must NEVER override the story's actual epoch or setting.
+2. NO GENERIC PLACEHOLDERS: Characters and locations must be identified with actual names from the story. Never use placeholder text like "Key Figures" or "Primary Setting".
 3. COMPLETE COVERAGE: Extract 8 to 16 distinct narrative beats spanning the entire script from the very first sentence to the final sentence.
 4. THUMBNAIL HEADLINE: Exactly 2, 3, or 4 uppercase words with extreme viral hook power. STRICTLY FORBIDDEN: question words or conversational phrasing ("How did a", "Why did", "What was").
 
@@ -165,8 +165,8 @@ Return strictly valid JSON matching this schema:
   "script_summary": "Comprehensive 2-4 paragraph summary of the entire script...",
   "core_narrative_premise": "The central dramatic premise and driving conflict",
   "genre_and_tone": "e.g. Atmospheric Narrative / Dramatic Documentary",
-  "setting_period": "e.g. Early 20th Century Maritime / Isolated Coastal Watchtower (circa 1910s)",
-  "historical_or_setting_period": "e.g. Early 20th Century Maritime / Isolated Coastal Watchtower (circa 1910s)",
+  "setting_period": "<setting period identified from the script itself>",
+  "historical_or_setting_period": "<accepted alias for setting_period>",
   "narrative_beats": [
     {
       "beat_id": "BEAT-001",
@@ -210,12 +210,12 @@ Return strictly valid JSON matching this schema:
     }
   ],
   "time_period": {
-    "era": "e.g. Early 20th Century Maritime",
-    "decade_or_year": "e.g. 1910s",
-    "technology_level": "e.g. Fresnel lens clockwork rotation, kerosene vapor mantle, brass barometers, telegraph wire",
-    "lighting_methods": "e.g. Concentrated beam from rotating Fresnel lens, kerosene mantle glow, storm lightning, brass lantern",
-    "wardrobe_norms": "e.g. Heavy oiled-wool peacoats, brass-buttoned keeper uniforms, knitted watch caps, leather sea boots",
-    "atmosphere_notes": "Salty ocean spray, howling gale winds, rhythmic ticking clockwork, intense warm beam cutting wet darkness"
+    "era": "<setting era identified from the script>",
+    "decade_or_year": "<decade, year, or era from the script>",
+    "technology_level": "<technology from the story's own period bible>",
+    "lighting_methods": "<lighting sources consistent with the setting>",
+    "wardrobe_norms": "<garments from the story's setting>",
+    "atmosphere_notes": "<atmosphere from the story>"
   },
   "temporal_and_causal_structure": {
     "chronological_order": "Step-by-step chronological sequence of major events",
@@ -225,7 +225,7 @@ Return strictly valid JSON matching this schema:
   "visual_planning_constraints": {
     "must_visualize": ["Key narrative turning points"],
     "must_not_visualize": ["Anachronisms", "Premature ending reveals"],
-    "high_risk_repetition_concepts": ["Repeating identical lighthouse lamp rotation", "Identical storm wave crashing shots"]
+    "high_risk_repetition_concepts": ["Repeating the same physical action without progression"]
   },
   "thumbnail_headline": "2-4 UPPERCASE WORDS",
   "thumbnail_prompt": "Arresting visual composition prompt for YouTube thumbnail with chiaroscuro lighting and negative space on the left"
