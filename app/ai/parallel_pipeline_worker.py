@@ -265,40 +265,48 @@ class ParallelPipelineWorker(QThread):
             message="Scheduling scene boundaries with audio synchronization (2.0s-8.0s hard cap)..."
         ))
 
-        engine = GroqInferenceEngine(model_name=self.request.model_name)
-        scheduled_storyboard = Stage4TemporalScheduler.execute(
-            engine=engine,
-            visual_plan=visual_plan_result,
-            narration=narration,
-            story_text=story_text,
-            total_audio_duration=total_audio_dur
-        )
+        try:
+            engine = GroqInferenceEngine(model_name=self.request.model_name)
+            scheduled_storyboard = Stage4TemporalScheduler.execute(
+                engine=engine,
+                visual_plan=visual_plan_result,
+                narration=narration,
+                story_text=story_text,
+                total_audio_duration=total_audio_dur
+            )
 
-        # Convert scheduled scenes to VisualScene for approval grid
-        scenes_result = []
-        for s in scheduled_storyboard.scenes:
-            scenes_result.append(VisualScene(
-                scene_id=s.scene_id,
-                index=getattr(s, "index", None),
-                start=s.start_time,
-                end=s.end_time,
-                duration=s.duration,
-                narration_excerpt=s.narration_text,
-                visual_subject=s.visual_summary,
-                action=s.visual_summary,
-                environment="Historical environment",
-                composition="Eye-level wide shot",
-                emotional_tone="Dramatic",
-                historical_confidence="well_supported_reconstruction",
-                prompt=f"[Planned Visual Shot — Awaiting Batch Prompt Gen]\n{s.visual_summary}",
-                source_narrative_beat_ids=getattr(s, "source_narrative_beat_ids", []),
-                source_visual_beat_ids=getattr(s, "source_visual_beat_ids", []),
-                start_word_index=getattr(s, "source_word_start", None),
-                end_word_index=getattr(s, "source_word_end", None),
-                character_ids=getattr(s, "character_ids", []),
-                location_id=getattr(s, "location_id", None),
-                chronological_order=getattr(s, "chronological_order", None)
-            ))
+            # Convert scheduled scenes to VisualScene for approval grid
+            scenes_result = []
+            for s in scheduled_storyboard.scenes:
+                scenes_result.append(VisualScene(
+                    scene_id=s.scene_id,
+                    index=getattr(s, "index", None),
+                    start=s.start_time,
+                    end=s.end_time,
+                    duration=s.duration,
+                    narration_excerpt=s.narration_text,
+                    visual_subject=s.visual_summary,
+                    action=s.visual_summary,
+                    environment="Historical environment",
+                    composition="Eye-level wide shot",
+                    emotional_tone="Dramatic",
+                    historical_confidence="well_supported_reconstruction",
+                    prompt=f"[Planned Visual Shot — Awaiting Batch Prompt Gen]\n{s.visual_summary}",
+                    source_narrative_beat_ids=getattr(s, "source_narrative_beat_ids", []),
+                    source_visual_beat_ids=getattr(s, "source_visual_beat_ids", []),
+                    start_word_index=getattr(s, "source_word_start", None),
+                    end_word_index=getattr(s, "source_word_end", None),
+                    character_ids=getattr(s, "character_ids", []),
+                    location_id=getattr(s, "location_id", None),
+                    chronological_order=getattr(s, "chronological_order", None)
+                ))
+        except Exception as sched_err:
+            print(f"[ParallelPipelineWorker] Stage 4 scheduling error: {sched_err}")
+            self.worker_failed.emit(
+                f"Scene boundary scheduling failed: {str(sched_err)}",
+                str(sched_err)
+            )
+            return
 
         self.progress_updated.emit(ProgressInfo(
             stage=JobStage.PLANNING,

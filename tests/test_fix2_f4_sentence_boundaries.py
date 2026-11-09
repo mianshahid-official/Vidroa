@@ -95,6 +95,32 @@ def test_assert_sentence_boundary_validity_catches_mid_sentence_fragment():
     assert "Scene #001" in str(exc_info2.value)
 
 
+def test_assert_sentence_boundary_validity_allows_valid_clause_conjunction():
+    # Valid compound sentence split on comma with lowercase coordinating conjunction
+    valid_scenes = [
+        ScheduledScene(
+            scene_id="001",
+            beat_id="VB-001",
+            start_time=0.0,
+            end_time=4.5,
+            duration=4.5,
+            narration_text="By day 20, you will find proof that one of them is still alive,",
+            visual_summary="Hero finding proof of survivor"
+        ),
+        ScheduledScene(
+            scene_id="002",
+            beat_id="VB-002",
+            start_time=4.5,
+            end_time=9.0,
+            duration=4.5,
+            narration_text="and that is the least dangerous thing down there.",
+            visual_summary="Approaching deeper danger"
+        )
+    ]
+    # Must NOT raise RuntimeError
+    assert_sentence_boundary_validity(valid_scenes)
+
+
 def test_stage4_proportional_path_sentence_aware_and_no_wrong_story_fallback():
     story = (
         "The siege artillery arrived outside the northern gatehouse. "

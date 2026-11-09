@@ -18,6 +18,13 @@ SENTENCE_CLAUSE_PUNCTUATION = (".", "!", "?", ";", ",", "—", "–", ":")
 DISALLOWED_TAIL_WORDS = {
     "a", "an", "the", "of", "to", "in", "on", "at", "for", "with", "and", "or", "but", "by", "as"
 }
+CLAUSE_CONTINUATION_CONJUNCTIONS = {
+    "and", "but", "or", "nor", "for", "yet", "so",
+    "while", "as", "because", "since", "though", "although",
+    "when", "where", "which", "who", "whom", "whose",
+    "if", "unless", "until", "then", "with", "that", "to",
+    "wherever", "whenever", "even", "meanwhile", "however"
+}
 
 
 def find_sentence_clause_split_point(
@@ -122,15 +129,22 @@ def assert_sentence_boundary_validity(scenes: List[Any], full_text: Optional[str
                 f"'{narr[-40:]}'"
             )
 
-        # Check: if not last scene, check next scene does not start with lowercase continuation
+        # Check: if not last scene, check next scene does not start with an unpunctuated mid-phrase fragment
         if not is_last:
             next_sc = scenes[i + 1]
             next_narr = (getattr(next_sc, "narration_text", None) or getattr(next_sc, "narration_excerpt", "")).strip()
             if next_narr and next_narr[0].islower():
-                raise RuntimeError(
-                    f"Stage 4 boundary failure: Scene #{sid} cuts narration mid-sentence: "
-                    f"'{narr[-40:]}' with lowercase continuation in next scene '{next_narr[:30]}...'"
-                )
+                # A lowercase start in the next scene is acceptable ONLY IF:
+                # 1. The current scene terminates with a valid clause delimiter (',', ';', '—', '–', ':'), AND
+                # 2. The next scene begins with a valid clause-connecting conjunction or relative word.
+                next_first_word = next_narr.split()[0].lower().strip(".,;:!?\"'—–") if next_narr.split() else ""
+                ends_with_clause = any(narr.endswith(p) for p in [",", ";", "—", "–", ":"])
+                is_valid_continuation = ends_with_clause and (next_first_word in CLAUSE_CONTINUATION_CONJUNCTIONS)
+                if not is_valid_continuation:
+                    raise RuntimeError(
+                        f"Stage 4 boundary failure: Scene #{sid} cuts narration mid-sentence: "
+                        f"'{narr[-40:]}' with lowercase continuation in next scene '{next_narr[:30]}...'"
+                    )
 
         # Check: story_text[:100] fallback detection
         if full_text and i > 0:
