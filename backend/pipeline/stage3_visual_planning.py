@@ -19,6 +19,24 @@ def load_system_prompt() -> str:
     return _load_system_prompt("stage3_visual_planning.txt")
 
 
+def derive_stage3_token_budget(
+    num_beats: int,
+    max_cap: int = 950,
+    tokens_per_beat: int = 150,
+    json_scaffolding: int = 80
+) -> int:
+    """
+    Derives output token budget for Stage 3 Visual Planning batch.
+    Each beat generates 7 fields (~150 tokens) plus JSON structure (~80 tokens).
+    Clamped to engine cap (950 for Groq free-tier) with floor at 350.
+    """
+    budget = json_scaffolding + (num_beats * tokens_per_beat)
+    if budget > max_cap:
+        print(f"[Stage3VisualPlanning] Warning: Derived budget ({budget}) exceeds engine cap ({max_cap}) for {num_beats} beats. Capping at {max_cap}.")
+        return max_cap
+    return min(max_cap, max(350, budget))
+
+
 class Stage3VisualPlanner:
     """Plans narration-aligned visual beats for the entire story using Groq."""
 
@@ -34,8 +52,8 @@ class Stage3VisualPlanner:
         system_prompt = load_system_prompt()
         pack = StoryPackManager.match_pack(story_text)
 
-        char_ctx = "; ".join([f"{c.name} ({c.role}): {c.appearance[:80]}" for c in analysis.continuity_bible.characters[:6]])
-        loc_ctx = "; ".join([f"{l.name}: {l.description[:80]}" for l in analysis.continuity_bible.locations[:4]])
+        char_ctx = "; ".join([f"{c.name} ({c.role}): {c.appearance}" + (f", Costume: {c.costume}" if getattr(c, 'costume', None) else "") for c in analysis.continuity_bible.characters])
+        loc_ctx = "; ".join([f"{l.name}: {l.description}" + (f", Environment: {l.environment_details}" if getattr(l, 'environment_details', None) else "") for l in analysis.continuity_bible.locations])
         era_ctx = analysis.historical_or_setting_period or (pack.period.get("era") if pack and pack.period else "Setting Period")
 
         # Partition story_text into granular units to guarantee high visual progression,
@@ -121,9 +139,9 @@ class Stage3VisualPlanner:
 
             prior_context = "None (Opening scene)"
             if all_beats:
-                recent_beats = all_beats[-2:]
+                recent_beats = all_beats[-5:]
                 prior_context = " | ".join([
-                    f"Beat {b.beat_id}: '{b.primary_visual_concept[:60]}'"
+                    f"Beat {b.beat_id}: '{b.primary_visual_concept}'"
                     for b in recent_beats
                 ])
 
@@ -166,19 +184,26 @@ Return strictly valid JSON with key "visual_beats":
 }}"""
 
             beats_data = []
+            batch_budget = derive_stage3_token_budget(len(batch_units), max_cap=950)
             for attempt in range(2):
                 try:
                     raw_res = engine.generate_text(
                         prompt=user_prompt,
                         system_prompt=system_prompt,
                         temperature=0.3,
-                        max_tokens=850
+                        max_tokens=batch_budget
                     )
                     parsed = engine.repair_and_parse_json(raw_res)
                     beats_data = parsed.get("visual_beats") or parsed.get("items") or []
                     if isinstance(beats_data, list) and len(beats_data) >= len(batch_units):
                         break
-                except Exception:
+                    elif isinstance(beats_data, list) and len(beats_data) < len(batch_units):
+                        print(
+                            f"[Stage3VisualPlanning] Loud Truncation Notice: Parsed {len(beats_data)} beats, "
+                            f"expected {len(batch_units)}. Attempting retry..."
+                        )
+                except Exception as err:
+                    print(f"[Stage3VisualPlanning] Generation error on attempt {attempt+1}: {err}")
                     beats_data = []
 
             if not isinstance(beats_data, list):

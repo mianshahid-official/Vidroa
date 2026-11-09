@@ -177,20 +177,24 @@ class Stage5PromptGenerator:
    - Stylized 3D CGI toy universe, smooth rounded geometry, matte plastic/clay surfaces, warm volumetric lighting, zero photorealism.{pack_frag}
 """
 
-        # Build character context for prompt
+        # Build full character & location context for prompt (no arbitrary 6/4 truncation)
+        chars = analysis.continuity_bible.characters if analysis and analysis.continuity_bible else []
+        locs = analysis.continuity_bible.locations if analysis and analysis.continuity_bible else []
+
         if is_3d_red_blue:
             proto_prop = (active_pack.faction_rules.get("protagonist_prop") if active_pack and active_pack.faction_rules else "")
             proto_prop_clause = f", {proto_prop}" if proto_prop else ""
             char_ctx = (
                 f"{protagonist_name}: Solid bright red 3D stick figure with smooth featureless sphere head{proto_prop_clause}, cylindrical limbs. "
-                f"Other figures ({', '.join(supporting_names[:5])}): Solid blue 3D stick figures with smooth featureless sphere heads, cylindrical limbs."
+                f"Other figures ({', '.join(supporting_names)}): Solid blue 3D stick figures with smooth featureless sphere heads, cylindrical limbs."
             )
         elif is_general_stickman:
-            char_ctx = f"Characters: Stylized stickman characters adhering to {style_name}. Keep character clothing, gear, and expressions faithful to the story."
+            char_details = "; ".join([f"{c.name}: {c.appearance}" + (f", wearing {c.costume}" if getattr(c, 'costume', None) else "") for c in chars])
+            char_ctx = f"Characters: Stylized stickman characters adhering to {style_name}. Keep character clothing, gear, and expressions faithful to the story: {char_details or 'Archetypes'}."
         else:
-            char_ctx = "; ".join([f"{c.name}: {c.appearance}, wearing {c.costume}" for c in analysis.continuity_bible.characters[:6]])
-            
-        loc_ctx = "; ".join([f"{l.name}: {l.description}" for l in analysis.continuity_bible.locations[:4]])
+            char_ctx = "; ".join([f"{c.name}: {c.appearance}" + (f", wearing {c.costume}" if getattr(c, 'costume', None) else "") for c in chars])
+
+        loc_ctx = "; ".join([f"{l.name}: {l.description}" + (f", details: {l.environment_details}" if getattr(l, 'environment_details', None) else "") for l in locs])
 
         output_visual_scenes: List[VisualScene] = []
         effective_batch_size = derive_safe_batch_size(
