@@ -47,34 +47,35 @@ def _parse_duration_string(val: str) -> Optional[float]:
     return total if matched else None
 
 
-def parse_groq_retry_after(headers: Optional[Dict[str, str]] = None, text: Optional[str] = None) -> float:
+def parse_groq_retry_after(headers: Optional[Dict[str, str]] = None, text: Optional[str] = None) -> Optional[float]:
     """
     Extracts the real wait time in seconds from Groq rate limit responses.
     Checks explicit error body ('try again in Xs' or 'try again in Xms') or HTTP 'retry-after' header.
     Does NOT use x-ratelimit-reset-tokens (which is rolling 60s quota window, not retry delay).
+    Returns None if no retry delay could be parsed.
     """
     if text:
         m_s = re.search(r'try again in ([\d\.]+)\s*s', text, re.IGNORECASE)
         if m_s:
-            return max(0.5, float(m_s.group(1)))
+            return max(0.1, float(m_s.group(1)))
         m_ms = re.search(r'try again in ([\d\.]+)\s*ms', text, re.IGNORECASE)
         if m_ms:
-            return max(0.5, float(m_ms.group(1)) / 1000.0)
+            return max(0.1, float(m_ms.group(1)) / 1000.0)
 
     if headers:
         ra = headers.get("retry-after") or headers.get("Retry-After")
         if ra:
             try:
-                return max(0.5, float(ra))
+                return max(0.1, float(ra))
             except ValueError:
                 pass
         reset_req = headers.get("x-ratelimit-reset-requests") or headers.get("X-RateLimit-Reset-Requests")
         if reset_req:
             dur = _parse_duration_string(reset_req)
             if dur is not None and dur > 0:
-                return max(0.5, dur)
+                return max(0.1, dur)
 
-    return 2.0
+    return None
 
 
 class GroqMultiKeyManager:
@@ -359,26 +360,54 @@ class GroqEngine(BaseInferenceEngine):
                             max_tok = min(max_tok, self.current_effective_max_tokens(baseline=eff_baseline))
                             print(f"[GroqEngine] Reduced max_tokens to {self._effective_max_tokens} per Groq OTPM directive (recovery in {self._cap_recovery_interval:.0f}s).")
                         wait_sec = parse_groq_retry_after(dict(resp.headers), resp.text)
-                        self.key_manager.mark_key_cooldown(key, wait_sec)
                         last_error = f"HTTP 429: {resp.text}"
-                        self.request_logs.append({
-                            "stage_name": stage,
-                            "request_id": request_id,
-                            "selected_key_identifier": key_id,
-                            "model_name": target_model,
-                            "attempt_number": attempt + 1,
-                            "request_duration": dur,
-                            "input_token_estimate": input_tok_est,
-                            "output_token_estimate": 0,
-                            "response_status": "HTTP_429",
-                            "retry_reason": f"Rate limit; wait {wait_sec:.1f}s",
-                            "validation_status": "RETRYING",
-                            "error_type": "RateLimitError",
-                            "response_parse_status": "N/A"
-                        })
-                        print(f"[GroqEngine] Key {key_id} rate-limited (HTTP 429). Groq requested wait: {wait_sec:.1f}s. Switching to next key in pool... (Attempt {attempt+1}/{max_attempts})")
-                        self.key_manager.rotate_key()
-                        continue
+
+                        # Part C Rule: If requested wait <= 3.0s, sleep and retry same key.
+                        # If requested wait > 3.0s or unparseable, mark key on cooldown and rotate key.
+                        if wait_sec is not None and wait_sec <= 3.0:
+                            if accumulated_wait + wait_sec > max_wait_budget:
+                                print(f"[GroqEngine] Rate limit wait budget ({max_wait_budget}s) exceeded. Proceeding to fallback.")
+                                break
+                            time.sleep(wait_sec)
+                            accumulated_wait += wait_sec
+                            self.request_logs.append({
+                                "stage_name": stage,
+                                "request_id": request_id,
+                                "selected_key_identifier": key_id,
+                                "model_name": target_model,
+                                "attempt_number": attempt + 1,
+                                "request_duration": dur,
+                                "input_token_estimate": input_tok_est,
+                                "output_token_estimate": 0,
+                                "response_status": "HTTP_429",
+                                "retry_reason": f"Short rate limit wait ({wait_sec:.1f}s <= 3.0s); retrying same key",
+                                "validation_status": "RETRYING",
+                                "error_type": "RateLimitError",
+                                "response_parse_status": "N/A"
+                            })
+                            print(f"[GroqEngine] Key {key_id} rate-limited with short delay ({wait_sec:.1f}s <= 3.0s). Retrying same key after wait... (Attempt {attempt+1}/{max_attempts})")
+                            continue
+                        else:
+                            cooldown_wait = wait_sec if wait_sec is not None else 2.0
+                            self.key_manager.mark_key_cooldown(key, cooldown_wait)
+                            self.request_logs.append({
+                                "stage_name": stage,
+                                "request_id": request_id,
+                                "selected_key_identifier": key_id,
+                                "model_name": target_model,
+                                "attempt_number": attempt + 1,
+                                "request_duration": dur,
+                                "input_token_estimate": input_tok_est,
+                                "output_token_estimate": 0,
+                                "response_status": "HTTP_429",
+                                "retry_reason": f"Rate limit; wait {cooldown_wait:.1f}s; rotating key",
+                                "validation_status": "RETRYING",
+                                "error_type": "RateLimitError",
+                                "response_parse_status": "N/A"
+                            })
+                            print(f"[GroqEngine] Key {key_id} rate-limited (HTTP 429). Groq requested wait: {cooldown_wait:.1f}s. Switching to next key in pool... (Attempt {attempt+1}/{max_attempts})")
+                            self.key_manager.rotate_key()
+                            continue
 
                     # Authentication error (401, 403)
                     elif resp.status_code in (401, 403):

@@ -1,21 +1,25 @@
 """
 Regression and verification test suite for Defect C:
-Stage 3 token budget, 1-beat batching, and Groq effective-cap memory.
+Stage 3 token budget (2-beat batching with 1-beat fallback) and Groq short-delay key wait.
 
 Verifies:
-1. Budget unit test: derived stage-3 budget for 1 beat fits real per-beat cost
-   (measured from real beat schema) and never exceeds the effective cap.
-2. Truncation regression with real story data: one-beat calls under a 530 effective
-   cap complete with the beat parsed; the old 'Parsed 1, expected 3' loop is gone.
-3. Retry test: a truncated 1-beat call retries once, and if it truncates again
-   it fails loudly naming the unit with RuntimeError (no silent fill, no loop).
-4. Effective-cap test: after a simulated Groq OTPM directive, the engine reports
-   the reduced cap and stage derives from it; after the 60s decay interval it recovers to 950.
+1. Budget unit test: derive_stage3_token_budget sizes 2 beats to 720 and 1 beat to 400
+   under 950 baseline, never exceeding effective cap.
+2. Regression test with real transcript (Sixty_people_were_locked_inside):
+   Asserts 2 UNITs per prompt and 720 budgets.
+3. Truncating-mock test: Proves 2-to-1 fallback completes with no silent fill and no failure.
+4. Persistently-truncating mock test: Proves 1-beat retry fails loudly naming the unit.
+5. Key-wait tests with mocked 429:
+   - Retry-After: 2s (<= 3.0s) -> same key retried after wait without rotation.
+   - Retry-After: 10s (> 3.0s) -> key marked on cooldown and rotated to next key.
+   - Unparseable wait -> rotated to next key.
+6. Effective-cap memory and decay test (using standard OTPM cap values).
 """
 import json
 import re
 import time
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 import pytest
 
 from app.models.planning import (
@@ -29,7 +33,7 @@ from app.models.planning import (
     VisualBeat
 )
 from backend.inference.engine import BaseInferenceEngine
-from app.ai.groq_engine import GroqEngine
+from app.ai.groq_engine import GroqEngine, GroqMultiKeyManager, parse_groq_retry_after
 from backend.pipeline.stage3_visual_planning import (
     Stage3VisualPlanner,
     derive_stage3_token_budget
@@ -52,57 +56,37 @@ def _build_test_analysis() -> ScriptAnalysis:
 
 
 # =========================================================================
-# 1. BUDGET UNIT TEST: MEASURED COST AND EFFECTIVE CAP
+# 1. BUDGET UNIT TEST: 2 BEATS == 720, 1 BEAT == 400
 # =========================================================================
 
-def test_stage3_budget_unit_test_measured_cost_and_effective_cap():
+def test_stage3_budget_unit_test():
     """
-    Measures the real token cost of a 9-field VisualBeat JSON payload and
-    verifies that derive_stage3_token_budget sizes 1 beat to fit comfortably
-    under both the 950 baseline cap and a reduced 530 cap, without exceeding either.
+    Verifies that derive_stage3_token_budget derives:
+    - 2 beats: 80 + 2 * 320 = 720 tokens at 950 baseline cap
+    - 1 beat: 80 + 1 * 320 = 400 tokens at 950 baseline cap
+    - 3 beats: 80 + 3 * 320 = 1040 clamped to 950 cap
+    - Clamped to effective max_cap with floor at min(350, max_cap)
     """
-    real_beat = {
-        "exact_narration_segment": "60 people were locked inside this mall on the first night. By day 20, you will find proof that one of them is still alive, and that is the least dangerous thing down there.",
-        "narrative_purpose": "Establishes the catastrophic scale of the initial containment and foreshadows the survival mystery and looming threat on day 20.",
-        "primary_visual_concept": "Dark deserted interior of a vast multi-level shopping mall at night, shadowy empty escalators stretching upward under dim emergency lights, distant silhouette of a solitary survivor.",
-        "what_new_information_is_shown": "Empty mall concourse with emergency lighting and evidence of solitary survivor activity.",
-        "composition": "Wide-angle deep perspective shot looking down the deserted central atrium from upper mezzanine.",
-        "lighting_and_atmosphere": "Cool blue ambient darkness pierced by flickering amber emergency backup fixtures with deep long shadows.",
-        "continuity_references": ["Shopping Mall Central Atrium", "Survivor"]
-    }
-    json_repr = json.dumps({"visual_beats": [real_beat]}, indent=2)
+    assert derive_stage3_token_budget(2, max_cap=950) == 720
+    assert derive_stage3_token_budget(1, max_cap=950) == 400
+    assert derive_stage3_token_budget(3, max_cap=950) == 950
 
-    # Measured real token cost: ~1100 chars, ~140 words -> ~280-320 tokens
-    char_len = len(json_repr)
-    word_len = len(json_repr.split())
-    assert 900 <= char_len <= 1500
-    assert 110 <= word_len <= 180
+    # Under reduced cap (e.g. 700 tokens), 2 beats is clamped to 700
+    assert derive_stage3_token_budget(2, max_cap=700) == 700
+    # 1 beat under 700 cap remains 400
+    assert derive_stage3_token_budget(1, max_cap=700) == 400
 
-    # Derived budget for 1 beat is 80 (scaffolding) + 320 (measured beat cost) = 400 tokens
-    budget_baseline = derive_stage3_token_budget(1, max_cap=950)
-    assert budget_baseline == 400
-    assert budget_baseline <= 950
-
-    # Under reduced Groq OTPM cap of 530, 400 tokens fits comfortably without truncation
-    budget_reduced = derive_stage3_token_budget(1, max_cap=530)
-    assert budget_reduced == 400
-    assert budget_reduced <= 530
-
-    # Under severe cap (e.g. 380 or 250), budget is clamped and never exceeds effective cap
-    assert derive_stage3_token_budget(1, max_cap=380) == 380
-    assert derive_stage3_token_budget(1, max_cap=250) == 250
+    # Under severe cap (e.g. 350 tokens)
+    assert derive_stage3_token_budget(1, max_cap=350) == 350
 
 
 # =========================================================================
-# 2. TRUNCATION REGRESSION WITH REAL STORY UNDER 530 CAP
+# 2. REGRESSION TEST WITH REAL STORY DATA (2 UNITS PER PROMPT, 720 BUDGET)
 # =========================================================================
 
-class OneBeatRecordingEngine(BaseInferenceEngine):
-    """
-    Simulates Groq under a 530 effective cap.
-    Verifies every call asks for exactly 1 beat and respects max_tokens <= 530.
-    """
-    def __init__(self, effective_cap: int = 530):
+class TwoBeatRecordingEngine(BaseInferenceEngine):
+    """Records prompts and budgets, returning 2 beats for 2-unit prompts."""
+    def __init__(self, effective_cap: int = 950):
         super().__init__()
         self._effective_max_tokens = effective_cap
         self.call_prompts = []
@@ -115,34 +99,33 @@ class OneBeatRecordingEngine(BaseInferenceEngine):
         self.call_prompts.append(prompt)
         self.call_budgets.append(max_tokens)
 
-        # Parse unit id
-        m = re.search(r"UNIT\s+(UNIT-\d+)", prompt)
-        uid = m.group(1) if m else "UNIT-01"
+        # Parse unit IDs and text from prompt
+        units = re.findall(r'UNIT (UNIT-\d+): "(.*?)"', prompt)
+        if not units:
+            units = [("UNIT-01", "Narration text")]
 
-        # Return exactly 1 complete beat (fits easily within 400-token budget and 530 cap)
-        return json.dumps({
-            "visual_beats": [
-                {
-                    "exact_narration_segment": f"Narration for {uid}.",
-                    "narrative_purpose": f"Visualizes story progression for {uid}",
-                    "primary_visual_concept": f"Detailed concrete visual depiction for {uid} with realistic lighting and environment.",
-                    "what_new_information_is_shown": f"New visual development for {uid}",
-                    "composition": "Eye-level medium-wide shot",
-                    "lighting_and_atmosphere": "Dramatic ambient lighting with long shadows",
-                    "continuity_references": ["Shopping Mall"]
-                }
-            ]
-        })
+        beats = []
+        for uid, utext in units:
+            beats.append({
+                "exact_narration_segment": utext,
+                "narrative_purpose": f"Visualizes story progression for {uid}",
+                "primary_visual_concept": f"Detailed concrete visual depiction for {uid} with authentic setting.",
+                "what_new_information_is_shown": f"New visual development for {uid}",
+                "composition": "Eye-level medium-wide shot",
+                "lighting_and_atmosphere": "Dramatic ambient lighting with long shadows",
+                "continuity_references": ["Shopping Mall"]
+            })
+        return json.dumps({"visual_beats": beats})
 
 
-def test_stage3_one_beat_calls_under_530_cap_no_truncation_loop(capsys):
+def test_stage3_two_beat_calls_real_story(capsys):
     """
     Loads real transcript from Sixty_people_were_locked_inside.
     Verifies that:
-    1. Every Stage 3 call asks for exactly 1 beat (batch_size=3 is gone).
-    2. The budget is derived from the effective cap (530) and respects it.
-    3. The old 'Parsed 1, expected 3' loop is completely gone.
-    4. All beats parse successfully without falling back to placeholder text.
+    1. Prompts ask for 2 units per batch (batch_size=2) with 720 budget.
+    2. Prompt instruction states 'Plan exactly 2 distinct visual beats'.
+    3. The old 'Parsed 1 beats, expected 3' truncation loop is completely absent.
+    4. Beats parse cleanly without fallback fills.
     """
     speech_path = Path(r"D:\AntiGravity\Omnivoice\output\Sixty_people_were_locked_inside_2026-11-09_14-07-30\speech.json")
     if not speech_path.exists():
@@ -152,7 +135,7 @@ def test_stage3_one_beat_calls_under_530_cap_no_truncation_loop(capsys):
     words = [w["word"].strip() for w in data.get("words", [])]
     story_text = " ".join(words[:250])  # First 250 words produces ~5-6 granular units
 
-    engine = OneBeatRecordingEngine(effective_cap=530)
+    engine = TwoBeatRecordingEngine(effective_cap=950)
     analysis = _build_test_analysis()
 
     plan = Stage3VisualPlanner.execute(
@@ -163,104 +146,308 @@ def test_stage3_one_beat_calls_under_530_cap_no_truncation_loop(capsys):
 
     captured = capsys.readouterr()
 
-    # 1. The old truncation loop messages must NOT appear anywhere in output
+    # Old 3-beat truncation errors must NOT appear
     assert "Parsed 1 beats, expected 3" not in captured.out
     assert "Expected 3 visual beats, parsed 1" not in captured.out
-    assert "Warning: Batch incomplete" not in captured.out
 
-    # 2. Every single engine call was for exactly 1 beat
-    assert len(engine.call_prompts) >= 4
-    for p in engine.call_prompts:
-        assert "Plan exactly 1 distinct visual beat" in p
-        assert p.count("UNIT UNIT-") == 1
+    # Batches have 2 units (except possibly 1 odd tail unit)
+    assert len(engine.call_prompts) >= 2
+    for p, b in zip(engine.call_prompts[:-1], engine.call_budgets[:-1]):
+        assert "Plan exactly 2 distinct visual beats" in p
+        assert p.count("UNIT UNIT-") == 2
+        assert b == 720
 
-    # 3. Every call used a budget of 400 (derived for 1 beat under 530 cap)
-    for b in engine.call_budgets:
-        assert b == 400
-        assert b <= 530
-
-    # 4. Total beats match calls
-    assert len(plan.visual_beats) >= len(engine.call_prompts)
+    # All beats generated cleanly
+    assert len(plan.visual_beats) >= len(engine.call_prompts) * 2 - 1
     for beat in plan.visual_beats:
         assert beat.beat_id.startswith("VB-")
-        assert len(beat.primary_visual_concept) > 10
-        assert "Concrete depiction of" not in beat.primary_visual_concept  # Never placeholder fill!
+        assert "Concrete depiction of" not in beat.primary_visual_concept
 
 
 # =========================================================================
-# 3. RETRY TEST: TRUNCATED CALL RETRIES ONCE THEN FAILS LOUDLY
+# 3. TRUNCATING-MOCK TEST: 2-TO-1 FALLBACK COMPLETES WITH NO SILENT FILL
 # =========================================================================
 
-class PersistentTruncatingEngine(BaseInferenceEngine):
-    """Simulates Groq output truncating mid-stream on every call."""
+class FallbackTruncatingEngine(BaseInferenceEngine):
+    """
+    Truncates 2-beat batches (returns only 1 beat),
+    but succeeds on 1-beat fallback calls (returns 1 beat).
+    """
+    def __init__(self):
+        super().__init__()
+        self.two_beat_calls = 0
+        self.one_beat_calls = 0
+        self.recorded_budgets = []
+
+    def generate_text(self, prompt: str, system_prompt: str = None, temperature: float = 0.7, max_tokens: int = 1000) -> str:
+        self.recorded_budgets.append(max_tokens)
+        units = re.findall(r'UNIT (UNIT-\d+): "(.*?)"', prompt)
+
+        if len(units) == 2:
+            self.two_beat_calls += 1
+            # Truncation: returns only 1 beat for a 2-unit request
+            uid, utext = units[0]
+            return json.dumps({
+                "visual_beats": [
+                    {
+                        "exact_narration_segment": utext,
+                        "narrative_purpose": "Incomplete batch output",
+                        "primary_visual_concept": f"Concept for {uid}",
+                        "what_new_information_is_shown": "Partial output",
+                        "composition": "Wide shot",
+                        "lighting_and_atmosphere": "Overcast",
+                        "continuity_references": []
+                    }
+                ]
+            })
+        else:
+            self.one_beat_calls += 1
+            uid, utext = units[0] if units else ("UNIT-01", "Text")
+            return json.dumps({
+                "visual_beats": [
+                    {
+                        "exact_narration_segment": utext,
+                        "narrative_purpose": f"Visualizes story progression for {uid}",
+                        "primary_visual_concept": f"Complete fallback concept for {uid} under 1-beat budget.",
+                        "what_new_information_is_shown": f"New development for {uid}",
+                        "composition": "Medium shot",
+                        "lighting_and_atmosphere": "Dramatic lighting",
+                        "continuity_references": []
+                    }
+                ]
+            })
+
+
+def test_stage3_truncating_mock_2_to_1_fallback_completes_cleanly():
+    """
+    Proves that when a 2-beat call truncates (< 2 beats), the planner does NOT retry
+    the 2-beat call and does NOT fill silently: it shrinks the pair to two 1-beat calls
+    (budget 400 each), which complete successfully.
+    """
+    engine = FallbackTruncatingEngine()
+    analysis = _build_test_analysis()
+    # 2 sentences -> 2 units
+    story_text = "The survivors barred the heavy security doors. Then they retreated to the second floor."
+
+    plan = Stage3VisualPlanner.execute(
+        engine=engine,
+        story_text=story_text,
+        analysis=analysis,
+        allow_fill=False
+    )
+
+    # 1. Exactly 1 two-beat call was attempted (budget 720)
+    assert engine.two_beat_calls == 1
+    assert engine.recorded_budgets[0] == 720
+
+    # 2. Shrunk to two 1-beat fallback calls (budget 400 each)
+    assert engine.one_beat_calls == 2
+    assert engine.recorded_budgets[1] == 400
+    assert engine.recorded_budgets[2] == 400
+
+    # 3. Both beats produced cleanly without silent fill
+    assert len(plan.visual_beats) == 2
+    for b in plan.visual_beats:
+        assert "Complete fallback concept" in b.primary_visual_concept
+        assert "Concrete depiction of" not in b.primary_visual_concept
+
+
+# =========================================================================
+# 4. PERSISTENTLY-TRUNCATING MOCK TEST: FAILS LOUDLY NAMING THE UNIT
+# =========================================================================
+
+class AlwaysTruncatingEngine(BaseInferenceEngine):
+    """Truncates on every call (both 2-beat and 1-beat)."""
     def __init__(self):
         super().__init__()
         self.call_count = 0
 
     def generate_text(self, prompt: str, system_prompt: str = None, temperature: float = 0.7, max_tokens: int = 1000) -> str:
         self.call_count += 1
-        # Truncated JSON mid-object
-        return '{"visual_beats": [{"exact_narration_segment": "Truncated content'
+        # Incomplete / unparseable JSON
+        return '{"visual_beats": [{"exact_narration_segment": "Cut off mid-'
 
     def repair_and_parse_json(self, raw_text: str) -> dict:
         return {"visual_beats": []}
 
 
-def test_stage3_truncated_one_beat_retries_once_then_fails_loudly():
+def test_stage3_persistently_truncating_mock_fails_loudly_naming_unit():
     """
-    Verifies that a truncated 1-beat call retries exactly once, and if it truncates
-    again, fails loudly naming the unit with RuntimeError (no silent fill, no loop).
+    Proves that when a 1-beat fallback call still truncates, it fails loudly
+    with RuntimeError naming the offending unit (F5 pattern), with no silent fill.
     """
-    engine = PersistentTruncatingEngine()
+    engine = AlwaysTruncatingEngine()
     analysis = _build_test_analysis()
-    story_text = "The survivors barred the heavy security doors and prepared for the long night."
+    story_text = "The survivors barred the heavy security doors. Then they retreated to the second floor."
 
     with pytest.raises(RuntimeError) as exc_info:
         Stage3VisualPlanner.execute(
             engine=engine,
             story_text=story_text,
-            analysis=analysis
+            analysis=analysis,
+            allow_fill=False
         )
 
-    # 1. Must fail loudly naming the offending unit
     err_msg = str(exc_info.value)
+    # Must fail loudly naming the unit and 1-beat fallback
     assert "Stage 3 planning failure" in err_msg
-    assert "UNIT-01" in err_msg or "UNIT-02" in err_msg
-    assert "output truncated or incomplete after retry" in err_msg
-
-    # 2. Must have attempted initial call + exactly 1 retry (2 calls total, no endless loop)
-    assert engine.call_count == 2
+    assert "UNIT-01" in err_msg
+    assert "1-beat fallback retry" in err_msg
 
 
 # =========================================================================
-# 4. EFFECTIVE-CAP TEST: ENGINE MEMORY AND DECAY
+# 5. KEY WAIT RULE TESTS: 429 HANDLING IN GROQ ENGINE
+# =========================================================================
+
+def test_parse_groq_retry_after():
+    """Verifies retry-after parsing from headers and text bodies."""
+    # From body text
+    assert parse_groq_retry_after(text="Please try again in 1.8s.") == 1.8
+    assert parse_groq_retry_after(text="try again in 500ms") == 0.5
+    assert parse_groq_retry_after(text="try again in 12.7s") == 12.7
+
+    # From headers
+    assert parse_groq_retry_after(headers={"retry-after": "2.5"}) == 2.5
+    assert parse_groq_retry_after(headers={"Retry-After": "10"}) == 10.0
+    assert parse_groq_retry_after(headers={"x-ratelimit-reset-requests": "1.5s"}) == 1.5
+
+    # Unparseable returns None
+    assert parse_groq_retry_after(headers={}, text="Generic rate limit message.") is None
+    assert parse_groq_retry_after() is None
+
+
+def test_groq_engine_short_wait_retries_same_key():
+    """
+    When Groq returns HTTP 429 with requested wait <= 3.0s:
+    Engine sleeps and retries the SAME API key without marking cooldown or rotating.
+    """
+    km = GroqMultiKeyManager(keys=["gsk_key1_AAAAAA", "gsk_key2_BBBBBB"])
+    engine = GroqEngine(key_manager=km)
+
+    resp_429 = MagicMock()
+    resp_429.status_code = 429
+    resp_429.headers = {"retry-after": "2.0"}
+    resp_429.text = '{"error": {"message": "Rate limit reached. Please try again in 2.0s."}}'
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.json.return_value = {"choices": [{"message": {"content": "Success after wait"}}]}
+
+    with patch("httpx.Client") as mock_client_cls, patch("time.sleep") as mock_sleep:
+        mock_client = MagicMock()
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        mock_client.post.side_effect = [resp_429, resp_200]
+
+        res = engine.generate_text("Test prompt")
+        assert res == "Success after wait"
+
+        # Assert time.sleep was called with 2.0s
+        mock_sleep.assert_called_once_with(2.0)
+
+        # Assert post was called twice, BOTH times with the SAME key (key1)
+        assert mock_client.post.call_count == 2
+        first_call_auth = mock_client.post.call_args_list[0][1]["headers"]["Authorization"]
+        second_call_auth = mock_client.post.call_args_list[1][1]["headers"]["Authorization"]
+        assert first_call_auth == "Bearer gsk_key1_AAAAAA"
+        assert second_call_auth == "Bearer gsk_key1_AAAAAA"
+
+
+def test_groq_engine_long_wait_rotates_key():
+    """
+    When Groq returns HTTP 429 with requested wait > 3.0s:
+    Engine marks key on cooldown and rotates to the NEXT key in the pool.
+    """
+    km = GroqMultiKeyManager(keys=["gsk_key1_AAAAAA", "gsk_key2_BBBBBB"])
+    engine = GroqEngine(key_manager=km)
+
+    resp_429 = MagicMock()
+    resp_429.status_code = 429
+    resp_429.headers = {"retry-after": "10.0"}
+    resp_429.text = '{"error": {"message": "Rate limit reached. Please try again in 10.0s."}}'
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.json.return_value = {"choices": [{"message": {"content": "Success on second key"}}]}
+
+    with patch("httpx.Client") as mock_client_cls, patch("time.sleep") as mock_sleep:
+        mock_client = MagicMock()
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        mock_client.post.side_effect = [resp_429, resp_200]
+
+        res = engine.generate_text("Test prompt")
+        assert res == "Success on second key"
+
+        # Should NOT sleep 10s in worker thread
+        mock_sleep.assert_not_called()
+
+        # Assert first call used key1, second call rotated to key2
+        assert mock_client.post.call_count == 2
+        first_call_auth = mock_client.post.call_args_list[0][1]["headers"]["Authorization"]
+        second_call_auth = mock_client.post.call_args_list[1][1]["headers"]["Authorization"]
+        assert first_call_auth == "Bearer gsk_key1_AAAAAA"
+        assert second_call_auth == "Bearer gsk_key2_BBBBBB"
+
+
+def test_groq_engine_unparseable_wait_rotates_key():
+    """
+    When Groq returns HTTP 429 with unparseable delay:
+    Engine marks cooldown with fallback (2.0s) and rotates to the NEXT key.
+    """
+    km = GroqMultiKeyManager(keys=["gsk_key1_AAAAAA", "gsk_key2_BBBBBB"])
+    engine = GroqEngine(key_manager=km)
+
+    resp_429 = MagicMock()
+    resp_429.status_code = 429
+    resp_429.headers = {}
+    resp_429.text = 'Rate limit exceeded.'
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.json.return_value = {"choices": [{"message": {"content": "Success after rotation"}}]}
+
+    with patch("httpx.Client") as mock_client_cls, patch("time.sleep") as mock_sleep:
+        mock_client = MagicMock()
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        mock_client.post.side_effect = [resp_429, resp_200]
+
+        res = engine.generate_text("Test prompt")
+        assert res == "Success after rotation"
+
+        # Rotates key
+        assert mock_client.post.call_count == 2
+        first_call_auth = mock_client.post.call_args_list[0][1]["headers"]["Authorization"]
+        second_call_auth = mock_client.post.call_args_list[1][1]["headers"]["Authorization"]
+        assert first_call_auth == "Bearer gsk_key1_AAAAAA"
+        assert second_call_auth == "Bearer gsk_key2_BBBBBB"
+
+
+# =========================================================================
+# 6. EFFECTIVE-CAP TEST: ENGINE MEMORY AND DECAY (STANDARD VALUES)
 # =========================================================================
 
 def test_groq_engine_effective_cap_memory_and_decay():
     """
     Verifies that:
     1. Initial effective cap is 950.
-    2. When Groq directs an OTPM reduction, the engine remembers it.
+    2. When Groq directs an OTPM reduction (e.g. 750 tokens), engine remembers it.
     3. Stage 3 derives its budget from the remembered effective cap.
     4. After the decay interval (60s), the engine recovers back to 950.
     """
     engine = GroqEngine()
     assert engine.current_effective_max_tokens(baseline=950) == 950
 
-    # Simulate Groq OTPM directive reducing max_tokens to 530
-    engine.record_effective_cap_reduction(530)
-    assert engine.current_effective_max_tokens(baseline=950) == 530
+    # Simulate Groq OTPM directive reducing max_tokens to 750
+    engine.record_effective_cap_reduction(750)
+    assert engine.current_effective_max_tokens(baseline=950) == 750
 
-    # Stage 3 derives from this effective cap
-    stage3_budget = derive_stage3_token_budget(1, max_cap=engine.current_effective_max_tokens())
-    assert stage3_budget == 400
-    assert stage3_budget <= 530
+    # Stage 3 derives from this effective cap: 2 beats = 720 (fits under 750)
+    stage3_budget = derive_stage3_token_budget(2, max_cap=engine.current_effective_max_tokens())
+    assert stage3_budget == 720
 
     # Simulate 30s elapsed (still within 60s recovery interval)
     engine._effective_cap_timestamp = time.time() - 30.0
-    assert engine.current_effective_max_tokens(baseline=950) == 530
+    assert engine.current_effective_max_tokens(baseline=950) == 750
 
     # Simulate 65s elapsed (exceeded 60s recovery interval)
     engine._effective_cap_timestamp = time.time() - 65.0
-    # Engine recovers back toward baseline 950
     assert engine.current_effective_max_tokens(baseline=950) == 950
