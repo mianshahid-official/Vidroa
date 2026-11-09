@@ -10,16 +10,11 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any, Callable
 from app.models.planning import ScriptAnalysis, VisualBeat, VisualBeatPlan
 from backend.inference.engine import BaseInferenceEngine
+from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
 
 
 def load_system_prompt() -> str:
-    prompt_file = Path("config/system_prompts/stage2_planning.txt")
-    if prompt_file.exists():
-        try:
-            return prompt_file.read_text(encoding="utf-8").strip()
-        except Exception:
-            pass
-    return "You are an exceptional visual storyteller and storyboard architect. Plan narration-aligned visual beats."
+    return _load_system_prompt("stage3_visual_planning.txt")
 
 
 class Stage3VisualPlanner:

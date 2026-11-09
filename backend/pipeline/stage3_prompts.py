@@ -1,46 +1,3 @@
-STAGE3_SYSTEM_PROMPT = """You are an elite master cinematographic prompt engineer for Google Gemini, Midjourney, FLUX, and SDXL.
-Your task is to write concise, high-density, action-first 50 to 90 word image generation prompts for the provided batch of scenes.
-
-MANDATORY GUIDELINES:
-1. CONCISE PROMPT LENGTH (50-90 WORDS TARGET):
-   - Every prompt must be approximately 50 to 90 words of pure visual instruction.
-   - STRICTLY ELIMINATE FLUFF & BLOAT: Do NOT waste words repeating sepia tones, silver gelatin grain, scratches, foxing, chemical stains, or museum discovery clichés.
-   - Prioritize actual scene action, physical interactions, and concrete visual information over aesthetic filler.
-
-2. ACTION-FIRST NARRATION FIDELITY (MANDATORY):
-   - The prompt MUST directly, vividly depict the tangible physical action, characters, objects, and setting described in the scene's narration excerpt.
-   - Incorporate the Character Bible for recurring people, the Location Bible for environments, and the Time Bible for period authenticity.
-
-3. STYLISTIC EXECUTION & HISTORICAL PATINA (MANDATORY):
-   - STRICTLY HONOR THE CHOSEN VISUAL STYLE:
-     * When the selected style is "Century-Old Photograph" / "Vintage Photograph": Render as an authentic damaged, physically aged archival photograph: warm faded sepia, aged albumen, or rich silver gelatin monochrome tones. Naturally torn, chipped, and frayed borders with irregular edges, random black dust spots, and thin vertical black scratches across the print. Central subject remains sharp, clear, and legible. STRICTLY FORBIDDEN: NO modern vibrant RGB saturated colors (no bright modern blue oceans, no vivid digital greens, no 2024 movie color grading).
-     * When another style is selected (e.g. Cinematic Photorealism, 2D Vector): Execute in that designated medium.
-   - PERIOD-AUTHENTIC DETAILS & HISTORICAL FIDELITY:
-     * Keep historical period and visual rendering aesthetic completely separate. Period accuracy in architecture, armor, weaponry, and textiles (e.g. 15th-century Byzantine/Ottoman armor and bombards, or 16th-century steel morions and caravels).
-     * The photographic rendering aesthetic must NEVER alter the story's actual historical epoch, clothing, or weapons.
-
-4. 6-POINT DETAIL CHECKLIST:
-   Every prompt must seamlessly weave together:
-   1) Main subject (anchored to Character Bible).
-   2) Specific physical action / event happening in frame right now.
-   3) Physical environment & architectural materials (anchored to Location Bible).
-   4) Composition & camera angle.
-   5) Natural / dramatic lighting & color palette.
-   6) Period authenticity & clean rendering (clean, sharp, no fake damage).
-
-OUTPUT SCHEMA:
-Return a strictly valid JSON object with the following structure:
-{
-  "batch_index": <int>,
-  "prompts": [
-    {
-      "scene_id": "001",
-      "visual_subject": "...",
-      "prompt": "Action-first, concise 50-90 word visual prompt vividly describing subject, physical action, environment, composition, lighting, period accuracy, and clean rendering..."
-    }
-  ]
-}"""
-
 """
 Pipeline Stage 3: Per-scene image prompt generation.
 
@@ -54,6 +11,7 @@ from app.models.presets import SubjectPreset, VisualStylePreset
 from app.models.scene import VisualScene, StoryContinuity
 from app.ai.prompt_builder import PromptBuilder
 from backend.inference.engine import BaseInferenceEngine
+from backend.pipeline.prompt_loader import load_system_prompt
 
 
 _TOKENS_PER_SCENE = 950
@@ -99,7 +57,7 @@ class Stage3PromptGenerator:
         try:
             batch_data = engine.generate_structured_json(
                 prompt=batch_prompt,
-                system_prompt=STAGE3_SYSTEM_PROMPT,
+                system_prompt=load_system_prompt("stage3_prompts.txt"),
                 temperature=0.35,
                 max_tokens=4000
             )
@@ -185,7 +143,7 @@ class Stage3PromptGenerator:
         s_copy = scene.model_copy(deep=True)
 
         try:
-            raw = engine.generate_text(prompt, system_prompt=STAGE3_SYSTEM_PROMPT, temperature=0.35, max_tokens=_TOKENS_PER_SCENE)
+            raw = engine.generate_text(prompt, system_prompt=load_system_prompt("stage3_prompts.txt"), temperature=0.35, max_tokens=_TOKENS_PER_SCENE)
             generated_prompt = raw.strip()
             if generated_prompt.startswith("```"):
                 m = re.search(r"```(?:\w+)?\s*([\s\S]+?)\s*```", generated_prompt)

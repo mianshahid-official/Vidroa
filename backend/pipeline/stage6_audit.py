@@ -19,16 +19,11 @@ from app.models.planning import (
 )
 from app.models.scene import VisualScene
 from backend.inference.engine import BaseInferenceEngine
+from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
 
 
 def load_system_prompt() -> str:
-    prompt_file = Path("config/system_prompts/stage5_validation.txt")
-    if prompt_file.exists():
-        try:
-            return prompt_file.read_text(encoding="utf-8").strip()
-        except Exception:
-            pass
-    return "You are an independent storyboard quality auditor and repetition detector. Evaluate entire storyboard."
+    return _load_system_prompt("stage5_validation.txt")
 
 
 class Stage6StoryboardAuditor:
@@ -43,12 +38,7 @@ class Stage6StoryboardAuditor:
         analysis: ScriptAnalysis,
         progress_callback: Optional[Callable[[int, int, str], None]] = None
     ) -> StoryboardAuditReport:
-        auditor_system_prompt = (
-            "You are an independent, rigorous storyboard quality auditor and repetition detector. "
-            "Evaluate planned scenes globally against narration alignment, progression, pacing, and repetition. "
-            "Be vigilant: do not approve storyboards with repeated cannon/breach loops or narrative mismatches. "
-            "Output strictly valid JSON only."
-        )
+        auditor_system_prompt = load_system_prompt()
 
         if progress_callback:
             progress_callback(1, 2, "Auditing complete storyboard for narration alignment, pacing, and repetition...")

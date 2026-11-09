@@ -20,25 +20,11 @@ from app.models.planning import (
 from app.models.presets import VisualStylePreset, SubjectPreset
 from app.models.scene import VisualScene
 from backend.inference.engine import BaseInferenceEngine
+from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
 
 
 def load_system_prompt() -> str:
-    base_dir = Path(__file__).resolve().parent.parent.parent
-    prompt_file = base_dir / "config" / "system_prompts" / "stage4_prompts.txt"
-    if not prompt_file.exists():
-        prompt_file = Path("config/system_prompts/stage4_prompts.txt")
-    if prompt_file.exists():
-        try:
-            content = prompt_file.read_text(encoding="utf-8").strip()
-            if content:
-                return content
-        except Exception as e:
-            print(f"[Stage5] Warning loading system prompt: {e}")
-    return (
-        "You are an expert visual prompt engineer and storyboard illustrator.\n"
-        "Your task is to convert an approved visual concept into a precise, effective image-generation prompt.\n"
-        "Preserve narrative meaning, narration relevance, visual style, and continuity. Output strictly valid JSON."
-    )
+    return _load_system_prompt("stage4_prompts.txt")
 
 
 def resolve_stickman_characters(analysis: ScriptAnalysis) -> Tuple[str, List[str]]:

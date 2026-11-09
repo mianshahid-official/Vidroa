@@ -11,16 +11,11 @@ from typing import Optional, List, Dict, Any, Callable
 from app.models.planning import VisualBeatPlan, ScheduledStoryboard, ScheduledScene
 from app.models.timeline import NarrationData, WordTimestamp
 from backend.inference.engine import BaseInferenceEngine
+from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
 
 
 def load_system_prompt() -> str:
-    prompt_file = Path("config/system_prompts/stage3_scheduling.txt")
-    if prompt_file.exists():
-        try:
-            return prompt_file.read_text(encoding="utf-8").strip()
-        except Exception:
-            pass
-    return "You are a master temporal scheduler and audio-to-visual synchronizer. Schedule gapless scenes (2.0s-8.0s)."
+    return _load_system_prompt("stage3_scheduling.txt")
 
 
 def derive_progressive_subsegment_concept(base_concept: str, seg_words: List[str], part_idx: int, total_parts: int) -> str:

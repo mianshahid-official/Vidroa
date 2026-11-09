@@ -18,8 +18,11 @@ class PromptBuilder:
         filepath = SYSTEM_PROMPTS_DIR / filename
         if filepath.exists():
             with open(filepath, "r", encoding="utf-8") as f:
-                return f.read().strip()
-        return ""
+                content = f.read().strip()
+                if not content:
+                    raise ValueError(f"Prompt template is empty: {filepath}")
+                return content
+        raise FileNotFoundError(f"Required prompt template not found: {filepath}")
 
     @classmethod
     def build_stage1_prompt(
@@ -237,8 +240,10 @@ class PromptBuilder:
         env_info = f"- Environment: {getattr(scene, 'environment', '')}\n" if getattr(scene, 'environment', '') else ""
         comp_info = f"- Composition & Angle: {getattr(scene, 'composition', '') or scene.framing_suggestion or 'Medium shot'}\n"
 
+        base = cls.load_prompt_template("base_system.txt")
+
         prompt = (
-            f"You are an elite AI image prompt writer.\n\n"
+            f"{base}\n\n"
             f"MANDATORY VISUAL STYLE: {style_preset.name}\n{style_rules}\n\n"
             f"SUBJECT DOMAIN: {subject_preset.name}\n{subject_rules}\n\n"
             f"{story_info}"

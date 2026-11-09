@@ -23,16 +23,11 @@ from backend.pipeline.stage5_prompts import (
     derive_contextual_environment,
     sanitize_action_summary
 )
+from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
 
 
 def load_system_prompt() -> str:
-    prompt_file = Path("config/system_prompts/stage6_replanning.txt")
-    if prompt_file.exists():
-        try:
-            return prompt_file.read_text(encoding="utf-8").strip()
-        except Exception:
-            pass
-    return "You are an expert storyboard reconstruction and visual planning specialist. Replan failing scenes."
+    return _load_system_prompt("stage6_replanning.txt")
 
 
 class Stage7Replanner:
