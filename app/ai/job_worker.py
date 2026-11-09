@@ -35,7 +35,6 @@ from app.ai.schemas import (
 from backend.inference.engine import GroqInferenceEngine
 from backend.pipeline.stage1_analysis import Stage1Analyzer
 from backend.pipeline.stage2_continuity import Stage2ContinuityManager
-from backend.pipeline.stage2_planning import Stage2Planner  # Required for scene planning when no pre-planned scenes provided
 from backend.pipeline.stage3_visual_planning import Stage3VisualPlanner
 from backend.pipeline.stage4_scheduling import Stage4TemporalScheduler
 from backend.pipeline.stage5_prompts import Stage5PromptGenerator
@@ -157,31 +156,104 @@ class CloudJobWorker(QThread):
                 self.analysis_ready.emit(analysis)
 
             # -------------------------------------------------------------
-            # STAGE 2: Visual Scene Planning
+            # STAGE 2-4: Visual Scene Planning & Temporal Scheduling (Unified Path A)
             # -------------------------------------------------------------
             if self._is_cancelled:
                 self.job_cancelled.emit()
                 return
 
+            script_analysis = Stage1Analyzer.to_script_analysis(analysis, self.request.story_text)
+
             if self.scenes_to_generate:
                 planned_scenes = self.scenes_to_generate
+                scheduled_items = []
+                for s in planned_scenes:
+                    narr = (s.narration_excerpt or "").strip()
+                    if not narr:
+                        raise RuntimeError(
+                            f"Stage 4 scheduling failure: Scene #{s.scene_id} has empty narration excerpt. "
+                            f"Substituting action text is strictly prohibited per production release requirements."
+                        )
+                    scheduled_items.append(ScheduledScene(
+                        scene_id=s.scene_id,
+                        index=getattr(s, "index", None),
+                        beat_id=getattr(s, "beat_id", f"VB-{s.scene_id}"),
+                        start_time=s.start,
+                        end_time=s.end,
+                        duration=s.duration,
+                        narration_text=narr,
+                        visual_summary=s.visual_subject,
+                        scheduling_reason="Approved user storyboard beat",
+                        source_narrative_beat_ids=getattr(s, "source_narrative_beat_ids", []),
+                        source_visual_beat_ids=getattr(s, "source_visual_beat_ids", [getattr(s, "beat_id", f"VB-{s.scene_id}")]),
+                        source_word_start=getattr(s, "start_word_index", None),
+                        source_word_end=getattr(s, "end_word_index", None),
+                        character_ids=getattr(s, "character_ids", []),
+                        location_id=getattr(s, "location_id", None),
+                        chronological_order=getattr(s, "chronological_order", None)
+                    ))
+                scheduled_storyboard = ScheduledStoryboard(
+                    scenes=scheduled_items,
+                    total_duration=planned_scenes[-1].end if planned_scenes else 0.0
+                )
             else:
-                self.stage_changed.emit("Planning visual scene boundaries & word-level timing...")
+                self.stage_changed.emit("Planning narration-aligned visual beats (Stage 3/8)...")
                 self.progress_updated.emit(ProgressInfo(
-                    stage=JobStage.PLANNING,
+                    stage=JobStage.VISUAL_PLANNING,
                     status=JobStatus.RUNNING,
                     progress_percentage=25.0,
-                    message="Planning visual scene boundaries and word-level timing..."
+                    message="Planning narration-aligned visual beats (WHAT the audience sees)..."
                 ))
-                planned_scenes = Stage2Planner.execute(
+                visual_plan = Stage3VisualPlanner.execute(
                     engine=engine,
                     story_text=self.request.story_text,
-                    analysis_summary=analysis.story_summary,
-                    narration=self.request.narration,
-                    config=config,
-                    subject_preset=subject_preset,
-                    style_preset=style_preset
+                    analysis=script_analysis,
+                    subject_preset=subject_preset
                 )
+
+                self.stage_changed.emit("Scheduling scene boundaries & audio synchronization (Stage 4/8)...")
+                self.progress_updated.emit(ProgressInfo(
+                    stage=JobStage.TEMPORAL_SCHEDULING,
+                    status=JobStatus.RUNNING,
+                    progress_percentage=35.0,
+                    message="Scheduling scene boundaries with audio synchronization (2.0s-8.0s hard cap)..."
+                ))
+
+                total_audio_dur = self.request.narration.duration_seconds if self.request.narration else None
+                scheduled_storyboard = Stage4TemporalScheduler.execute(
+                    engine=engine,
+                    visual_plan=visual_plan,
+                    narration=self.request.narration,
+                    story_text=self.request.story_text,
+                    total_audio_duration=total_audio_dur
+                )
+
+                planned_scenes = []
+                for sc in scheduled_storyboard.scenes:
+                    planned_scenes.append(VisualScene(
+                        scene_id=sc.scene_id,
+                        index=sc.index,
+                        start=sc.start_time,
+                        end=sc.end_time,
+                        duration=sc.duration,
+                        start_word_index=sc.source_word_start,
+                        end_word_index=sc.source_word_end,
+                        narration_excerpt=sc.narration_text,
+                        visual_subject=sc.visual_summary,
+                        action=sc.visual_summary,
+                        environment="",
+                        composition="Wide establishing shot",
+                        emotional_tone="Dramatic",
+                        historical_confidence="well_supported_reconstruction",
+                        prompt="",
+                        continuity_checklist=[],
+                        source_narrative_beat_ids=sc.source_narrative_beat_ids,
+                        source_visual_beat_ids=sc.source_visual_beat_ids,
+                        character_ids=sc.character_ids,
+                        location_id=sc.location_id,
+                        chronological_order=sc.chronological_order,
+                        validation_notes=None
+                    ))
 
             total_scenes = len(planned_scenes)
             self.scenes_streamed.emit(planned_scenes)
@@ -201,31 +273,6 @@ class CloudJobWorker(QThread):
             # -------------------------------------------------------------
             # STAGE 5: Batched Prompt Generation
             # -------------------------------------------------------------
-            script_analysis = Stage1Analyzer.to_script_analysis(analysis, self.request.story_text)
-            scheduled_items = []
-            for s in planned_scenes:
-                scheduled_items.append(ScheduledScene(
-                    scene_id=s.scene_id,
-                    index=getattr(s, "index", None),
-                    beat_id=getattr(s, "beat_id", f"VB-{s.scene_id}"),
-                    start_time=s.start,
-                    end_time=s.end,
-                    duration=s.duration,
-                    narration_text=s.narration_excerpt or s.action,
-                    visual_summary=s.visual_subject,
-                    scheduling_reason="Approved user storyboard beat",
-                    source_narrative_beat_ids=getattr(s, "source_narrative_beat_ids", []),
-                    source_visual_beat_ids=getattr(s, "source_visual_beat_ids", [getattr(s, "beat_id", f"VB-{s.scene_id}")]),
-                    source_word_start=getattr(s, "start_word_index", None),
-                    source_word_end=getattr(s, "end_word_index", None),
-                    character_ids=getattr(s, "character_ids", []),
-                    location_id=getattr(s, "location_id", None),
-                    chronological_order=getattr(s, "chronological_order", None)
-                ))
-            scheduled_storyboard = ScheduledStoryboard(
-                scenes=scheduled_items,
-                total_duration=planned_scenes[-1].end if planned_scenes else 0.0
-            )
 
             batch_size = max(1, min(config.batch_size, 20))
             total_batches = math.ceil(total_scenes / batch_size) if total_scenes > 0 else 1

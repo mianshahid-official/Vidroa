@@ -19,7 +19,6 @@ from backend.pipeline.stage4_scheduling import (
     assert_sentence_boundary_validity,
     Stage4TemporalScheduler
 )
-from backend.pipeline.stage2_planning import split_long_scene
 
 
 def test_find_sentence_clause_split_point_punctuation_and_tail_guard():
@@ -172,20 +171,32 @@ def test_stage4_rejects_missing_beat_narration():
     assert "no exact narration segment" in str(exc_info.value)
 
 
-def test_stage2_split_long_scene_sentence_aware():
-    long_scene = VisualScene(
-        scene_id="001",
-        start=0.0,
-        end=12.0,
-        duration=12.0,
-        narration_excerpt="The vanguard crossed the frozen river at dawn. Sentry fires burned along the high cliffs.",
-        visual_subject="Soldiers crossing river",
-        composition="Wide shot"
+def test_stage4_tail_split_sentence_aware():
+    plan = VisualBeatPlan(
+        visual_beats=[
+            VisualBeat(
+                beat_id="VB-001",
+                exact_narration_segment="The vanguard crossed the frozen river at dawn. Sentry fires burned along the high cliffs.",
+                narrative_purpose="River crossing",
+                primary_visual_concept="Vanguard soldiers crossing frozen river at dawn",
+                what_new_information_is_shown="Dawn crossing",
+                composition="Wide shot",
+                lighting_and_atmosphere="Dawn mist",
+                why_this_is_not_repetitive="Initial crossing",
+                continuity_references=[]
+            )
+        ]
     )
-    sub_scenes = split_long_scene(long_scene, max_dur=8.0)
-    assert len(sub_scenes) == 2
-    for s in sub_scenes:
-        assert s.duration <= 8.0
-        assert s.narration_excerpt[-1] in [".", "!", "?", ";", ",", "—", "–"]
-    assert "dawn." in sub_scenes[0].narration_excerpt
-    assert "cliffs." in sub_scenes[1].narration_excerpt
+    storyboard = Stage4TemporalScheduler.execute(
+        engine=None,
+        visual_plan=plan,
+        narration=None,
+        story_text="The vanguard crossed the frozen river at dawn. Sentry fires burned along the high cliffs.",
+        total_audio_duration=14.0
+    )
+    assert len(storyboard.scenes) >= 2
+    for s in storyboard.scenes:
+        assert s.duration <= 8.05
+        assert s.narration_text[-1] in [".", "!", "?", ";", ":", "—", "–"]
+    assert "dawn." in storyboard.scenes[0].narration_text
+    assert "cliffs." in storyboard.scenes[-1].narration_text

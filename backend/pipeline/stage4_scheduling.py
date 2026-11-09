@@ -5,6 +5,7 @@ Enforces strict 2.0s - 8.0s pacing, absolute 8.00s hard ceiling, and 100% gaples
 Guarantees 100% disjoint word assignment across scene boundaries with zero duplicate words.
 Every scheduled scene strictly preserves its real approved beat_id from Stage 3.
 """
+import math
 import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Callable
@@ -543,7 +544,7 @@ class Stage4TemporalScheduler:
                     })
                     continue
 
-                n_parts = int(dur // 6.5) + (1 if dur % 6.5 > 0 else 0)
+                n_parts = max(2, int(math.ceil(dur / 8.0)))
                 sub_dur = round(dur / n_parts, 2)
                 p_start = st
                 if not beat_words:
@@ -596,16 +597,28 @@ class Stage4TemporalScheduler:
 
         final_scenes = []
         cur_chain = 0.0
+        story_words = story_text.split()
+        total_w_count = len(story_words)
+        cur_w_idx = 0
+
         for i, s in enumerate(raw_scenes):
             sc_st = round(cur_chain, 2)
             sc_en = round(total_duration, 2) if i == len(raw_scenes) - 1 else round(min(sc_st + 7.85, sc_st + s["duration"]), 2)
             cur_chain = sc_en
+
+            seg_words = s["narration"].split()
+            sw = cur_w_idx
+            ew = min(total_w_count - 1, cur_w_idx + max(1, len(seg_words)) - 1) if total_w_count > 0 else 0
+            cur_w_idx = ew + 1
+
             final_scenes.append(ScheduledScene(
                 scene_id=f"{i+1:03d}",
                 index=i+1,
                 beat_id=s["beat_id"],
                 source_narrative_beat_ids=s.get("source_beat_ids", []),
                 source_visual_beat_ids=[s["beat_id"]],
+                source_word_start=sw,
+                source_word_end=ew,
                 character_ids=s.get("character_ids", []),
                 chronological_order=i+1,
                 start_time=sc_st,
