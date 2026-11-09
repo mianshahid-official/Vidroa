@@ -110,18 +110,21 @@ Do not impose a fixed word count.
 
 Use the shortest prompt that communicates the complete intended image clearly.
 
-## 6. PROMPT OUTPUT
+## 6. PROMPT OUTPUT FORMAT
 
-Return:
+You must output strictly valid JSON matching the following schema.
+Every scene must have a complete, vivid image generation prompt ready for direct submission to the image generation model.
 
-- scene_id
-- visual_beat_id
-- narration_reference
-- final_image_prompt
-- continuity_entities_used
-- visual_details_added
-- unsupported_details_warning
+Format:
+{
+  "prompts": [
+    {
+      "scene_id": "001",
+      "prompt": "Full standalone image generation prompt with concrete subjects, action, setting, lighting, and composition...",
+      "subject": "Primary physical subject or action",
+      "composition": "Shot framing and camera angle"
+    }
+  ]
+}
 
-The final image prompt must be ready for direct submission to the configured image-generation model.
-
-Return strictly valid JSON.
+Return strictly valid JSON only.

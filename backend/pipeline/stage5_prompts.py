@@ -23,13 +23,22 @@ from backend.inference.engine import BaseInferenceEngine
 
 
 def load_system_prompt() -> str:
-    prompt_file = Path("config/system_prompts/stage4_prompts.txt")
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    prompt_file = base_dir / "config" / "system_prompts" / "stage4_prompts.txt"
+    if not prompt_file.exists():
+        prompt_file = Path("config/system_prompts/stage4_prompts.txt")
     if prompt_file.exists():
         try:
-            return prompt_file.read_text(encoding="utf-8").strip()
-        except Exception:
-            pass
-    return "You are a master AI image prompt architect. Generate detailed, style-compliant image prompts."
+            content = prompt_file.read_text(encoding="utf-8").strip()
+            if content:
+                return content
+        except Exception as e:
+            print(f"[Stage5] Warning loading system prompt: {e}")
+    return (
+        "You are an expert visual prompt engineer and storyboard illustrator.\n"
+        "Your task is to convert an approved visual concept into a precise, effective image-generation prompt.\n"
+        "Preserve narrative meaning, narration relevance, visual style, and continuity. Output strictly valid JSON."
+    )
 
 
 def resolve_stickman_characters(analysis: ScriptAnalysis) -> Tuple[str, List[str]]:
@@ -241,18 +250,43 @@ Return strictly valid JSON:
   ]
 }}"""
 
+            def _extract_prompt_text(item: Any) -> str:
+                if not isinstance(item, dict):
+                    return ""
+                val = (
+                    item.get("prompt") or
+                    item.get("final_image_prompt") or
+                    item.get("image_prompt") or
+                    ""
+                )
+                return str(val).strip()
+
+            def _extract_scene_id(item: Any) -> str:
+                if not isinstance(item, dict):
+                    return ""
+                val = (
+                    item.get("scene_id") or
+                    item.get("id") or
+                    item.get("visual_beat_id") or
+                    ""
+                )
+                return str(val).strip().lstrip("#")
+
             p_items = []
             max_attempts = 2
             for attempt in range(max_attempts):
                 try:
                     raw_res = engine.generate_text(
                         prompt=user_prompt,
-                        system_prompt="You are a master AI video prompt architect. Output strictly valid JSON only.",
+                        system_prompt=system_prompt,
                         temperature=0.3,
                         max_tokens=1024
                     )
                     parsed = engine.repair_and_parse_json(raw_res)
-                    p_items = parsed.get("prompts") or parsed.get("items") or []
+                    if isinstance(parsed, dict):
+                        p_items = parsed.get("prompts") or parsed.get("items") or parsed.get("scenes") or []
+                    elif isinstance(parsed, list):
+                        p_items = parsed
                     if isinstance(p_items, list) and len(p_items) >= len(batch_scenes):
                         break
                 except Exception as err:
@@ -264,11 +298,12 @@ Return strictly valid JSON:
             if isinstance(p_items, list):
                 for item in p_items:
                     if isinstance(item, dict):
-                        sid = str(item.get("scene_id", "")).strip().lstrip("#")
-                        prompt_by_id[sid] = item
-                        m = re.search(r'\d+', sid)
-                        if m:
-                            prompt_by_id[str(int(m.group()))] = item
+                        sid = _extract_scene_id(item)
+                        if sid:
+                            prompt_by_id[sid] = item
+                            m = re.search(r'\d+', sid)
+                            if m:
+                                prompt_by_id[str(int(m.group()))] = item
 
             # Individual selective retry for any missing scene in this batch
             for s in batch_scenes:
@@ -277,9 +312,10 @@ Return strictly valid JSON:
                 num_key = str(int(m_s.group())) if m_s else sid_clean
                 
                 matched = prompt_by_id.get(sid_clean) or prompt_by_id.get(s.scene_id) or prompt_by_id.get(num_key)
+                prompt_str = _extract_prompt_text(matched)
                 
-                # If missing from batch, attempt a dedicated single-scene request
-                if not matched or not matched.get("prompt"):
+                # If missing from batch, attempt a dedicated single-scene request with configured system_prompt
+                if not matched or not prompt_str:
                     try:
                         clean_concept = sanitize_action_summary(s.visual_summary, s.narration_text)
                         if is_3d_red_blue:
@@ -302,57 +338,38 @@ Return strictly valid JSON:
 Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subject": "{clean_concept}", "composition": "Eye-level medium shot"}}"""
                         single_raw = engine.generate_text(
                             prompt=single_prompt,
-                            system_prompt="Output strictly valid JSON only.",
+                            system_prompt=system_prompt,
                             temperature=0.3,
                             max_tokens=400
                         )
                         single_parsed = engine.repair_and_parse_json(single_raw)
-                        if single_parsed.get("prompt"):
-                            matched = single_parsed
-                            prompt_by_id[sid_clean] = matched
+                        if isinstance(single_parsed, dict):
+                            single_p = _extract_prompt_text(single_parsed)
+                            if not single_p and "prompts" in single_parsed and isinstance(single_parsed["prompts"], list) and single_parsed["prompts"]:
+                                single_p = _extract_prompt_text(single_parsed["prompts"][0])
+                                single_parsed = single_parsed["prompts"][0]
+                            elif not single_p and "items" in single_parsed and isinstance(single_parsed["items"], list) and single_parsed["items"]:
+                                single_p = _extract_prompt_text(single_parsed["items"][0])
+                                single_parsed = single_parsed["items"][0]
+                            if single_p:
+                                matched = single_parsed
+                                prompt_by_id[sid_clean] = matched
+                                prompt_str = single_p
                     except Exception as e_single:
                         print(f"[Stage5] Single-scene retry notice for {s.scene_id}: {e_single}")
 
-                # Build final prompt text
-                is_fallback_scene = False
-                if matched and isinstance(matched, dict) and matched.get("prompt"):
-                    p_text = matched.get("prompt", "").strip()
-                    comp = matched.get("composition") or "Eye-level medium shot"
-                    env = matched.get("environment") or derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_general_stickman)
-                    subj = matched.get("subject") or sanitize_action_summary(s.visual_summary, s.narration_text)
-                else:
-                    # Clean semantic fallback (ZERO scaffolding, ZERO leaked tags, ZERO generic ramparts)
-                    is_fallback_scene = True
-                    comp = "Eye-level wide cinematic shot"
-                    env = derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_general_stickman)
-                    subj = sanitize_action_summary(s.visual_summary, s.narration_text)
+                # Missing, malformed, or truncated output is detected explicitly.
+                # Schema errors and missing outputs MUST NOT silently produce generic fallback prompts.
+                if not matched or not prompt_str:
+                    raise RuntimeError(
+                        f"Stage 5 generation failed for scene #{s.scene_id}: model response was missing, truncated, or malformed. "
+                        f"Generic fallback substitution is rejected per production release requirements."
+                    )
 
-                    if is_3d_red_blue:
-                        narr_lower = s.narration_text.lower()
-                        has_caesar = any(k in narr_lower for k in ["caesar", "dictator", "magistrate", "husband"])
-                        
-                        if has_caesar:
-                            chars_clause = f"The solid bright red 3D stickman leader ({protagonist_name} with featureless red sphere head, toy gold wire crown, and cylindrical limbs) surrounded by solid blue 3D stick figures"
-                        else:
-                            chars_clause = "Solid blue 3D stick figures with smooth featureless spherical heads and cylindrical limbs"
-
-                        p_text = (
-                            f"3D red-and-blue stylized stickman animation. "
-                            f"{env}. "
-                            f"{chars_clause}. "
-                            f"Action: {subj}. "
-                            f"{comp}, stylized 3D toy CGI geometry, matte plastic surfaces, warm volumetric lighting, zero photorealism."
-                        )
-                    elif is_general_stickman:
-                        p_text = (
-                            f"{style_name} aesthetic. {env}. "
-                            f"Action: {subj}. {comp}, {style_instructions[:120]}."
-                        )
-                    else:
-                        p_text = (
-                            f"{style_name} aesthetic. {env}. "
-                            f"Action: {subj}. {comp}, authentic historical period details, cinematic lighting."
-                        )
+                p_text = prompt_str
+                comp = matched.get("composition") or matched.get("shot_type") or "Eye-level medium shot"
+                env = matched.get("environment") or matched.get("setting") or derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_general_stickman)
+                subj = matched.get("subject") or matched.get("visual_details_added") or sanitize_action_summary(s.visual_summary, s.narration_text)
 
                 # =============================================================
                 # POST-PROCESSING SANITIZATION (Authoritative Rule Enforcement)
@@ -467,7 +484,7 @@ Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subjec
                     character_ids=getattr(s, "character_ids", []),
                     location_id=getattr(s, "location_id", None),
                     chronological_order=getattr(s, "chronological_order", None),
-                    validation_notes="PROMPT_GENERATION_FALLBACK" if is_fallback_scene else None
+                    validation_notes=None
                 )
                 output_visual_scenes.append(v_scene)
 
