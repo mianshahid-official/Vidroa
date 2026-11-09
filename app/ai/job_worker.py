@@ -351,11 +351,23 @@ class CloudJobWorker(QThread):
 
             # -------------------------------------------------------------
             # RELEASE GATE & COMPLETION:
-            # If scenes were successfully generated, mark job COMPLETED
-            # and gracefully advise on pacing variations without blocking.
+            # If any scene has failed prompt generation, mark job FAILED
+            # and name the exact failed scenes, while preserving all valid scenes.
             # -------------------------------------------------------------
-            if not current_scenes:
-                failure_details = val_res.validation_summary
+            failed_prompt_scenes = [
+                s for s in validated_scenes
+                if not s.prompt or not s.prompt.strip() or (s.validation_notes and "PROMPT_GENERATION_FAILED" in s.validation_notes)
+            ]
+            if failed_prompt_scenes or not validated_scenes:
+                if failed_prompt_scenes:
+                    failed_ids_str = ", ".join(f"#{s.scene_id}" for s in failed_prompt_scenes)
+                    failure_details = (
+                        f"Prompt generation incomplete: {len(failed_prompt_scenes)} scene(s) failed ({failed_ids_str}). "
+                        f"{len(validated_scenes) - len(failed_prompt_scenes)}/{len(validated_scenes)} scenes generated successfully."
+                    )
+                else:
+                    failure_details = val_res.validation_summary
+
                 self.progress_updated.emit(ProgressInfo(
                     stage=JobStage.FINAL_VALIDATION,
                     status=JobStatus.FAILED,
@@ -364,7 +376,7 @@ class CloudJobWorker(QThread):
                     error_message=f"Stage 8 RELEASE GATE FAILED.\n\n{failure_details}"
                 ))
                 self.job_failed.emit(
-                    "Storyboard failed final validation. No scenes could be generated.",
+                    f"Prompt generation failed for {len(failed_prompt_scenes)} scene(s)" if failed_prompt_scenes else "Storyboard failed final validation. No scenes could be generated.",
                     f"Stage 8 Release Gate FAILED.\n\n{failure_details}"
                 )
                 return

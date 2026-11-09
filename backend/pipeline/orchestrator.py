@@ -262,17 +262,29 @@ class PipelineOrchestrator:
 
             # =========================================================================
             # RELEASE GATE & COMPLETION:
-            # If scenes were successfully generated, mark job COMPLETED
-            # and gracefully advise on pacing variations without blocking.
+            # If any scene has failed prompt generation, mark job FAILED
+            # and name the exact failed scenes, while preserving all valid scenes.
             # =========================================================================
-            if not current_scenes:
-                failure_summary = val_res.validation_summary
+            failed_prompt_scenes = [
+                s for s in current_scenes
+                if not s.prompt or not s.prompt.strip() or (s.validation_notes and "PROMPT_GENERATION_FAILED" in s.validation_notes)
+            ]
+            if failed_prompt_scenes or not current_scenes:
+                if failed_prompt_scenes:
+                    failed_ids_str = ", ".join(f"#{s.scene_id}" for s in failed_prompt_scenes)
+                    failure_summary = (
+                        f"Prompt generation incomplete: {len(failed_prompt_scenes)} scene(s) failed ({failed_ids_str}). "
+                        f"{len(current_scenes) - len(failed_prompt_scenes)}/{len(current_scenes)} scenes generated successfully."
+                    )
+                else:
+                    failure_summary = val_res.validation_summary
+
                 store.update_progress(
                     job_id,
                     stage=JobStage.FAILED,
                     status=JobStatus.FAILED,
                     percentage=98.0,
-                    message="Stage 8 validation FAILED — no scenes could be generated.",
+                    message=f"Stage 8 validation failed: {failure_summary}",
                     error=f"Stage 8 RELEASE GATE FAILED.\n\n{failure_summary}"
                 )
                 return

@@ -184,6 +184,9 @@ Return strictly valid JSON with key "visual_beats":
             if not isinstance(beats_data, list):
                 beats_data = []
 
+            if len(beats_data) < len(batch_units):
+                print(f"[Stage3VisualPlanning] Warning: Batch incomplete. Expected {len(batch_units)} visual beats, parsed {len(beats_data)}.")
+
             while len(beats_data) < len(batch_units):
                 missing_u = batch_units[len(beats_data)]
                 u_text = missing_u.get("text", "")

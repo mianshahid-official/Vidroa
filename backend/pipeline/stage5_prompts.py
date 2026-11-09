@@ -80,6 +80,26 @@ def derive_contextual_environment(narration: str, analysis: ScriptAnalysis, is_3
     return f"Authentic {period} setting with atmospheric lighting"
 
 
+def derive_safe_batch_size(
+    requested_batch_size: int = 2,
+    max_output_tokens: int = 950,
+    estimated_tokens_per_prompt: int = 350,
+    json_scaffolding_tokens: int = 100
+) -> int:
+    """
+    Derives safe batch size from real output token budget.
+    Under Groq Free Tier (950 token ceiling for Qwen models):
+    - Each detailed prompt requires ~250-350 tokens.
+    - Scaffolding requires ~100 tokens.
+    - 2 prompts: ~800 tokens (safe within 950 cap).
+    - 4 prompts: ~1500 tokens (guaranteed truncation at 950 cap).
+    Therefore, safe batch size is dynamically capped at 2 under the 950 ceiling.
+    """
+    usable_tokens = max(0, max_output_tokens - json_scaffolding_tokens)
+    calculated_capacity = max(1, usable_tokens // max(1, estimated_tokens_per_prompt))
+    return max(1, min(requested_batch_size, calculated_capacity))
+
+
 class Stage5PromptGenerator:
     """Generates rich image generation prompts adhering to user style and continuity."""
 
@@ -91,7 +111,7 @@ class Stage5PromptGenerator:
         analysis: ScriptAnalysis,
         style_preset: Optional[VisualStylePreset] = None,
         custom_style: Optional[str] = None,
-        batch_size: int = 4,
+        batch_size: int = 2,
         progress_callback: Optional[Callable[[int, int, str], None]] = None
     ) -> List[VisualScene]:
         system_prompt = load_system_prompt()
@@ -155,12 +175,15 @@ class Stage5PromptGenerator:
         loc_ctx = "; ".join([f"{l.name}: {l.description}" for l in analysis.continuity_bible.locations[:4]])
 
         output_visual_scenes: List[VisualScene] = []
-        batch_size = max(2, min(batch_size, 4))
-        num_batches = max(1, (total_scenes + batch_size - 1) // batch_size)
+        effective_batch_size = derive_safe_batch_size(
+            requested_batch_size=batch_size,
+            max_output_tokens=950
+        )
+        num_batches = max(1, (total_scenes + effective_batch_size - 1) // effective_batch_size)
 
         for b_idx in range(num_batches):
-            start_i = b_idx * batch_size
-            end_i = min(start_i + batch_size, total_scenes)
+            start_i = b_idx * effective_batch_size
+            end_i = min(start_i + effective_batch_size, total_scenes)
             batch_scenes = scenes[start_i:end_i]
 
             if progress_callback:
@@ -249,58 +272,82 @@ Return strictly valid JSON:
 
             p_items = []
             max_attempts = 2
+            # Derive token budget for this specific batch (prompt tokens + JSON scaffolding)
+            batch_token_budget = min(950, max(450, len(batch_scenes) * 350 + 100))
+            prompt_by_id: Dict[str, Any] = {}
+
             for attempt in range(max_attempts):
                 try:
                     raw_res = engine.generate_text(
                         prompt=user_prompt,
                         system_prompt=system_prompt,
                         temperature=0.3,
-                        max_tokens=1024
+                        max_tokens=batch_token_budget
                     )
                     parsed = engine.repair_and_parse_json(raw_res)
                     if isinstance(parsed, dict):
                         p_items = parsed.get("prompts") or parsed.get("items") or parsed.get("scenes") or []
                     elif isinstance(parsed, list):
                         p_items = parsed
-                    if isinstance(p_items, list) and len(p_items) >= len(batch_scenes):
+
+                    # Map parsed responses to scene IDs
+                    if isinstance(p_items, list):
+                        for item in p_items:
+                            if isinstance(item, dict):
+                                sid = _extract_scene_id(item)
+                                p_text = _extract_prompt_text(item)
+                                if sid and p_text:
+                                    prompt_by_id[sid] = item
+                                    m = re.search(r'\d+', sid)
+                                    if m:
+                                        prompt_by_id[str(int(m.group()))] = item
+
+                    # Check if all scenes in this batch are already satisfied
+                    all_present = True
+                    for s in batch_scenes:
+                        sid_clean = s.scene_id.lstrip("#")
+                        m_s = re.search(r'\d+', s.scene_id)
+                        num_key = str(int(m_s.group())) if m_s else sid_clean
+                        matched = prompt_by_id.get(sid_clean) or prompt_by_id.get(s.scene_id) or prompt_by_id.get(num_key)
+                        if not matched or not _extract_prompt_text(matched):
+                            all_present = False
+                            break
+                    if all_present:
                         break
                 except Exception as err:
                     print(f"[Stage5Prompts] Batch {b_idx + 1} attempt {attempt + 1} notice: {err}")
                     time.sleep(1.0)
 
-            # Map responses back to scenes
-            prompt_by_id = {}
-            if isinstance(p_items, list):
-                for item in p_items:
-                    if isinstance(item, dict):
-                        sid = _extract_scene_id(item)
-                        if sid:
-                            prompt_by_id[sid] = item
-                            m = re.search(r'\d+', sid)
-                            if m:
-                                prompt_by_id[str(int(m.group()))] = item
-
-            # Individual selective retry for any missing scene in this batch
+            # Detect truncated or missing scenes in this batch
+            missing_scenes = []
             for s in batch_scenes:
                 sid_clean = s.scene_id.lstrip("#")
                 m_s = re.search(r'\d+', s.scene_id)
                 num_key = str(int(m_s.group())) if m_s else sid_clean
-                
                 matched = prompt_by_id.get(sid_clean) or prompt_by_id.get(s.scene_id) or prompt_by_id.get(num_key)
-                prompt_str = _extract_prompt_text(matched)
-                
-                # If missing from batch, attempt a dedicated single-scene request with configured system_prompt
-                if not matched or not prompt_str:
-                    try:
-                        clean_concept = sanitize_action_summary(s.visual_summary, s.narration_text)
-                        if is_3d_red_blue:
-                            char_directive_single = f"Generate a single production image prompt strictly adhering to {protagonist_name} = RED 3D stickman and others = BLUE 3D stickmen."
-                        elif is_general_stickman:
-                            char_directive_single = f"Generate a single production image prompt adhering to {style_name}. Keep character visual design strictly conforming to {style_name}."
-                        else:
-                            char_directive_single = f"Generate a single production image prompt adhering to {style_name}. Ground characters in period-accurate human attire from the Character Bible. ZERO stick figures."
+                if not matched or not _extract_prompt_text(matched):
+                    missing_scenes.append(s)
 
-                        single_prompt = f"""### VISUAL STYLE: {style_name}
+            if missing_scenes:
+                missing_ids = [s.scene_id for s in missing_scenes]
+                print(
+                    f"[Stage5Prompts] WARNING: Batch {b_idx + 1} output incomplete/truncated! "
+                    f"Requested {len(batch_scenes)} scenes, successfully parsed {len(batch_scenes) - len(missing_scenes)}. "
+                    f"Missing/truncated scenes: {missing_ids}. Initiating targeted selective retry for missing scenes only."
+                )
+
+            # Targeted selective retry ONLY for missing or truncated scenes
+            for s in missing_scenes:
+                try:
+                    clean_concept = sanitize_action_summary(s.visual_summary, s.narration_text)
+                    if is_3d_red_blue:
+                        char_directive_single = f"Generate a single production image prompt strictly adhering to {protagonist_name} = RED 3D stickman and others = BLUE 3D stickmen."
+                    elif is_general_stickman:
+                        char_directive_single = f"Generate a single production image prompt adhering to {style_name}. Keep character visual design strictly conforming to {style_name}."
+                    else:
+                        char_directive_single = f"Generate a single production image prompt adhering to {style_name}. Ground characters in period-accurate human attire from the Character Bible. ZERO stick figures."
+
+                    single_prompt = f"""### VISUAL STYLE: {style_name}
 {stickman_faction_rules}
 
 ### SCENE TO PROMPT:
@@ -311,35 +358,75 @@ Return strictly valid JSON:
 
 {char_directive_single}
 Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subject": "{clean_concept}", "composition": "Eye-level medium shot"}}"""
-                        single_raw = engine.generate_text(
-                            prompt=single_prompt,
-                            system_prompt=system_prompt,
-                            temperature=0.3,
-                            max_tokens=400
-                        )
-                        single_parsed = engine.repair_and_parse_json(single_raw)
-                        if isinstance(single_parsed, dict):
-                            single_p = _extract_prompt_text(single_parsed)
-                            if not single_p and "prompts" in single_parsed and isinstance(single_parsed["prompts"], list) and single_parsed["prompts"]:
-                                single_p = _extract_prompt_text(single_parsed["prompts"][0])
-                                single_parsed = single_parsed["prompts"][0]
-                            elif not single_p and "items" in single_parsed and isinstance(single_parsed["items"], list) and single_parsed["items"]:
-                                single_p = _extract_prompt_text(single_parsed["items"][0])
-                                single_parsed = single_parsed["items"][0]
-                            if single_p:
-                                matched = single_parsed
-                                prompt_by_id[sid_clean] = matched
-                                prompt_str = single_p
-                    except Exception as e_single:
-                        print(f"[Stage5] Single-scene retry notice for {s.scene_id}: {e_single}")
 
-                # Missing, malformed, or truncated output is detected explicitly.
-                # Schema errors and missing outputs MUST NOT silently produce generic fallback prompts.
-                if not matched or not prompt_str:
-                    raise RuntimeError(
-                        f"Stage 5 generation failed for scene #{s.scene_id}: model response was missing, truncated, or malformed. "
-                        f"Generic fallback substitution is rejected per production release requirements."
+                    single_raw = engine.generate_text(
+                        prompt=single_prompt,
+                        system_prompt=system_prompt,
+                        temperature=0.3,
+                        max_tokens=450
                     )
+                    single_parsed = engine.repair_and_parse_json(single_raw)
+                    if isinstance(single_parsed, dict):
+                        single_p = _extract_prompt_text(single_parsed)
+                        if not single_p and "prompts" in single_parsed and isinstance(single_parsed["prompts"], list) and single_parsed["prompts"]:
+                            single_p = _extract_prompt_text(single_parsed["prompts"][0])
+                            single_parsed = single_parsed["prompts"][0]
+                        elif not single_p and "items" in single_parsed and isinstance(single_parsed["items"], list) and single_parsed["items"]:
+                            single_p = _extract_prompt_text(single_parsed["items"][0])
+                            single_parsed = single_parsed["items"][0]
+                        if single_p:
+                            sid_clean = s.scene_id.lstrip("#")
+                            prompt_by_id[sid_clean] = single_parsed
+                            m_s = re.search(r'\d+', s.scene_id)
+                            if m_s:
+                                prompt_by_id[str(int(m_s.group()))] = single_parsed
+                            print(f"[Stage5Prompts] Successfully recovered scene #{s.scene_id} via selective retry.")
+                except Exception as e_single:
+                    print(f"[Stage5Prompts] Selective retry error for scene #{s.scene_id}: {e_single}")
+
+            # Assemble visual scenes for this batch
+            for s in batch_scenes:
+                sid_clean = s.scene_id.lstrip("#")
+                m_s = re.search(r'\d+', s.scene_id)
+                num_key = str(int(m_s.group())) if m_s else sid_clean
+
+                matched = prompt_by_id.get(sid_clean) or prompt_by_id.get(s.scene_id) or prompt_by_id.get(num_key)
+                prompt_str = _extract_prompt_text(matched) if matched else ""
+
+                # Softened F1 fail-hard: flag per-scene instead of aborting the entire job
+                if not matched or not prompt_str:
+                    err_msg = (
+                        f"PROMPT_GENERATION_FAILED: Scene #{s.scene_id} output was missing, "
+                        f"truncated, or malformed after batch and selective retry attempts."
+                    )
+                    print(f"[Stage5Prompts] ERROR: {err_msg} Flagging scene without generic fallback substitution.")
+                    v_scene = VisualScene(
+                        scene_id=s.scene_id,
+                        index=getattr(s, "index", None),
+                        start=s.start_time,
+                        end=s.end_time,
+                        duration=s.duration,
+                        start_word_index=getattr(s, "source_word_start", getattr(s, "start_word_index", None)),
+                        end_word_index=getattr(s, "source_word_end", getattr(s, "end_word_index", None)),
+                        narration_excerpt=s.narration_text,
+                        visual_subject=s.visual_summary or "Unassigned Subject",
+                        action=s.visual_summary or "",
+                        environment=derive_contextual_environment(s.narration_text, analysis, is_3d_stickman=is_general_stickman),
+                        composition="Eye-level medium shot",
+                        emotional_tone="Dramatic",
+                        historical_confidence="uncertain",
+                        prompt="",  # Explicitly empty — NEVER generic fallback!
+                        continuity_checklist=[],
+                        source_narrative_beat_ids=getattr(s, "source_narrative_beat_ids", []),
+                        source_visual_beat_ids=getattr(s, "source_visual_beat_ids", []),
+                        character_ids=getattr(s, "character_ids", []),
+                        location_id=getattr(s, "location_id", None),
+                        chronological_order=getattr(s, "chronological_order", None),
+                        is_validated=False,
+                        validation_notes=err_msg
+                    )
+                    output_visual_scenes.append(v_scene)
+                    continue
 
                 p_text = prompt_str
                 comp = matched.get("composition") or matched.get("shot_type") or "Eye-level medium shot"

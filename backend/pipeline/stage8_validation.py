@@ -22,8 +22,8 @@ class Stage8FinalValidator:
     def execute(
         cls,
         scenes: List[VisualScene],
-        narration: Optional[NarrationData],
-        total_audio_duration: float,
+        narration: Optional[NarrationData] = None,
+        total_audio_duration: float = 0.0,
         benchmark_dir: Optional[Path] = None,
         audit_report: Optional[StoryboardAuditReport] = None
     ) -> StoryboardValidationResult:
@@ -99,6 +99,12 @@ class Stage8FinalValidator:
         for s in scenes:
             subj_clean = s.visual_subject.strip().lower()
             p_lower = s.prompt.lower()
+
+            # Prompt completeness and failure validation
+            if not s.prompt or not s.prompt.strip() or (s.validation_notes and "PROMPT_GENERATION_FAILED" in s.validation_notes):
+                disk_validation_failures.append(
+                    f"Prompt generation missing or failed: Scene #{s.scene_id} has no valid prompt ({s.validation_notes or 'empty prompt'})."
+                )
 
             # Faction color validation (gated by active pack or protagonist)
             if active_pack and active_pack.id == "caesar-44bc":
