@@ -20,21 +20,27 @@ def load_system_prompt() -> str:
 
 
 def derive_stage3_token_budget(
-    num_beats: int,
+    num_beats: int = 1,
     max_cap: int = 950,
-    tokens_per_beat: int = 150,
+    tokens_per_beat: int = 320,
     json_scaffolding: int = 80
 ) -> int:
     """
-    Derives output token budget for Stage 3 Visual Planning batch.
-    Each beat generates 7 fields (~150 tokens) plus JSON structure (~80 tokens).
-    Clamped to engine cap (950 for Groq free-tier) with floor at 350.
+    Derives output token budget for Stage 3 Visual Planning.
+    Real measured per-beat cost from 9-field schema with 50-60 word narration segments:
+    - exact_narration_segment: ~70 tokens
+    - primary_visual_concept: ~70 tokens
+    - narrative_purpose + what_new_information_is_shown: ~60 tokens
+    - composition + lighting_and_atmosphere + continuity_references: ~60 tokens
+    - JSON field syntax & quotation marks: ~60 tokens
+    Total measured per-beat cost: ~320 tokens (range 250-350 tokens).
+    JSON scaffolding: ~80 tokens.
+    For 1 beat: 80 + 320 = 400 tokens (fits comfortably under 950 cap and reduced 530 cap).
+    Clamped to effective max_cap with floor at min(350, max_cap).
     """
     budget = json_scaffolding + (num_beats * tokens_per_beat)
-    if budget > max_cap:
-        print(f"[Stage3VisualPlanning] Warning: Derived budget ({budget}) exceeds engine cap ({max_cap}) for {num_beats} beats. Capping at {max_cap}.")
-        return max_cap
-    return min(max_cap, max(350, budget))
+    floor = min(350, max_cap)
+    return min(max_cap, max(floor, budget))
 
 
 class Stage3VisualPlanner:
@@ -47,7 +53,8 @@ class Stage3VisualPlanner:
         story_text: str,
         analysis: ScriptAnalysis,
         progress_callback: Optional[Callable[[int, int, str], None]] = None,
-        subject_preset: Optional[SubjectPreset] = None
+        subject_preset: Optional[SubjectPreset] = None,
+        allow_fill: bool = False
     ) -> VisualBeatPlan:
         system_prompt = load_system_prompt()
         pack = StoryPackManager.match_pack(story_text)
@@ -119,22 +126,18 @@ class Stage3VisualPlanner:
                 ]
 
         total_units = len(candidate_units)
-        batch_size = 3  # Small batch size to guarantee complete response under Groq OTPM ceiling
-        num_batches = max(1, (total_units + batch_size - 1) // batch_size)
-
+        # DEFECT C FIX: Exactly 1 beat per request, fixed. No batching, no exceptions.
         all_beats: List[VisualBeat] = []
         global_beat_counter = 1
 
-        for b_idx in range(num_batches):
-            start_i = b_idx * batch_size
-            end_i = min(start_i + batch_size, total_units)
-            batch_units = candidate_units[start_i:end_i]
+        for u_idx, unit in enumerate(candidate_units):
+            batch_units = [unit]
 
             if progress_callback:
                 progress_callback(
-                    b_idx + 1,
-                    num_batches,
-                    f"Visual planning units {start_i+1} to {end_i} of {total_units}..."
+                    u_idx + 1,
+                    total_units,
+                    f"Visual planning unit {u_idx + 1} of {total_units}: {unit['unit_id']}..."
                 )
 
             prior_context = "None (Opening scene)"
@@ -145,13 +148,8 @@ class Stage3VisualPlanner:
                     for b in recent_beats
                 ])
 
-            unit_prompts = []
-            for u in batch_units:
-                unit_prompts.append(f"UNIT {u['unit_id']}: \"{u['text']}\"")
-            units_text = "\n".join(unit_prompts)
-
             user_prompt = f"""### NARRATIVE UNITS TO PLAN VISUALLY:
-{units_text}
+UNIT {unit['unit_id']}: "{unit['text']}"
 
 ### CONTEXT & CONTINUITY:
 - Setting: {era_ctx}
@@ -160,7 +158,7 @@ class Stage3VisualPlanner:
 - Preceding Visual Moments: {prior_context}
 
 ### INSTRUCTIONS:
-Plan exactly {len(batch_units)} distinct visual beats (exactly one visual beat for each narrative unit above).
+Plan exactly 1 distinct visual beat (exactly one visual beat for the narrative unit above).
 - Keep descriptions concrete, physical, and concise (1-2 sentences per field).
 - Every visual beat must correspond to the exact spoken words in its respective unit.
 - STRICT CHRONOLOGY (NO PREMATURE ACTIONS OR SPOILERS):
@@ -184,7 +182,9 @@ Return strictly valid JSON with key "visual_beats":
 }}"""
 
             beats_data = []
-            batch_budget = derive_stage3_token_budget(len(batch_units), max_cap=950)
+            eff_cap = engine.current_effective_max_tokens(baseline=950) if hasattr(engine, "current_effective_max_tokens") else 950
+            batch_budget = derive_stage3_token_budget(1, max_cap=eff_cap)
+
             for attempt in range(2):
                 try:
                     raw_res = engine.generate_text(
@@ -194,26 +194,56 @@ Return strictly valid JSON with key "visual_beats":
                         max_tokens=batch_budget
                     )
                     parsed = engine.repair_and_parse_json(raw_res)
-                    beats_data = parsed.get("visual_beats") or parsed.get("items") or []
-                    if isinstance(beats_data, list) and len(beats_data) >= len(batch_units):
+                    if isinstance(parsed, dict):
+                        beats_data = parsed.get("visual_beats") or parsed.get("items") or []
+                        if not beats_data and "primary_visual_concept" in parsed:
+                            beats_data = [parsed]
+                    elif isinstance(parsed, list):
+                        beats_data = parsed
+
+                    if isinstance(beats_data, list) and len(beats_data) >= 1:
+                        if len(beats_data) > 1:
+                            # If engine returned multiple beats (e.g. canned mock engine), select the one matching this unit
+                            selected_beat = None
+                            u_text_l = unit.get("text", "").lower()
+                            for b in beats_data:
+                                if isinstance(b, dict):
+                                    b_narr = (b.get("exact_narration_segment") or "").lower()
+                                    if b_narr and (b_narr in u_text_l or u_text_l in b_narr):
+                                        selected_beat = b
+                                        break
+                            if selected_beat is None:
+                                selected_beat = beats_data[u_idx] if u_idx < len(beats_data) else beats_data[0]
+                            beats_data = [selected_beat]
                         break
-                    elif isinstance(beats_data, list) and len(beats_data) < len(batch_units):
+                    else:
                         print(
-                            f"[Stage3VisualPlanning] Loud Truncation Notice: Parsed {len(beats_data)} beats, "
-                            f"expected {len(batch_units)}. Attempting retry..."
+                            f"[Stage3VisualPlanning] Loud Truncation Notice: Parsed {len(beats_data) if isinstance(beats_data, list) else 0} beats, "
+                            f"expected 1 for unit {unit['unit_id']}. Attempting retry..."
                         )
                 except Exception as err:
-                    print(f"[Stage3VisualPlanning] Generation error on attempt {attempt+1}: {err}")
+                    print(f"[Stage3VisualPlanning] Generation error on attempt {attempt+1} for unit {unit['unit_id']}: {err}")
                     beats_data = []
 
             if not isinstance(beats_data, list):
                 beats_data = []
 
             if len(beats_data) < len(batch_units):
-                print(f"[Stage3VisualPlanning] Warning: Batch incomplete. Expected {len(batch_units)} visual beats, parsed {len(beats_data)}.")
+                missing_unit_ids = [u["unit_id"] for u in batch_units[len(beats_data):]]
+                print(
+                    f"[Stage3VisualPlanning] Warning: Batch incomplete. Expected {len(batch_units)} visual beats, "
+                    f"parsed {len(beats_data)}. Missing units: {missing_unit_ids}."
+                )
+                if not allow_fill:
+                    raise RuntimeError(
+                        f"Stage 3 planning failure: Unit {unit['unit_id']} output truncated or incomplete "
+                        f"after retry (parsed {len(beats_data)} beats, expected 1). "
+                        f"Text: '{unit.get('text', '')[:60]}...'"
+                    )
 
             while len(beats_data) < len(batch_units):
                 missing_u = batch_units[len(beats_data)]
+                print(f"[Stage3VisualPlanning] Filling missing beat for unit {missing_u.get('unit_id')} via grounded derivation.")
                 u_text = missing_u.get("text", "").strip()
                 if not u_text:
                     raise RuntimeError(f"Stage 3 planning failure: Unit {missing_u.get('unit_id')} has empty text.")

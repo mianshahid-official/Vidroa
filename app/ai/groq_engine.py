@@ -198,6 +198,9 @@ class GroqEngine(BaseInferenceEngine):
         self.default_model = default_model
         self.timeout = timeout
         self.request_logs: List[Dict[str, Any]] = []
+        self._effective_max_tokens: int = 950
+        self._effective_cap_timestamp: float = 0.0
+        self._cap_recovery_interval: float = 60.0  # seconds until reduced cap decays back toward baseline
 
     @property
     def api_keys(self) -> List[str]:
@@ -206,6 +209,27 @@ class GroqEngine(BaseInferenceEngine):
     @property
     def current_key(self) -> str:
         return self.key_manager.get_current_key()
+
+    def current_effective_max_tokens(self, baseline: int = 950) -> int:
+        """
+        Returns the current effective output token ceiling.
+        If a Groq OTPM reduction was recorded, honors the reduced cap until
+        _cap_recovery_interval has elapsed, after which it smoothly recovers back
+        to the baseline cap (950 for Qwen).
+        """
+        now = time.time()
+        if self._effective_max_tokens < baseline:
+            elapsed = now - self._effective_cap_timestamp
+            if elapsed >= self._cap_recovery_interval:
+                self._effective_max_tokens = baseline
+            else:
+                return self._effective_max_tokens
+        return min(baseline, self._effective_max_tokens)
+
+    def record_effective_cap_reduction(self, cap: int) -> None:
+        """Records a Groq-directed max_tokens reduction with timestamp."""
+        self._effective_max_tokens = min(self._effective_max_tokens, cap)
+        self._effective_cap_timestamp = time.time()
 
     def get_recent_logs(self, limit: int = 50) -> List[Dict[str, Any]]:
         return self.request_logs[-limit:]
@@ -231,8 +255,9 @@ class GroqEngine(BaseInferenceEngine):
         max_tok = max_tokens if max_tokens is not None else 2500
 
         # Enforce OTPM safety ceiling for on-demand models (Qwen OTPM limit is 1000)
-        if "qwen" in target_model.lower():
-            max_tok = min(max_tok, 950)
+        eff_baseline = 950 if "qwen" in target_model.lower() else 2500
+        eff_cap = self.current_effective_max_tokens(baseline=eff_baseline)
+        max_tok = min(max_tok, eff_cap)
 
         input_tok_est = len(prompt.split()) + (len(system_prompt.split()) if system_prompt else 0)
         num_keys = max(1, self.key_manager.total_keys())
@@ -325,8 +350,14 @@ class GroqEngine(BaseInferenceEngine):
                     elif resp.status_code == 429:
                         # If Groq specifically asks to reduce max_tokens (OTPM limit)
                         if "reduce max_tokens" in resp.text.lower() or "otpm" in resp.text.lower():
-                            max_tok = min(max_tok, 800)
-                            print(f"[GroqEngine] Reduced max_tokens to {max_tok} per Groq OTPM directive.")
+                            reduced_cap = 800
+                            m_tok = re.search(r'reduce max_tokens to (\d+)', resp.text, re.IGNORECASE)
+                            if m_tok:
+                                reduced_cap = int(m_tok.group(1))
+                            self.record_effective_cap_reduction(reduced_cap)
+                            eff_baseline = 950 if "qwen" in target_model.lower() else 2500
+                            max_tok = min(max_tok, self.current_effective_max_tokens(baseline=eff_baseline))
+                            print(f"[GroqEngine] Reduced max_tokens to {self._effective_max_tokens} per Groq OTPM directive (recovery in {self._cap_recovery_interval:.0f}s).")
                         wait_sec = parse_groq_retry_after(dict(resp.headers), resp.text)
                         self.key_manager.mark_key_cooldown(key, wait_sec)
                         last_error = f"HTTP 429: {resp.text}"

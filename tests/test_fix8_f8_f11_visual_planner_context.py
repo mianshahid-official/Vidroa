@@ -84,16 +84,17 @@ class RecordingStage5Engine(BaseInferenceEngine):
 
 
 def test_derive_stage3_token_budget_scale():
-    # 1 beat: 80 + 150 = 230 -> floor at 350
-    assert derive_stage3_token_budget(1, max_cap=950) == 350
+    # 1 beat: measured cost 80 + 320 = 400 (comfortably fits under 950 and reduced 530 cap)
+    assert derive_stage3_token_budget(1, max_cap=950) == 400
+    assert derive_stage3_token_budget(1, max_cap=530) == 400
 
-    # 3 beats: 80 + 3 * 150 = 530
-    assert derive_stage3_token_budget(3, max_cap=950) == 530
+    # 3 beats: 80 + 3 * 320 = 1040 -> clamped to 950
+    assert derive_stage3_token_budget(3, max_cap=950) == 950
 
-    # 6 beats: 80 + 6 * 150 = 980 -> clamped to 950
+    # 6 beats: 80 + 6 * 320 = 2000 -> clamped to 950
     assert derive_stage3_token_budget(6, max_cap=950) == 950
 
-    # 12 beats: 80 + 12 * 150 = 1880 -> clamped to 950
+    # 12 beats: 80 + 12 * 320 = 3920 -> clamped to 950
     assert derive_stage3_token_budget(12, max_cap=950) == 950
 
     # Engine cap never exceeded

@@ -76,7 +76,8 @@ def test_stage3_missing_beat_concept_derived_from_unit_text():
     plan = Stage3VisualPlanner.execute(
         engine=engine,
         story_text=story_text,
-        analysis=analysis
+        analysis=analysis,
+        allow_fill=True
     )
 
     assert len(plan.visual_beats) >= 1

@@ -20,6 +20,10 @@ class BaseInferenceEngine(ABC):
         """Generates raw text from the model."""
         pass
 
+    def current_effective_max_tokens(self, baseline: int = 950) -> int:
+        """Returns the current effective output token ceiling."""
+        return getattr(self, "_effective_max_tokens", baseline)
+
     def generate_structured_json(
         self,
         prompt: str,
