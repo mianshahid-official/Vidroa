@@ -27,6 +27,23 @@ def load_system_prompt() -> str:
     return _load_system_prompt("stage5_validation.txt")
 
 
+def derive_stage6_audit_budget(num_scenes: int, max_cap: int = 950) -> int:
+    """
+    Derives stage-6 audit output token budget based on storyboard scene count.
+    Base scaffolding: ~200 tokens (schema keys, category scores, final recommendation).
+    Per-scene allocation: ~45 tokens per scene to accommodate alignment/repetition findings and repairs.
+    Capped at engine ceiling (950 tokens for free-tier Qwen preview).
+    For large storyboards where (200 + n * 45) > max_cap, caps at max_cap and logs loudly.
+    """
+    base_scaffold = 200
+    per_scene = 45
+    budget = base_scaffold + (num_scenes * per_scene)
+    if budget > max_cap:
+        print(f"[Stage6Audit] Warning: Derived audit token budget ({budget}) exceeds engine cap ({max_cap}) for {num_scenes} scenes. Capping at {max_cap}.")
+        return max_cap
+    return min(max_cap, max(450, budget))
+
+
 class Stage6StoryboardAuditor:
     """Executes holistic storyboard quality audit across all scenes."""
 
@@ -47,9 +64,9 @@ class Stage6StoryboardAuditor:
         if progress_callback:
             progress_callback(1, 2, "Auditing complete storyboard for narration alignment, pacing, and repetition...")
 
-        # Prepare compact, token-efficient scenes list for audit
+        # Prepare full-context scenes list for audit: full narration, full visual subject, >=300 chars prompt
         scene_lines = [
-            f"- [{s.scene_id} | {s.start:.1f}-{s.end:.1f}s] Spoken: \"{s.narration_excerpt[:70]}\" | Visual: {s.visual_subject[:50]} | Prompt: {s.prompt[:70]}"
+            f"- [{s.scene_id} | {s.start:.1f}-{s.end:.1f}s] Spoken: \"{s.narration_excerpt}\" | Visual: {s.visual_subject} | Prompt: {s.prompt[:350]}"
             for s in scenes
         ]
         condensed_scenes = "\n".join(scene_lines)
@@ -90,13 +107,19 @@ Return strictly valid JSON matching this schema:
 
         parsed = {}
         try:
+            budget = derive_stage6_audit_budget(len(scenes), max_cap=950)
             raw_res = engine.generate_text(
                 prompt=user_prompt,
                 system_prompt=auditor_system_prompt,
                 temperature=0.2,
-                max_tokens=850
+                max_tokens=budget
             )
             parsed = engine.repair_and_parse_json(raw_res)
+            # Loud truncation check: verify key schema fields recovered
+            expected_keys = {"overall_score", "category_scores", "final_recommendation"}
+            missing_keys = expected_keys - set(parsed.keys())
+            if missing_keys:
+                print(f"[Stage6Audit] Loud Truncation Warning: Parsed audit response is missing expected schema fields: {missing_keys}")
         except Exception as err:
             print(f"[Stage6Audit] Live LLM audit notice: {err}. Executing fail-closed deterministic auditor.")
             parsed = {}
@@ -434,6 +457,50 @@ Return strictly valid JSON matching this schema:
                             ))
                             break
 
+            # 6. Universal Narration-Prompt Semantic Alignment Check (Runs for ALL stories, ungated)
+            # Metric: Content overlap ratio between narration excerpt and visual prompt + subject.
+            # Documented Metric & Threshold:
+            # Overlap Ratio = (Count of narration content tokens matched in prompt + visual_subject) / (Total narration content tokens)
+            # Threshold: >= 0.15 (15% coverage). For scenes with >= 3 content tokens, requires at least 1 match;
+            # for scenes with >= 6 content tokens, requires at least 2 matches.
+            # Uses stem/root-prefix matching (>= 4 characters) to handle plurals, verb conjugations, and participle forms
+            # (e.g. 'doors' <-> 'door', 'battering' <-> 'battered', 'advanced' <-> 'advancing').
+            # Scenes below threshold are flagged as AlignmentFinding (with 'mismatch' in issue text) and SceneRepairInstruction.
+            narr_tokens = extract_meaningful_tokens(s.narration_excerpt)
+            prompt_tokens = extract_meaningful_tokens(f"{s.visual_subject} {s.prompt}")
+
+            matched_tokens = set()
+            for nt in narr_tokens:
+                for pt in prompt_tokens:
+                    if nt == pt or (len(nt) >= 4 and len(pt) >= 4 and (nt.startswith(pt[:4]) or pt.startswith(nt[:4]))):
+                        matched_tokens.add(nt)
+                        break
+
+            overlap_ratio = len(matched_tokens) / float(len(narr_tokens)) if narr_tokens else 1.0
+
+            is_mismatched = False
+            if len(narr_tokens) >= 3:
+                min_matches = 2 if len(narr_tokens) >= 6 else 1
+                if len(matched_tokens) < min_matches or overlap_ratio < 0.15:
+                    is_mismatched = True
+
+            if is_mismatched:
+                issue_msg = (
+                    f"Narration-Prompt mismatch in scene #{s.scene_id}: Spoken narration describes '{s.narration_excerpt[:70]}', "
+                    f"but visual prompt fails to depict its core subjects (overlap {overlap_ratio:.2f} < 0.15)."
+                )
+                align_findings.append(AlignmentFinding(
+                    scene_id=s.scene_id,
+                    issue=issue_msg
+                ))
+                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                    scene_repairs.append(SceneRepairInstruction(
+                        scene_id=s.scene_id,
+                        problem="Narration-Prompt mismatch: Visual prompt fails to illustrate spoken narration.",
+                        required_change=f"Directly illustrate the spoken action from narration: '{s.narration_excerpt[:100]}'",
+                        suggested_visual_direction=f"Concrete scene matching narration: {s.narration_excerpt[:80]}"
+                    ))
+
         # Check identical action copy-pasting across any scenes in storyboard
         action_map = {}
         for s in scenes:
@@ -476,12 +543,12 @@ Return strictly valid JSON matching this schema:
                     issue=af.get("issue", "Narration alignment issue")
                 ))
 
+        # Merge LLM-suggested scene repairs on their own merits (de-duplicated, un-gated)
         for sr in parsed.get("scene_repairs", []):
             if isinstance(sr, dict) and sr.get("scene_id"):
                 sid = str(sr.get("scene_id")).strip().lstrip("#")
                 sid_norm = f"{int(sid):03d}" if sid.isdigit() else sid
-                has_issue = any(af.scene_id in (sid, sid_norm) for af in align_findings) or any(sid in rf.scene_ids or sid_norm in rf.scene_ids for rf in rep_findings)
-                if has_issue and not any(x.scene_id in (sid, sid_norm) for x in scene_repairs):
+                if not any(x.scene_id in (sid, sid_norm) for x in scene_repairs):
                     scene_repairs.append(SceneRepairInstruction(
                         scene_id=sid_norm,
                         problem=sr.get("problem", "Needs visual improvement"),
