@@ -56,7 +56,7 @@ def extract_smart_fallback_headline(story_text: str) -> str:
         return " ".join(content_words[:3])
     elif len(content_words) >= 2:
         return " ".join(content_words[:2])
-    return "FORGOTTEN CONQUEST"
+    return "UNTITLED STORY"
 
 
 def save_story_bibles(project_dir: Path, analysis: StoryAnalysis):

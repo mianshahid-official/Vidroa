@@ -872,11 +872,13 @@ class PromptGridWidget(QWidget):
         th_h = getattr(proj.state, "thumbnail_headline", "") if proj and hasattr(proj, "state") else ""
         sid = getattr(proj.state, "style_preset_id", "3d_red_blue_stickman") if proj and hasattr(proj, "state") else "3d_red_blue_stickman"
 
+        raw_script = getattr(proj.state, "raw_script", "") if proj and hasattr(proj, "state") else ""
         if not th_h:
             if proj and hasattr(proj, "state") and getattr(proj.state, "analysis", None):
                 th_h = getattr(proj.state.analysis, "thumbnail_headline", "")
             if not th_h:
-                th_h = "CONSTANTINOPLE FALLS"
+                from backend.pipeline.stage1_analysis import extract_smart_fallback_headline
+                th_h = extract_smart_fallback_headline(raw_script) if raw_script else "UNTITLED STORY"
 
         if is_first_batch:
             try:
@@ -884,7 +886,7 @@ class PromptGridWidget(QWidget):
                 is_stickman = "stickman" in sid.lower() or "3d_red_blue" in sid.lower()
                 th_p_is_stickman = "stickman" in th_p.lower() if th_p else False
                 if not th_p or (is_stickman != th_p_is_stickman) or (th_h not in th_p):
-                    th_p = build_viral_thumbnail_prompt(headline=th_h, style_id=sid)
+                    th_p = build_viral_thumbnail_prompt(headline=th_h, style_id=sid, story_context=raw_script[:150])
                     if proj and hasattr(proj, "state"):
                         proj.state.thumbnail_headline = th_h
                         proj.state.thumbnail_prompt = th_p

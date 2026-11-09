@@ -1967,7 +1967,10 @@ class MainWindow(QMainWindow):
             is_stick = "stickman" in sid.lower() or "3d_red_blue" in sid.lower()
             prompt_is_stick = "stickman" in th_prompt.lower() if th_prompt else False
             if not th_prompt or (is_stick != prompt_is_stick) or (th_head and th_head not in th_prompt):
-                th_prompt = build_viral_thumbnail_prompt(headline=th_head or "CONSTANTINOPLE FALLS", style_id=sid)
+                from backend.pipeline.stage1_analysis import extract_smart_fallback_headline
+                raw_script = getattr(self.project.state, "raw_script", "") or ""
+                fallback_head = th_head or (extract_smart_fallback_headline(raw_script) if raw_script else "UNTITLED STORY")
+                th_prompt = build_viral_thumbnail_prompt(headline=fallback_head, style_id=sid, story_context=raw_script[:150])
             self.project.state.thumbnail_headline = th_head
             self.project.state.thumbnail_prompt = th_prompt
             if hasattr(self, "tab4_render"):

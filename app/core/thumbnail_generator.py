@@ -111,7 +111,7 @@ class ThumbnailGenerator:
         """
         Renders dependable, large, bold, high-contrast typography directly onto
         a thumbnail image using PIL/Pillow.
-        Words (e.g. 'CONSTANTINOPLE FALLS' or '600 MEN VS EMPIRE') appear visibly
+        Words (e.g. 'THE FINAL STORM' or 'INTO THE DEEP') appear visibly
         in high-impact typography with bold contrasting outlines and drop shadows,
         ensuring 100% legibility over any background.
         """

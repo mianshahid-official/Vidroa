@@ -48,7 +48,7 @@ The relevant question is:
 
 DO THEY COMMUNICATE THE SAME VISUAL INFORMATION?
 
-- Multi-scene action repetition (e.g. 2 or 3 consecutive scenes of cannons firing or walls being hit): If consecutive scenes depict essentially the same physical action without a progressive storytelling shift (e.g. battery firing -> projectile impact -> internal defender reaction), FLAG AS A CRITICAL REPETITION DEFECT and issue a scene repair instruction.
+- Multi-scene action repetition (e.g. 2 or 3 consecutive scenes of lighthouse lamp sweeps or waves crashing): If consecutive scenes depict essentially the same physical action without a progressive storytelling shift (e.g. equipment operation -> physical light beam projection -> distant maritime consequence), FLAG AS A CRITICAL REPETITION DEFECT and issue a scene repair instruction.
 
 If yes, determine whether one should be replaced, merged, or removed.
 
@@ -88,11 +88,11 @@ Check every scene:
 
 A scene longer than 8.0 seconds is an automatic critical failure.
 
-## 5. HISTORICAL AND CONTINUITY AUDIT
+## 5. FACTUAL AND CONTINUITY AUDIT
 
 Check:
 
-- Historical period accuracy.
+- Setting period accuracy.
 - Anachronisms.
 - Contradictory character descriptions.
 - Incorrect locations.
@@ -158,7 +158,7 @@ Critical issues include:
 - A scene that contradicts the narration.
 - An image duration exceeding 8 seconds.
 - Major narration sections not visually covered.
-- A fabricated historical event represented as fact.
+- A fabricated major event or false claim represented as fact.
 - A scene that is completely unrelated to its assigned narration.
 
 Major issues include:

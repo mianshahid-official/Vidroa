@@ -93,7 +93,7 @@ Do not mechanically translate every noun into an image.
 
 Do not mechanically turn every sentence into a character standing somewhere.
 
-Do not turn every historical explanation into a battle scene.
+Do not turn every narrative or contextual explanation into a dramatic action scene.
 
 Do not turn every number into a graphic.
 

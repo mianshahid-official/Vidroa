@@ -10,23 +10,23 @@ PROMPT CONSTRUCTION GUIDELINES:
    - Describe what is physically visible and actively happening in frame.
    - Ground characters in the Character Bible (exact faces, beards, and attire).
    - Ground environments in the Location Bible (stone, timber, brick, terrain).
-3. STYLISTIC EXECUTION & HISTORICAL PATINA (MANDATORY):
+3. STYLISTIC EXECUTION & SETTING ACCURACY (MANDATORY):
    - STRICTLY HONOR THE CHOSEN VISUAL STYLE:
      * When the selected style is "Century-Old Photograph" / "Vintage Photograph": Render as an authentic century-old archival photograph or antique plate print. Timeless warm sepia, aged albumen, or rich silver-toned monochrome palette with deep dynamic range. STRICTLY FORBIDDEN: NO modern vibrant RGB saturated colors (no bright modern blue oceans, no vivid digital greens, no 2024 movie color grading).
      * When another style is selected (e.g. Cinematic Photorealism, 2D Vector): Execute in that designated medium.
    - CLEAN ARCHIVAL FINISH (NO FAKE DAMAGE):
      * Crisp, sharp focal clarity on the primary subject, intact border framing, authentic photographic texture.
      * STRICTLY FORBIDDEN: NO artificial chemical spots, NO dirty splatters, NO fake scratches across faces, and NO torn paper edges. Keep the image dignified, clean, atmospheric, and high-resolution.
-   - PERIOD-AUTHENTIC DETAILS:
-     * Period accuracy in architecture, armor, weaponry, and textiles (e.g. 16th-century steel morions, breastplates, matchlocks, caravels, stone pyramids).
-     * STRICTLY FORBIDDEN: NO anachronistic modern clothing, modern fez caps before 1826, or modern equipment.
+   - SETTING-AUTHENTIC DETAILS:
+     * Setting accuracy in architecture, tools, garments, and materials (e.g. brass Fresnel lenses, oiled-wool coats, iron spiral staircases for coastal watchtower; or bronze armor and classical stone pillars for antiquity).
+     * STRICTLY FORBIDDEN: NO anachronistic items, modern garments, or equipment that conflict with the established setting period.
 4. DETAIL CHECKLIST (woven concisely):
    1) Main subject (Character Bible reference).
    2) Specific physical action / event underway.
    3) Environment & architectural textures (Location Bible reference).
    4) Composition & camera angle.
    5) Lighting direction & color palette.
-   6) Period authenticity & clean rendering (clean, sharp, high resolution).
+   6) Setting authenticity & clean rendering (clean, sharp, high resolution).
 
 OUTPUT SCHEMA:
 Return a strictly valid JSON object with the following structure:

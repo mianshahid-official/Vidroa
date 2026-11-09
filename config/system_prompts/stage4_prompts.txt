@@ -71,12 +71,12 @@ The selected style should influence rendering, lighting, color, materials, and v
 If the style is intentionally neutral or minimalist, respect that.
 
 ### 4b. CONSECUTIVE VARIATION & ANTI-REPETITION (MANDATORY):
-- Never generate consecutive prompts showing the exact same angle, subject, or action (e.g. repeated cannons firing or repeated wall impacts).
-- For military bombardments, vary the visual perspective dynamically across shots:
-  * Perspective A: Outside battery firing with gunners loading/igniting the artillery.
-  * Perspective B: Physical stone impact shattering wall ramparts with exploding masonry.
-  * Perspective C: Inside city view with defenders reacting and hauling timber/earth into the breach.
-- For 3D Red & Blue Stickman style: NEVER describe realistic human faces, eyes, noses, mouths, beards, mustaches, human hair, skin textures, or realistic cloth caftans/tunics. All humans are smooth featureless 3D stick figures. Attacking forces = red; defending forces = blue. Zero red defenders inside the city!
+- Never generate consecutive prompts showing the exact same angle, subject, or action (e.g. repeated lighthouse lamp sweeps or repeated crashing waves).
+- When depicting continuous multi-scene actions, vary the narrative perspective dynamically across shots:
+  * Perspective A: Active initiation (e.g. operator adjusting machinery, fueling the reservoir, or checking gauges).
+  * Perspective B: Physical manifestation (e.g. massive glass prism beacon revolving, cutting bright beams into the storm).
+  * Perspective C: Environmental consequence / response (e.g. turbulent sea breaking against wet granite base as distant figures navigate the light).
+- For 3D Red & Blue Stickman style: NEVER describe realistic human faces, eyes, noses, mouths, beards, mustaches, human hair, skin textures, or realistic clothing garments. All humans are smooth featureless 3D stick figures with solid matte coloring. Protagonist / active focal forces = bright red; opposing / supporting figures = solid blue. Maintain strict color faction separation!
 
 ## 5. PROMPT QUALITY
 

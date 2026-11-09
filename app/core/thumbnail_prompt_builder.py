@@ -21,12 +21,13 @@ def build_viral_thumbnail_prompt(
     sid = (style_id or "").lower()
 
     if "stickman" in sid or "3d_red_blue" in sid:
+        setting_desc = story_context.strip() if story_context and story_context.strip() else (era_or_setting.strip() if era_or_setting and era_or_setting.strip() else "stylized environment")
         return (
             f'YouTube thumbnail cover in 3D stylized CGI animated stickman aesthetic. '
             f'Features large bold 3D extruded typography text rendered directly in the scene reading: "{clean_hl}" '
             f"prominently across the upper-third in stylized high-contrast lettering with dramatic rim lighting. "
-            f"Dynamic epic wide composition: the bright red 3D stickman commander stands in a commanding focal hero stance, "
-            f"overlooking a massive stylized 3D siege battlefield with blue stickman defenders on fortress walls and red stickman forces outside. "
+            f"Dynamic epic wide composition: a bright red 3D stickman focal figure stands in an intense dynamic stance "
+            f"within a stylized 3D {setting_desc} with supporting blue 3D stickman figures in the midground. "
             f"Stylized toy CGI render, smooth matte plastic surfaces, cinematic volumetric lighting, rich visual depth. "
             f"STRICT NEGATIVE: human face, realistic eyes, nose, mouth, human skin texture, realistic fabric, photorealism, live-action."
         )
@@ -36,7 +37,7 @@ def build_viral_thumbnail_prompt(
             f'Features bold, prominent stylized paper typography text rendered directly in the image reading: "{clean_hl}" '
             f"in large dimensional cut-paper lettering with delicate drop shadows and visible paper texture. "
             f"Arresting multi-layered cardstock composition with distinct physical paper depth, simple expressive silhouettes, "
-            f"warm parchment and muted historical color palette, soft dramatic studio lighting. "
+            f"warm parchment and muted complementary color palette, soft dramatic studio lighting. "
             f"STRICT NEGATIVE: photorealism, modern 3D plastic render, glossy surfaces."
         )
     elif "paper_quilling" in sid:
@@ -55,13 +56,13 @@ def build_viral_thumbnail_prompt(
             f"bold acrylic brushstrokes, and striking high-impact graphic design composition."
         )
     elif "century" in sid or "vintage" in sid or "photo" in sid or "bw_" in sid:
-        era_txt = era_or_setting or "historical era"
+        era_txt = era_or_setting or "the story's setting"
         return (
             f"A high-CTR YouTube thumbnail visual centerpiece capturing the high stakes of {era_txt}. "
             f'Features bold, prominent monumental typography text rendered directly in the image reading: "{clean_hl}" '
             f"in large dramatic uppercase lettering with sharp edge contrast and cinematic composition. "
-            f"An arresting historical focal centerpiece, extreme chiaroscuro contrast casting deep dramatic shadows, "
-            f"authentic period textures, antique camera optics with sharp foreground clarity, and rich archival tones with authentic historical grain."
+            f"An arresting focal centerpiece, extreme chiaroscuro contrast casting deep dramatic shadows, "
+            f"authentic setting textures, antique camera optics with sharp foreground clarity, and rich archival tones with authentic grain."
         )
     else:
         # High-impact universal thumbnail prompt
