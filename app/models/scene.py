@@ -27,7 +27,7 @@ class ObjectContinuity(BaseModel):
 
 
 class TimePeriodContinuity(BaseModel):
-    era: str = Field(default="Historical Century-Old Era", description="Specific historical era or epoch")
+    era: str = Field(default="Unspecified", description="Specific historical era or epoch")
     decade_or_year: Optional[str] = Field(default=None, description="Estimated year or decade")
     technology_level: str = Field(default="", description="Available technology, transport, machinery, communication")
     lighting_methods: str = Field(default="", description="Authentic historical lighting sources (gaslamps, oil lanterns, candles, sunlight)")

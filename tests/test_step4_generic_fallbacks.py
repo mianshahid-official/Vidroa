@@ -20,6 +20,15 @@ def test_neutral_app_and_model_defaults():
     assert job_req.subject_id == "general_documentary"
     assert job_req.visual_style_id == "2d_stickman"
 
+    tp = TimePeriodContinuity()
+    assert tp.era == "Unspecified"
+
+    tp_modern = TimePeriodContinuity(era="2024 Contemporary Era")
+    assert tp_modern.is_photographic_era is True
+
+    tp_suburban = TimePeriodContinuity(era="Modern Suburban 2026")
+    assert tp_suburban.is_photographic_era is True
+
 
 def test_preset_manager_neutral_fallbacks():
     PresetManager.initialize()

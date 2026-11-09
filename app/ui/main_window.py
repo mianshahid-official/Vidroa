@@ -1519,10 +1519,10 @@ class MainWindow(QMainWindow):
     def _on_subject_changed(self, index: int):
         subject_id = self.subject_combo.currentData()
         self.custom_subject_edit.setVisible(subject_id == "custom")
-        self.project.config.subject_id = subject_id or "history"
+        self.project.config.subject_id = subject_id or "general_documentary"
 
     def _on_style_changed(self, index: int):
-        style_id = self.style_combo.currentData() or "century_old_photograph"
+        style_id = self.style_combo.currentData() or "2d_stickman"
         self.custom_style_edit.setVisible(style_id == "custom")
         self.project.config.visual_style_id = style_id
         if hasattr(self.project, "state") and self.project.state:
@@ -1757,7 +1757,7 @@ class MainWindow(QMainWindow):
 
     def _sync_project_config(self):
         self.project.state.story_raw_text = self.story_text_edit.toPlainText().strip()
-        self.project.config.subject_id = self.subject_combo.currentData() or "history"
+        self.project.config.subject_id = self.subject_combo.currentData() or "general_documentary"
         self.project.config.custom_subject = self.custom_subject_edit.toPlainText().strip() or None
         
         # Read visual style directly from style_matrix source of truth
