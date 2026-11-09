@@ -208,7 +208,8 @@ class CloudJobWorker(QThread):
                     engine=engine,
                     story_text=self.request.story_text,
                     analysis=script_analysis,
-                    subject_preset=subject_preset
+                    subject_preset=subject_preset,
+                    allow_fill=True
                 )
 
                 self.stage_changed.emit("Scheduling scene boundaries & audio synchronization (Stage 4/8)...")

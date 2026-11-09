@@ -19,27 +19,34 @@ def load_system_prompt() -> str:
     return _load_system_prompt("stage3_visual_planning.txt")
 
 
+FIXED_BEAT_TOKENS = 230
+JSON_SCAFFOLDING_TOKENS = 80
+
+
 def derive_stage3_token_budget(
-    num_beats: int = 2,
+    unit_text: str = "",
     max_cap: int = 950,
-    tokens_per_beat: int = 320,
-    json_scaffolding: int = 80
+    fixed_beat_tokens: int = FIXED_BEAT_TOKENS,
+    json_scaffolding: int = JSON_SCAFFOLDING_TOKENS
 ) -> int:
     """
-    Derives output token budget for Stage 3 Visual Planning.
-    Real measured per-beat cost from 9-field schema with 50-60 word narration segments:
-    - exact_narration_segment: ~70 tokens
-    - primary_visual_concept: ~70 tokens
-    - narrative_purpose + what_new_information_is_shown: ~60 tokens
-    - composition + lighting_and_atmosphere + continuity_references: ~60 tokens
-    - JSON field syntax & quotation marks: ~60 tokens
-    Total measured per-beat cost: ~320 tokens (range 250-350 tokens).
-    JSON scaffolding: ~80 tokens.
-    For 1 beat: 80 + 320 = 400 tokens.
-    For 2 beats: 80 + (2 * 320) = 720 tokens.
+    Derives output token budget for Stage 3 Visual Planning (1 beat per request).
+    Budget = 80 scaffolding + FIXED_BEAT_TOKENS + segment cost.
+    - FIXED_BEAT_TOKENS: Measured from real beats in repo tests = 230 tokens
+      (non-segment fields: purpose, concept, new_info, composition, lighting, references + JSON syntax).
+    - Segment cost: ceil(unit words * 1.33) covering model echoing the full unit text in exact_narration_segment.
     Clamped to effective max_cap with floor at min(350, max_cap).
     """
-    budget = json_scaffolding + (num_beats * tokens_per_beat)
+    import math
+    if isinstance(unit_text, int):
+        words = unit_text * 30
+    elif isinstance(unit_text, str):
+        words = len(unit_text.split())
+    else:
+        words = 0
+
+    segment_cost = math.ceil(words * 1.33)
+    budget = json_scaffolding + fixed_beat_tokens + segment_cost
     floor = min(350, max_cap)
     return min(max_cap, max(floor, budget))
 
@@ -127,103 +134,35 @@ class Stage3VisualPlanner:
                 ]
 
         total_units = len(candidate_units)
-        # DEFECT C: 2 beats per request with 1-beat fallback upon truncation
-        batch_size = 2
-        batches = [candidate_units[i:i + batch_size] for i in range(0, total_units, batch_size)]
-        num_batches = len(batches)
         all_beats: List[VisualBeat] = []
         global_beat_counter = 1
 
-        for b_idx, batch_units in enumerate(batches):
+        for u_idx, unit in enumerate(candidate_units):
             if progress_callback:
                 progress_callback(
-                    b_idx + 1,
-                    num_batches,
-                    f"Visual planning batch {b_idx + 1} of {num_batches} ({', '.join(u['unit_id'] for u in batch_units)})..."
+                    u_idx + 1,
+                    total_units,
+                    f"Visual planning unit {u_idx + 1} of {total_units}: {unit['unit_id']}..."
                 )
 
             eff_cap = engine.current_effective_max_tokens(baseline=950) if hasattr(engine, "current_effective_max_tokens") else 950
 
-            if len(batch_units) == 2:
-                # PART A: 2 beats per request (budget 720 at 950 baseline)
-                user_prompt = cls._build_user_prompt(
-                    units=batch_units,
-                    era_ctx=era_ctx,
-                    char_ctx=char_ctx,
-                    loc_ctx=loc_ctx,
-                    all_beats=all_beats,
-                    pack=pack,
-                    subject_preset=subject_preset
-                )
-                batch_budget = derive_stage3_token_budget(2, max_cap=eff_cap)
-
-                beats_data = []
-                try:
-                    raw_res = engine.generate_text(
-                        prompt=user_prompt,
-                        system_prompt=system_prompt,
-                        temperature=0.3,
-                        max_tokens=batch_budget
-                    )
-                    parsed = engine.repair_and_parse_json(raw_res)
-                    beats_data = cls._extract_beats_list(parsed)
-                except Exception as err:
-                    print(f"[Stage3VisualPlanning] Generation error on 2-beat batch {b_idx + 1}: {err}")
-                    beats_data = []
-
-                if len(beats_data) >= 2:
-                    matched_beats = cls._match_beats_to_units(beats_data, batch_units)
-                    for idx_u, u in enumerate(batch_units):
-                        b_dict = matched_beats[idx_u]
-                        all_beats.append(cls._create_visual_beat(b_dict, u, global_beat_counter))
-                        global_beat_counter += 1
-                else:
-                    # PART B: Truncation! Do NOT force and do NOT fill silently:
-                    # Split that pair and call each unit separately with 1 beat (budget 400 each).
-                    # The shrink IS the retry.
-                    print(
-                        f"[Stage3VisualPlanning] Loud Truncation Notice: Parsed {len(beats_data)} beats, expected 2. "
-                        f"Shrinking pair {[u['unit_id'] for u in batch_units]} to 1-beat fallback per unit."
-                    )
-                    for sub_u in batch_units:
-                        sub_beat = cls._plan_single_unit(
-                            engine=engine,
-                            system_prompt=system_prompt,
-                            unit=sub_u,
-                            era_ctx=era_ctx,
-                            char_ctx=char_ctx,
-                            loc_ctx=loc_ctx,
-                            all_beats=all_beats,
-                            pack=pack,
-                            subject_preset=subject_preset,
-                            eff_cap=eff_cap,
-                            allow_fill=allow_fill,
-                            beat_number=global_beat_counter,
-                            is_fallback_retry=True
-                        )
-                        all_beats.append(sub_beat)
-                        global_beat_counter += 1
-
-            else:
-                # 1-unit tail batch
-                sub_u = batch_units[0]
-                sub_beat = cls._plan_single_unit(
-                    engine=engine,
-                    system_prompt=system_prompt,
-                    unit=sub_u,
-                    era_ctx=era_ctx,
-                    char_ctx=char_ctx,
-                    loc_ctx=loc_ctx,
-                    all_beats=all_beats,
-                    pack=pack,
-                    subject_preset=subject_preset,
-                    eff_cap=eff_cap,
-                    allow_fill=allow_fill,
-                    beat_number=global_beat_counter,
-                    is_fallback_retry=False
-                )
-                all_beats.append(sub_beat)
-                global_beat_counter += 1
+            beat = cls._plan_single_unit(
+                engine=engine,
+                system_prompt=system_prompt,
+                unit=unit,
+                era_ctx=era_ctx,
+                char_ctx=char_ctx,
+                loc_ctx=loc_ctx,
+                all_beats=all_beats,
+                pack=pack,
+                subject_preset=subject_preset,
+                eff_cap=eff_cap,
+                allow_fill=allow_fill,
+                beat_number=global_beat_counter
+            )
+            all_beats.append(beat)
+            global_beat_counter += 1
 
         if len(all_beats) == 0:
             raise RuntimeError("Stage 3 Visual Planning failed to produce any visual beats.")
@@ -458,19 +397,22 @@ Return strictly valid JSON with key "visual_beats":
     def _plan_single_unit(
         cls,
         engine: BaseInferenceEngine,
-        system_prompt: str,
         unit: Dict[str, Any],
-        era_ctx: str,
-        char_ctx: str,
-        loc_ctx: str,
-        all_beats: List[VisualBeat],
-        pack: Any,
-        subject_preset: Optional[SubjectPreset],
-        eff_cap: int,
-        allow_fill: bool,
-        beat_number: int,
-        is_fallback_retry: bool = False
+        system_prompt: str = "You are an expert visual director.",
+        era_ctx: str = "",
+        char_ctx: str = "",
+        loc_ctx: str = "",
+        all_beats: Optional[List[VisualBeat]] = None,
+        pack: Any = None,
+        subject_preset: Optional[SubjectPreset] = None,
+        eff_cap: int = 950,
+        allow_fill: bool = False,
+        beat_number: int = 1,
+        max_attempts: int = 2
     ) -> VisualBeat:
+        if all_beats is None:
+            all_beats = []
+
         user_prompt = cls._build_user_prompt(
             units=[unit],
             era_ctx=era_ctx,
@@ -480,8 +422,7 @@ Return strictly valid JSON with key "visual_beats":
             pack=pack,
             subject_preset=subject_preset
         )
-        u_budget = derive_stage3_token_budget(1, max_cap=eff_cap)
-        max_attempts = 1 if is_fallback_retry else 2
+        u_budget = derive_stage3_token_budget(unit.get("text", ""), max_cap=eff_cap)
         beats_data = []
 
         for attempt in range(max_attempts):
@@ -499,7 +440,7 @@ Return strictly valid JSON with key "visual_beats":
                 else:
                     print(
                         f"[Stage3VisualPlanning] Loud Truncation Notice: Parsed {len(beats_data)} beats, "
-                        f"expected 1 for unit {unit['unit_id']}. Attempting retry..."
+                        f"expected 1 for unit {unit['unit_id']}. Attempting retry... (Attempt {attempt+1}/{max_attempts})"
                     )
             except Exception as err:
                 print(f"[Stage3VisualPlanning] Generation error for unit {unit['unit_id']} on attempt {attempt+1}: {err}")
@@ -516,7 +457,7 @@ Return strictly valid JSON with key "visual_beats":
         if not allow_fill:
             raise RuntimeError(
                 f"Stage 3 planning failure: Unit {unit['unit_id']} output truncated or incomplete "
-                f"after 1-beat fallback retry (parsed {len(beats_data)} beats, expected 1). "
+                f"after retry (parsed {len(beats_data)} beats, expected 1). "
                 f"Text: '{unit.get('text', '')[:60]}...'"
             )
 

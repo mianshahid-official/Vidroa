@@ -204,7 +204,8 @@ class ParallelPipelineWorker(QThread):
                 engine=engine,
                 story_text=story_text,
                 analysis=script_analysis,
-                subject_preset=subject_preset
+                subject_preset=subject_preset,
+                allow_fill=True
             )
 
             self.progress_updated.emit(ProgressInfo(

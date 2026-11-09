@@ -20,6 +20,8 @@ DEFAULT_GROQ_MODELS = [
     "openai/gpt-oss-20b"
 ]
 
+REQUEST_PACING_SECONDS = 2.0
+
 
 def _parse_duration_string(val: str) -> Optional[float]:
     """Parses duration strings like '202ms', '17.4s', '7m12s', or '15' into seconds."""
@@ -202,6 +204,7 @@ class GroqEngine(BaseInferenceEngine):
         self._effective_max_tokens: int = 950
         self._effective_cap_timestamp: float = 0.0
         self._cap_recovery_interval: float = 60.0  # seconds until reduced cap decays back toward baseline
+        self._last_request_time: float = 0.0
 
     @property
     def api_keys(self) -> List[str]:
@@ -313,6 +316,12 @@ class GroqEngine(BaseInferenceEngine):
                 "temperature": temp,
                 "max_tokens": max_tok
             }
+
+            # Inter-request pacing: enforce minimum 2-second gap between HTTP POSTs
+            elapsed = time.monotonic() - self._last_request_time
+            if elapsed < REQUEST_PACING_SECONDS:
+                time.sleep(REQUEST_PACING_SECONDS - elapsed)
+            self._last_request_time = time.monotonic()
 
             req_start = time.perf_counter()
             try:

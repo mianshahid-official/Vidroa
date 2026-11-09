@@ -84,24 +84,24 @@ class RecordingStage5Engine(BaseInferenceEngine):
 
 
 def test_derive_stage3_token_budget_scale():
-    # 1 beat: measured cost 80 + 320 = 400
-    assert derive_stage3_token_budget(1, max_cap=950) == 400
+    # Short unit (10 words): 80 + 230 + ceil(10*1.33)=14 -> 324 -> clamped to floor 350
+    assert derive_stage3_token_budget("Short tactical sentence with few words.", max_cap=950) == 350
 
-    # 2 beats: measured cost 80 + 2 * 320 = 720
-    assert derive_stage3_token_budget(2, max_cap=950) == 720
+    # Medium unit (35 words): 80 + 230 + ceil(35*1.33)=47 -> 357 tokens
+    medium_text = " ".join(["word"] * 35)
+    assert derive_stage3_token_budget(medium_text, max_cap=950) == 357
 
-    # 3 beats: 80 + 3 * 320 = 1040 -> clamped to 950
-    assert derive_stage3_token_budget(3, max_cap=950) == 950
+    # Long unit (60 words): 80 + 230 + ceil(60*1.33)=80 -> 390 tokens
+    long_text = " ".join(["word"] * 60)
+    assert derive_stage3_token_budget(long_text, max_cap=950) == 390
 
-    # 6 beats: 80 + 6 * 320 = 2000 -> clamped to 950
-    assert derive_stage3_token_budget(6, max_cap=950) == 950
-
-    # 12 beats: 80 + 12 * 320 = 3920 -> clamped to 950
-    assert derive_stage3_token_budget(12, max_cap=950) == 950
+    # Clamped to effective cap
+    assert derive_stage3_token_budget(long_text, max_cap=370) == 370
 
     # Engine cap never exceeded
-    for n in [1, 2, 3, 5, 8, 12, 20]:
-        assert derive_stage3_token_budget(n, max_cap=950) <= 950
+    for n in [5, 20, 50, 100, 200]:
+        t = " ".join(["word"] * n)
+        assert derive_stage3_token_budget(t, max_cap=950) <= 950
 
 
 def test_stage3_context_contains_5_prior_beats_full_concept():

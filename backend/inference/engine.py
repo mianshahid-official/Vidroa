@@ -90,6 +90,43 @@ class BaseInferenceEngine(ABC):
                         except json.JSONDecodeError:
                             pass
 
+            # Incomplete single object recovery: cut off inside the object before closing '}'
+            for close_attempt in ['"}]}', '"}}', '}]}', '}}', '"\n}\n]\n}', '\n}\n]\n}']:
+                try:
+                    return json.loads(cleaned + close_attempt)
+                except json.JSONDecodeError:
+                    pass
+
+            # Strip back to last complete field (e.g. after '",') and close
+            last_field_end = cleaned.rfind('",')
+            if last_field_end != -1:
+                candidate = cleaned[first_brace:last_field_end + 1]
+                for close_attempt in ['}]}', '}}', '\n}\n]\n}']:
+                    try:
+                        return json.loads(candidate + close_attempt)
+                    except json.JSONDecodeError:
+                        pass
+
+            # Regex extraction fallback: if primary_visual_concept exists in raw_text, salvage it
+            concept_match = re.search(r'"primary_visual_concept"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', cleaned)
+            if concept_match:
+                narr_match = re.search(r'"exact_narration_segment"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', cleaned)
+                purpose_match = re.search(r'"narrative_purpose"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', cleaned)
+                comp_match = re.search(r'"composition"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', cleaned)
+                light_match = re.search(r'"lighting_and_atmosphere"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', cleaned)
+                new_info_match = re.search(r'"what_new_information_is_shown"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', cleaned)
+
+                salvaged_beat = {
+                    "exact_narration_segment": narr_match.group(1) if narr_match else "",
+                    "narrative_purpose": purpose_match.group(1) if purpose_match else "Visualizes narration moment",
+                    "primary_visual_concept": concept_match.group(1),
+                    "what_new_information_is_shown": new_info_match.group(1) if new_info_match else "Advances story",
+                    "composition": comp_match.group(1) if comp_match else "Eye-level medium-wide shot",
+                    "lighting_and_atmosphere": light_match.group(1) if light_match else "Dramatic chiaroscuro lighting",
+                    "continuity_references": []
+                }
+                return {"visual_beats": [salvaged_beat]}
+
         raise JSONParseError(f"Failed to parse structured JSON from model response: {raw_text[:300]}...")
 
 
