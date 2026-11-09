@@ -98,38 +98,75 @@ def audit_and_heal_repetitions(scenes: List[VisualScene], narration: Optional[Na
     return scenes
 
 
+from backend.pipeline.stage4_scheduling import (
+    find_sentence_clause_split_point,
+    assert_sentence_boundary_validity
+)
+
+
 def split_long_scene(sc: VisualScene, max_dur: float = 8.0, narration: Optional[NarrationData] = None) -> List[VisualScene]:
-    """Splits a scene exceeding max_dur into diverse sub-scenes with varied visual subjects, distinct progressive actions, and camera framings."""
+    """Splits a scene exceeding max_dur into diverse sub-scenes with sentence-aware boundaries."""
     if sc.duration <= max_dur:
         return [sc]
 
     num_parts = int(math.ceil(sc.duration / max_dur))
-    part_dur = round(sc.duration / num_parts, 3)
+    words = sc.narration_excerpt.split() if sc.narration_excerpt else []
+
+    if len(words) < num_parts * 2:
+        part_dur = round(sc.duration / num_parts, 3)
+        sub_scenes = []
+        cur_s = sc.start
+        for p_idx in range(num_parts):
+            cur_e = round(cur_s + part_dur, 3) if p_idx < num_parts - 1 else sc.end
+            p_dur = round(cur_e - cur_s, 3)
+            sub_excerpt = sc.narration_excerpt
+            framing = FRAMING_PROGRESSION[p_idx % len(FRAMING_PROGRESSION)]
+            sub_subject, action_desc = derive_smart_subscene_subject(sc.visual_subject, sub_excerpt, p_idx, num_parts)
+            sub_scenes.append(sc.model_copy(update={
+                "start": cur_s,
+                "end": cur_e,
+                "duration": p_dur,
+                "narration_excerpt": sub_excerpt,
+                "visual_subject": sub_subject,
+                "action": action_desc,
+                "composition": framing,
+                "framing_suggestion": framing
+            }))
+            cur_s = cur_e
+        return sub_scenes
+
+    # Partition words along sentence/clause boundaries
+    partitions = []
+    prev_w = 0
+    for p in range(num_parts):
+        if p == num_parts - 1:
+            partitions.append(words[prev_w:])
+        else:
+            target = prev_w + max(2, len(words) // num_parts)
+            split_w = find_sentence_clause_split_point(
+                words,
+                target_idx=target,
+                min_idx=prev_w + 1,
+                max_idx=len(words) - (num_parts - p)
+            )
+            partitions.append(words[prev_w : split_w + 1])
+            prev_w = split_w + 1
+
     sub_scenes = []
     cur_s = sc.start
-
-    for p_idx in range(num_parts):
-        cur_e = round(cur_s + part_dur, 3) if p_idx < num_parts - 1 else sc.end
-        p_dur = round(cur_e - cur_s, 3)
-
-        # 1. Distinct narration excerpt from narration timestamps if available
-        if narration and hasattr(narration, "get_excerpt_by_time"):
-            sub_excerpt = narration.get_excerpt_by_time(cur_s, cur_e)
-        else:
-            sub_excerpt = ""
-        if not sub_excerpt:
-            sub_excerpt = sc.narration_excerpt
-
-        # 2. Distinct framing suggestion
+    total_words_count = len(words)
+    for p_idx, part_words in enumerate(partitions):
+        part_ratio = len(part_words) / max(1, total_words_count)
+        p_dur = round(sc.duration * part_ratio, 3)
+        cur_e = round(cur_s + p_dur, 3) if p_idx < num_parts - 1 else sc.end
+        actual_dur = round(cur_e - cur_s, 3)
+        sub_excerpt = " ".join(part_words)
         framing = FRAMING_PROGRESSION[p_idx % len(FRAMING_PROGRESSION)]
-
-        # 3. Derive concrete visual subject from transcript narration
         sub_subject, action_desc = derive_smart_subscene_subject(sc.visual_subject, sub_excerpt, p_idx, num_parts)
-
         sub_scenes.append(sc.model_copy(update={
             "start": cur_s,
             "end": cur_e,
-            "duration": p_dur,
+            "duration": actual_dur,
             "narration_excerpt": sub_excerpt,
             "visual_subject": sub_subject,
             "action": action_desc,
@@ -379,13 +416,17 @@ class Stage2Planner:
 
         print(f"[Stage2 QC] Passed! {len(all_scenes)} scenes planned, strictly capped at {max_cap}s max duration.")
 
+        assert_sentence_boundary_validity(all_scenes, story_text)
+
         if config.timing_mode == TimingMode.AI_DECIDES:
             return all_scenes
 
-        return TimelineEngine.enforce_duration_limits(
+        res_scenes = TimelineEngine.enforce_duration_limits(
             scenes=all_scenes,
             min_duration=config.min_duration,
             max_duration=min(8.0, config.max_duration),
             target_duration=min(5.0, config.preferred_duration),
             narration=narration
         )
+        assert_sentence_boundary_validity(res_scenes, story_text)
+        return res_scenes

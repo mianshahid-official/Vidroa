@@ -13,6 +13,134 @@ from app.models.timeline import NarrationData, WordTimestamp
 from backend.inference.engine import BaseInferenceEngine
 from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
 
+SENTENCE_CLAUSE_PUNCTUATION = (".", "!", "?", ";", ",", "—", "–", ":")
+DISALLOWED_TAIL_WORDS = {
+    "a", "an", "the", "of", "to", "in", "on", "at", "for", "with", "and", "or", "but", "by", "as"
+}
+
+
+def find_sentence_clause_split_point(
+    words: List[str],
+    target_idx: int,
+    min_idx: int = 1,
+    max_idx: Optional[int] = None,
+    search_window: int = 4
+) -> int:
+    """
+    Finds the nearest sentence or clause punctuation boundary ('.', '!', '?', ';', ',', '—', '–', ':')
+    around target_idx within ±search_window words.
+    If none found in the window, falls back to the nearest PRECEDING punctuation.
+    Ensures the split word does not end on a disallowed tail word (articles, prepositions, conjunctions).
+    """
+    if not words:
+        return 0
+    total = len(words)
+    if max_idx is None or max_idx >= total:
+        max_idx = total - 1
+    target_idx = max(min_idx, min(max_idx, target_idx))
+
+    # Priority 1: Search within ±search_window of target_idx
+    best_idx = None
+    search_start = max(min_idx, target_idx - search_window)
+    search_end = min(max_idx, target_idx + search_window)
+
+    # First preference: sentence terminators (. ! ?)
+    for idx in range(search_start, search_end + 1):
+        w_raw = words[idx]
+        if any(w_raw.endswith(p) for p in [".", "!", "?"]):
+            best_idx = idx
+            break
+
+    # Second preference: clause terminators (; , — – :)
+    if best_idx is None:
+        for idx in range(search_start, search_end + 1):
+            w_raw = words[idx]
+            if any(w_raw.endswith(p) for p in [";", ",", "—", "–", ":"]):
+                best_idx = idx
+                break
+
+    # Priority 2: Fall back to the nearest PRECEDING punctuation back to min_idx
+    if best_idx is None:
+        for idx in range(search_start - 1, min_idx - 1, -1):
+            w_raw = words[idx]
+            if any(w_raw.endswith(p) for p in SENTENCE_CLAUSE_PUNCTUATION):
+                best_idx = idx
+                break
+
+    cand = best_idx if best_idx is not None else target_idx
+
+    # Disallowed tail guard: avoid ending a scene on articles/prepositions/conjunctions
+    while cand > min_idx and words[cand].lower().strip(".,;:!?\"'—–") in DISALLOWED_TAIL_WORDS:
+        cand -= 1
+
+    return cand
+
+
+def assert_sentence_boundary_validity(scenes: List[Any], full_text: Optional[str] = None) -> None:
+    """
+    Post-scheduling invariant check for BOTH paths.
+    Validates that every scene's narration text:
+    1. Ends at a sentence/clause boundary ('.', '!', '?', ';', ':', '—', '–' or end of whole script).
+    2. Does not cut mid-sentence (e.g. if next scene starts with lowercase continuation).
+    3. Does not start mid-word or mid-clause.
+    4. Does not end on a disallowed tail word (articles, prepositions, conjunctions).
+    5. Is not empty or defaulted to the first 100 characters of the whole story (unless scene is literally the start).
+    Fails loudly with RuntimeError naming the offending scene if any boundary is broken.
+    """
+    if not scenes:
+        return
+    valid_end_punct = (".", "!", "?", ";", ":", "—", "–", '"', "'", "”", "’")
+    disallowed_tails = {"a", "an", "the", "of", "to", "in", "on", "at", "for", "with", "and", "or", "but", "by", "as"}
+
+    for i, sc in enumerate(scenes):
+        sid = getattr(sc, "scene_id", f"scene_{i+1}")
+        narr = getattr(sc, "narration_text", None) or getattr(sc, "narration_excerpt", "")
+        narr = narr.strip()
+        if not narr:
+            raise RuntimeError(f"Stage 4 boundary failure: Scene #{sid} has empty narration text.")
+
+        # Check: does not start mid-word (no leading partial punctuation)
+        if narr[0] in [",", ";", ":", ")", "]", "}"]:
+            raise RuntimeError(f"Stage 4 boundary failure: Scene #{sid} starts mid-clause or mid-word: '{narr[:30]}...'")
+
+        # Check: is this the final scene of the entire script?
+        is_last = (i == len(scenes) - 1)
+        ends_with_valid_punct = any(narr.endswith(p) for p in valid_end_punct) or narr.endswith(",")
+
+        if not ends_with_valid_punct and not is_last:
+            raise RuntimeError(
+                f"Stage 4 boundary failure: Scene #{sid} cuts narration mid-sentence: "
+                f"'{narr[-40:]}'. Scenes must terminate at sentence or clause boundaries."
+            )
+
+        # Check: does not end on a disallowed dangling word
+        last_word = narr.split()[-1].lower().strip(".,;:!?\"'—–")
+        if last_word in disallowed_tails and not is_last:
+            raise RuntimeError(
+                f"Stage 4 boundary failure: Scene #{sid} ends on disallowed dangling word '{last_word}': "
+                f"'{narr[-40:]}'"
+            )
+
+        # Check: if not last scene, check next scene does not start with lowercase continuation
+        if not is_last:
+            next_sc = scenes[i + 1]
+            next_narr = (getattr(next_sc, "narration_text", None) or getattr(next_sc, "narration_excerpt", "")).strip()
+            if next_narr and next_narr[0].islower():
+                raise RuntimeError(
+                    f"Stage 4 boundary failure: Scene #{sid} cuts narration mid-sentence: "
+                    f"'{narr[-40:]}' with lowercase continuation in next scene '{next_narr[:30]}...'"
+                )
+
+        # Check: story_text[:100] fallback detection
+        if full_text and i > 0:
+            cleaned_full = full_text.strip()
+            if len(cleaned_full) >= 50:
+                first_50 = cleaned_full[:50]
+                if narr.startswith(first_50):
+                    raise RuntimeError(
+                        f"Stage 4 boundary failure: Scene #{sid} received whole-story opening text instead of its own narration."
+                    )
+
 
 def load_system_prompt() -> str:
     return _load_system_prompt("stage3_scheduling.txt")
@@ -87,6 +215,9 @@ class Stage4TemporalScheduler:
                 total_duration=total_duration
             )
 
+        # Invariant post-scheduling assertion: every scene must end at sentence/clause boundary
+        assert_sentence_boundary_validity(final_scenes, story_text)
+
         return ScheduledStoryboard(
             scenes=final_scenes,
             total_duration=round(total_duration, 2)
@@ -143,12 +274,24 @@ class Stage4TemporalScheduler:
                         rem_beats = num_beats - b_idx
                         rem_words = total_words - cur_w_idx
                         allocated = max(4, rem_words // rem_beats)
-                        en_idx = min(total_words - 2, cur_w_idx + allocated - 1)
+                        target_en = min(total_words - 2, cur_w_idx + allocated - 1)
+                        en_idx = find_sentence_clause_split_point(
+                            [w.word for w in words],
+                            target_idx=target_en,
+                            min_idx=cur_w_idx + 1,
+                            max_idx=total_words - 2
+                        )
                 else:
                     rem_beats = num_beats - b_idx
                     rem_words = total_words - cur_w_idx
                     allocated = max(4, rem_words // rem_beats)
-                    en_idx = min(total_words - 2, cur_w_idx + allocated - 1)
+                    target_en = min(total_words - 2, cur_w_idx + allocated - 1)
+                    en_idx = find_sentence_clause_split_point(
+                        [w.word for w in words],
+                        target_idx=target_en,
+                        min_idx=cur_w_idx + 1,
+                        max_idx=total_words - 2
+                    )
 
             en_idx = max(st_idx, min(total_words - 1, en_idx))
             beat_word_ranges.append({
@@ -289,11 +432,24 @@ class Stage4TemporalScheduler:
         # If the final scene exceeds 8.00s, split the tail into two compliant scenes
         if final_scenes and final_scenes[-1].duration > 8.00:
             last = final_scenes.pop()
-            mid = round((last.start_time + last.end_time) / 2.0, 2)
             l_words = last.narration_text.split()
-            w_mid = max(1, len(l_words) // 2)
-            w_part1 = l_words[:w_mid]
-            w_part2 = l_words[w_mid:]
+            if len(l_words) >= 4:
+                w_mid_idx = find_sentence_clause_split_point(
+                    l_words,
+                    target_idx=len(l_words) // 2,
+                    min_idx=1,
+                    max_idx=len(l_words) - 2
+                )
+                w_part1 = l_words[:w_mid_idx + 1]
+                w_part2 = l_words[w_mid_idx + 1:]
+            else:
+                w_mid = max(1, len(l_words) // 2)
+                w_part1 = l_words[:w_mid]
+                w_part2 = l_words[w_mid:]
+
+            # Proportionally calculate mid timestamp based on word partition
+            ratio = len(w_part1) / max(1, len(l_words))
+            mid = round(last.start_time + ratio * last.duration, 2)
             summary1 = derive_progressive_subsegment_concept(last.visual_summary, w_part1, 0, 2)
             summary2 = derive_progressive_subsegment_concept(last.visual_summary, w_part2, 1, 2)
 
@@ -364,16 +520,51 @@ class Stage4TemporalScheduler:
 
             source_narrative = getattr(beat, "source_beat_ids", [])
             characters = getattr(beat, "continuity_references", [])
+            segment_narr = (beat.exact_narration_segment or "").strip()
+            if not segment_narr:
+                raise RuntimeError(
+                    f"Stage 4 scheduling failure: Beat #{beat.beat_id} has no exact narration segment. "
+                    f"Substituting story_text[:100] is prohibited per production release requirements."
+                )
 
-            if dur > 7.5:
+            if dur > 8.0:
+                beat_words = segment_narr.split()
+                has_sentence_break = any(w.endswith((".", "!", "?", ";")) for w in beat_words[:-1])
+                if dur <= 10.5 and not has_sentence_break:
+                    raw_scenes.append({
+                        "beat_id": beat.beat_id,
+                        "source_beat_ids": list(source_narrative),
+                        "character_ids": list(characters),
+                        "start": st,
+                        "end": en,
+                        "duration": dur,
+                        "narration": segment_narr,
+                        "summary": beat.primary_visual_concept
+                    })
+                    continue
+
                 n_parts = int(dur // 6.5) + (1 if dur % 6.5 > 0 else 0)
                 sub_dur = round(dur / n_parts, 2)
                 p_start = st
+                if not beat_words:
+                    raise RuntimeError(f"Stage 4 scheduling failure: Beat #{beat.beat_id} has empty narration text.")
+
+                prev_w = 0
                 for p in range(n_parts):
                     p_end = en if p == n_parts - 1 else round(p_start + sub_dur, 2)
-                    beat_words = (beat.exact_narration_segment or story_text[:100]).split()
-                    sub_len = max(1, len(beat_words) // n_parts)
-                    seg_sub_words = beat_words[p * sub_len : (p + 1) * sub_len] if p < n_parts - 1 else beat_words[p * sub_len:]
+                    if p == n_parts - 1:
+                        seg_sub_words = beat_words[prev_w:]
+                    else:
+                        target = prev_w + max(2, len(beat_words) // n_parts)
+                        split_w = find_sentence_clause_split_point(
+                            beat_words,
+                            target_idx=target,
+                            min_idx=prev_w + 1,
+                            max_idx=len(beat_words) - (n_parts - p)
+                        )
+                        seg_sub_words = beat_words[prev_w : split_w + 1]
+                        prev_w = split_w + 1
+
                     prog_summary = derive_progressive_subsegment_concept(
                         base_concept=beat.primary_visual_concept,
                         seg_words=seg_sub_words,
@@ -387,7 +578,7 @@ class Stage4TemporalScheduler:
                         "start": p_start,
                         "end": p_end,
                         "duration": round(p_end - p_start, 2),
-                        "narration": " ".join(seg_sub_words) if seg_sub_words else (beat.exact_narration_segment or story_text[:100]),
+                        "narration": " ".join(seg_sub_words),
                         "summary": prog_summary
                     })
                     p_start = p_end
@@ -399,7 +590,7 @@ class Stage4TemporalScheduler:
                     "start": st,
                     "end": en,
                     "duration": dur,
-                    "narration": beat.exact_narration_segment or story_text[:100],
+                    "narration": segment_narr,
                     "summary": beat.primary_visual_concept
                 })
 
