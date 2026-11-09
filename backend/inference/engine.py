@@ -101,32 +101,51 @@ class MockInferenceEngine(BaseInferenceEngine):
         # Match prompt stage
         if "STAGE 1: STORY ANALYSIS" in prompt:
             return json.dumps({
-                "story_summary": "A historical chronicle of ancient civilization.",
-                "major_historical_events": ["Dawn of civilization", "Tribes gathering"],
-                "cause_and_effect_flow": ["Tribes gather to survive harsh winters"],
-                "historical_uncertainties": ["Exact tribal languages"],
-                "narrative_beats": [{"beat_id": "b1", "summary": "Discovery", "emotional_tone": "wonder"}],
-                "character_continuity_needed": False,
-                "characters": [],
-                "location_continuity_needed": False,
-                "locations": [],
-                "object_continuity_needed": False,
-                "key_objects": [],
-                "thumbnail_headline": "ANCIENT DAWN",
-                "thumbnail_prompt": "A dramatic archival photograph of ancient stone monoliths."
+                "story_summary": "A coastal narrative chronicling a lighthouse keeper's stormy night watch.",
+                "major_events": ["Arrival at coastal watchtower", "Gale winds intensifying", "Securing lantern room", "Dawn over calm waters"],
+                "major_historical_events": ["Arrival at coastal watchtower", "Gale winds intensifying", "Securing lantern room", "Dawn over calm waters"],
+                "cause_and_effect_flow": ["Rising gale requires urgent manual trimming of the rotating lamp"],
+                "uncertainties": ["Exact wind speed measurements"],
+                "historical_uncertainties": ["Exact wind speed measurements"],
+                "setting_period": "Early 20th Century Maritime Watchtower (circa 1910s)",
+                "historical_or_setting_period": "Early 20th Century Maritime Watchtower (circa 1910s)",
+                "narrative_beats": [{"beat_id": "b1", "summary": "Arrival at Watchtower", "emotional_tone": "vigilant"}],
+                "character_continuity_needed": True,
+                "characters": [{
+                    "name": "Lighthouse Keeper",
+                    "role": "Watchman",
+                    "physical_description": "Weathered coastal keeper in dark oilskins",
+                    "clothing": "Heavy wool turtleneck and oiled canvas coat",
+                    "key_features": "Steely gaze and lantern in hand"
+                }],
+                "location_continuity_needed": True,
+                "locations": [{
+                    "name": "Lantern Room",
+                    "architectural_style": "Cylindrical iron and glass watchtower enclosure",
+                    "environmental_features": "Fresnel lens prisms reflecting lamp glow against salt-sprayed windows",
+                    "lighting_mood": "Warm rotating beam contrasting with dark ocean storm outside"
+                }],
+                "object_continuity_needed": True,
+                "key_objects": [{
+                    "name": "Brass Chronometer",
+                    "visual_description": "Mounted nautical timepiece with ticking sweep second hand",
+                    "significance": "Pacing the manual lamp log rotation"
+                }],
+                "thumbnail_headline": "STORMY WATCH",
+                "thumbnail_prompt": "A solitary lighthouse keeper in dark oilskins trimming the brass beacon atop a storm-battered Atlantic sea tower."
             })
         elif "visual_beats" in prompt or "VISUAL PLANNING" in prompt or (system_prompt and any(w in system_prompt.lower() for w in ["visual storytelling", "visual beat", "storyboard architect"])):
             unit_lines = [l.strip() for l in prompt.split("\n") if l.strip().startswith("UNIT ")]
             if unit_lines:
                 mock_concepts = [
-                    ("Sun rising over ancient stone monoliths", "Establish antiquity and setting"),
-                    ("Nomadic travelers gathering at river bank", "Introduce the community"),
-                    ("Tribal chieftains convening in council", "Strategic council discussion"),
-                    ("Scouts observing distant horizon from ridgeline", "Tactical recon and preparation"),
-                    ("Armies marching through misty river valley", "Mobilization and progression"),
-                    ("Defenders constructing timber palisade", "Defensive fortification"),
-                    ("Decisive clash of forces under stormy sky", "Climactic struggle"),
-                    ("Peaceful aftermath as dawn breaks over the plain", "Resolution and historical legacy")
+                    ("Keeper ascending spiral iron staircase with oil lamp", "Establish setting and routine"),
+                    ("Inspecting rotating brass clockwork mechanism", "Show operational focus"),
+                    ("Gale winds rattling iron lantern room glass", "Introduce environmental conflict"),
+                    ("Carefully wiping salt spray from glass panes", "Active maintenance task"),
+                    ("Manually adjusting the counterweights", "Physical effort under worsening storm"),
+                    ("Focal beam cutting through driving rain over churning waves", "Climactic visual manifestation of duty"),
+                    ("Logbook entry written by lantern light at 0400 hours", "Pacing and consequence"),
+                    ("First golden rays of dawn breaking over calmer ocean swells", "Resolution and safe passage")
                 ]
                 beats = []
                 for idx, u in enumerate(unit_lines):

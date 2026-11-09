@@ -402,20 +402,20 @@ class Stage1Analyzer:
         if len(summary) < 150:
             # Build comprehensive summary from full narrative
             summary = (
-                f"This historical documentary chronicles the complete narrative arc of {thumb_headline.lower()}. "
-                f"The story begins with the strategic geopolitical situation and key leaders, progresses through high-stakes "
-                f"conflict and tactical maneuvers, reaches a decisive climax, and concludes with lasting historical consequences."
+                f"This documentary chronicles the complete narrative arc of {thumb_headline.lower()}. "
+                f"The story introduces the core subjects and setting, progresses through dramatic developments, "
+                f"reaches a decisive climax, and concludes with lasting consequences."
             )
 
         analysis = StoryAnalysis(
             story_summary=summary,
-            major_historical_events=major_events,
+            major_events=major_events,
             cause_and_effect_flow=cause_flow,
-            historical_uncertainties=uncertainties,
+            uncertainties=uncertainties,
             narrative_beats=narrative_beats,
             facts_and_claims=facts_and_claims,
             continuity=continuity,
-            visual_tone_notes=data.get("visual_tone_notes", "Rich archival documentary tone"),
+            visual_tone_notes=data.get("visual_tone_notes", "Rich documentary tone"),
             thumbnail_headline=thumb_headline,
             thumbnail_prompt=thumb_prompt
         )
@@ -464,15 +464,15 @@ class Stage1Analyzer:
             era_str = f"{analysis.continuity.time_period.era} ({analysis.continuity.time_period.decade_or_year or ''})"
 
         temporal_causal = TemporalCausalStructure(
-            chronological_order=" -> ".join(analysis.major_historical_events) if analysis.major_historical_events else "Chronological story progression",
+            chronological_order=" -> ".join(analysis.major_events) if analysis.major_events else "Chronological story progression",
             flashbacks_or_nonlinear_elements=[],
             causal_chain=analysis.cause_and_effect_flow or ["Event leads to consequence"]
         )
 
         constraints = PlanningConstraints(
-            must_visualize=analysis.major_historical_events or ["Key historical moments"],
-            must_not_visualize=["Anachronisms", "Modern artifacts", "Premature ending reveals"],
-            high_risk_repetition_concepts=["Identical military formations", "Unchanged wall ruins"]
+            must_visualize=analysis.major_events or ["Key narrative moments"],
+            must_not_visualize=["Contradictory visual elements", "Premature ending reveals"],
+            high_risk_repetition_concepts=["Repetitive static poses", "Identical visual actions"]
         )
 
         # Convert narrative beats to NarrativeBeat models
@@ -505,15 +505,15 @@ class Stage1Analyzer:
                     visual_implication=fc.get("visual_implication") or "Illustrate accurately"
                 ))
 
-        premise = analysis.story_summary.split(".")[0].strip() if analysis.story_summary else "Historical turning point and geopolitical transformation"
+        premise = analysis.story_summary.split(".")[0].strip() if analysis.story_summary else "Narrative exploration and thematic development"
         if len(premise) < 20:
-            premise = f"Historical conflict and strategic turning point during {era_str}"
+            premise = f"Narrative developments during {era_str}"
 
         return ScriptAnalysis(
             script_summary=analysis.story_summary,
             core_narrative_premise=premise,
             genre_and_tone="Documentary / Dramatic",
-            historical_or_setting_period=era_str,
+            setting_period=era_str,
             narrative_beats=parsed_beats,
             facts_and_claims=parsed_claims,
             continuity_bible=ContinuityBible(

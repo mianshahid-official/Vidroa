@@ -3,7 +3,7 @@ Structured Pydantic data models for the complete 8-stage visual planning engine.
 Conforms strictly to the Google Antigravity Visual Planning Specification.
 """
 from typing import List, Optional, Dict, Any, Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # ============================================================================
@@ -71,10 +71,12 @@ class PlanningConstraints(BaseModel):
 
 
 class ScriptAnalysis(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     script_summary: str = Field(..., description="Complete narrative summary")
     core_narrative_premise: str = Field(..., description="Central thematic question or premise")
     genre_and_tone: str = Field(..., description="Genre and emotional tone")
-    historical_or_setting_period: str = Field(..., description="Setting era or epoch")
+    setting_period: str = Field(..., alias="historical_or_setting_period", description="Setting era or epoch")
     narrative_beats: List[NarrativeBeat] = Field(default_factory=list)
     facts_and_claims: List[FactClaim] = Field(default_factory=list)
     continuity_bible: ContinuityBible = Field(default_factory=ContinuityBible)
@@ -82,6 +84,14 @@ class ScriptAnalysis(BaseModel):
     visual_planning_constraints: PlanningConstraints
     thumbnail_headline: Optional[str] = Field(default="", description="High-CTR 2-4 word uppercase headline")
     thumbnail_prompt: Optional[str] = Field(default="", description="Dedicated high-CTR visual composition prompt")
+
+    @property
+    def historical_or_setting_period(self) -> str:
+        return self.setting_period
+
+    @historical_or_setting_period.setter
+    def historical_or_setting_period(self, val: str) -> None:
+        self.setting_period = val
 
 
 # ============================================================================

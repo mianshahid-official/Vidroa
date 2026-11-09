@@ -39,8 +39,8 @@ Your task is to analyze the narration text and its audio timestamps, and autonom
    - "environment": Physical setting, architecture, terrain, and materials.
    - "composition": Camera angle and framing (e.g. "Low-angle wide shot focusing on the breach").
    - "emotional_tone": Dramatic mood or emotional intensity.
-   - "historical_confidence": "documented" | "well_supported_reconstruction" | "artistic_interpretation" | "uncertain"
-   - "transition_to_next_scene": Brief note on how this visual links to the next beat.
+   - "confidence" (or "historical_confidence"): "documented" | "well_supported_reconstruction" | "artistic_interpretation" | "uncertain"
+   - "depicted_event" (or "historical_event"): Which major event from the story decomposition this scene illustrates.
 
 OUTPUT SCHEMA:
 Return a strictly valid JSON object with the following structure:

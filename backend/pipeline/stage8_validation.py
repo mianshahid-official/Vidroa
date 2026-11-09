@@ -132,7 +132,7 @@ class Stage8FinalValidator:
                         disk_validation_failures.append("Stage 1 artifact has empty 'narrative_beats'.")
                     if not st1_data.get("facts_and_claims"):
                         disk_validation_failures.append("Stage 1 artifact has empty 'facts_and_claims'.")
-                    period = str(st1_data.get("historical_or_setting_period", "")).lower()
+                    period = str(st1_data.get("setting_period") or st1_data.get("historical_or_setting_period", "")).lower()
                     if "1890" in period:
                         disk_validation_failures.append(f"Stage 1 period is invalid ('{period}') - defaulted to 1890s.")
                     chars = st1_data.get("continuity_bible", {}).get("characters", [])

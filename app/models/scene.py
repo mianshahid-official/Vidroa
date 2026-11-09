@@ -2,7 +2,7 @@
 Data models for visual scenes, storyboard units, and continuity specifications.
 """
 from typing import List, Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class CharacterContinuity(BaseModel):
@@ -60,6 +60,8 @@ class StoryContinuity(BaseModel):
 
 
 class VisualScene(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     scene_id: str = Field(..., description="Unique formatted scene identifier, e.g. '001'")
     start: float = Field(..., ge=0.0, description="Start timestamp in seconds")
     end: float = Field(..., ge=0.0, description="End timestamp in seconds")
@@ -74,8 +76,8 @@ class VisualScene(BaseModel):
     environment: str = Field(default="", description="Specific physical environment, architecture, terrain")
     composition: str = Field(default="", description="Composition framing, camera angle, and focal point")
     emotional_tone: str = Field(default="", description="Dramatic mood or emotional beat")
-    historical_confidence: str = Field(default="well_supported_reconstruction", description="documented | well_supported_reconstruction | artistic_interpretation | uncertain")
-    historical_event: Optional[str] = Field(default="", description="The specific historical event from story decomposition this scene depicts")
+    confidence: str = Field(default="well_supported_reconstruction", alias="historical_confidence", description="documented | well_supported_reconstruction | artistic_interpretation | uncertain")
+    depicted_event: Optional[str] = Field(default="", alias="historical_event", description="The specific narrative event from story decomposition this scene depicts")
     transition_to_next_scene: Optional[str] = Field(default="", description="Visual or causal transition to next scene")
     visual_modality: str = Field(default="cinematic_scene", description="Visual type: cinematic_scene, infographic_chart, blueprint_schematic, historical_document, tactical_map, data_counter")
     visual_purpose: Optional[str] = Field(default="", description="Why this visual accompanies this narration moment")
@@ -94,6 +96,22 @@ class VisualScene(BaseModel):
     validation_notes: Optional[str] = Field(default=None, description="Validation feedback or warnings")
 
     @property
+    def historical_confidence(self) -> str:
+        return self.confidence
+
+    @historical_confidence.setter
+    def historical_confidence(self, val: str) -> None:
+        self.confidence = val
+
+    @property
+    def historical_event(self) -> Optional[str]:
+        return self.depicted_event
+
+    @historical_event.setter
+    def historical_event(self, val: Optional[str]) -> None:
+        self.depicted_event = val
+
+    @property
     def visual_summary(self) -> str:
         return self.visual_subject
 
@@ -109,13 +127,31 @@ class VisualScene(BaseModel):
 
 
 class StoryAnalysis(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     story_summary: str = Field(default="", description="High-level narrative summary")
-    major_historical_events: List[str] = Field(default_factory=list, description="Ordered chronological sequence of major historical events")
+    major_events: List[str] = Field(default_factory=list, alias="major_historical_events", description="Ordered chronological sequence of major narrative events")
     cause_and_effect_flow: List[str] = Field(default_factory=list, description="Causal progression linking events across the narrative arc")
-    historical_uncertainties: List[str] = Field(default_factory=list, description="Historically contested or undocumented moments that require artistic reconstruction")
+    uncertainties: List[str] = Field(default_factory=list, alias="historical_uncertainties", description="Contested or undocumented moments that require artistic reconstruction")
     narrative_beats: List[dict] = Field(default_factory=list)
     facts_and_claims: List[dict] = Field(default_factory=list)
     continuity: StoryContinuity = Field(default_factory=StoryContinuity)
     visual_tone_notes: Optional[str] = Field(default="")
     thumbnail_headline: Optional[str] = Field(default="", description="High-CTR 2-4 word uppercase headline for thumbnail")
     thumbnail_prompt: Optional[str] = Field(default="", description="Dedicated high-CTR visual composition prompt for thumbnail")
+
+    @property
+    def major_historical_events(self) -> List[str]:
+        return self.major_events
+
+    @major_historical_events.setter
+    def major_historical_events(self, val: List[str]) -> None:
+        self.major_events = val
+
+    @property
+    def historical_uncertainties(self) -> List[str]:
+        return self.uncertainties
+
+    @historical_uncertainties.setter
+    def historical_uncertainties(self, val: List[str]) -> None:
+        self.uncertainties = val

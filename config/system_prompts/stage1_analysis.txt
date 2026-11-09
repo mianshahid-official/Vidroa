@@ -165,6 +165,7 @@ Return strictly valid JSON matching this schema:
   "script_summary": "Comprehensive 2-4 paragraph summary of the entire script...",
   "core_narrative_premise": "The central dramatic premise and driving conflict",
   "genre_and_tone": "e.g. Atmospheric Narrative / Dramatic Documentary",
+  "setting_period": "e.g. Early 20th Century Maritime / Isolated Coastal Watchtower (circa 1910s)",
   "historical_or_setting_period": "e.g. Early 20th Century Maritime / Isolated Coastal Watchtower (circa 1910s)",
   "narrative_beats": [
     {
