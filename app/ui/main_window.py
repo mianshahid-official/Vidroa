@@ -1458,6 +1458,7 @@ class MainWindow(QMainWindow):
         priority_styles = [
             ("3d_stickman", "3D Stickman Style"),
             ("2d_stickman", "2D Stickman Style"),
+            ("whatif_flat_vector", "What-If Flat Vector"),
             ("century_old_photograph", "Century-Old Photograph"),
             ("bw_vintage_historical_photography", "Black & White Vintage Historical Photography"),
             ("paper_quilling", "Paper Quilling Illustration"),

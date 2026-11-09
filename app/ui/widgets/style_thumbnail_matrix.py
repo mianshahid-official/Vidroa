@@ -316,6 +316,8 @@ class StyleThumbnailMatrix(QWidget):
             style_id = "3d_stickman"
         elif style_id in ("2d_stickman", "2d_stickman_style", "stickman_2d", "2d_stick_figure"):
             style_id = "2d_stickman"
+        elif style_id in ("whatif_flat_vector", "what_if_flat_vector", "whatif", "what_if"):
+            style_id = "whatif_flat_vector"
         elif style_id in ("vintage_photograph", "vintage_photo", "century_old_photographs"):
             style_id = "century_old_photograph"
         elif style_id in ("stick_figure", "stickman", "red_blue_stickman_3d"):
