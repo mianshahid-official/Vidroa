@@ -37,7 +37,7 @@ def find_sentence_clause_split_point(
     """
     Finds the nearest sentence or clause punctuation boundary ('.', '!', '?', ';', ',', '—', '–', ':')
     around target_idx within ±search_window words.
-    If none found in the window, falls back to the nearest PRECEDING punctuation.
+    If none found in the window, extends to the next boundary (or nearest preceding/following punctuation).
     Ensures the split word does not end on a disallowed tail word (articles, prepositions, conjunctions).
     """
     if not words:
@@ -52,34 +52,59 @@ def find_sentence_clause_split_point(
     search_start = max(min_idx, target_idx - search_window)
     search_end = min(max_idx, target_idx + search_window)
 
-    # First preference: sentence terminators (. ! ?)
+    # First preference in window: sentence terminators (. ! ?)
     for idx in range(search_start, search_end + 1):
-        w_raw = words[idx]
+        w_raw = words[idx].strip()
         if any(w_raw.endswith(p) for p in [".", "!", "?"]):
             best_idx = idx
             break
 
-    # Second preference: clause terminators (; , — – :)
+    # Second preference in window: clause terminators (; , — – :)
     if best_idx is None:
         for idx in range(search_start, search_end + 1):
-            w_raw = words[idx]
+            w_raw = words[idx].strip()
             if any(w_raw.endswith(p) for p in [";", ",", "—", "–", ":"]):
                 best_idx = idx
                 break
 
-    # Priority 2: Fall back to the nearest PRECEDING punctuation back to min_idx
+    # Priority 2: If no punctuation in window, extend to the next boundary (forward scan up to max_idx)
+    if best_idx is None:
+        for idx in range(search_end + 1, max_idx + 1):
+            w_raw = words[idx].strip()
+            if any(w_raw.endswith(p) for p in SENTENCE_CLAUSE_PUNCTUATION):
+                best_idx = idx
+                break
+
+    # Priority 3: If no forward boundary within max_idx, scan backward to the nearest preceding boundary
     if best_idx is None:
         for idx in range(search_start - 1, min_idx - 1, -1):
-            w_raw = words[idx]
+            w_raw = words[idx].strip()
+            if any(w_raw.endswith(p) for p in SENTENCE_CLAUSE_PUNCTUATION):
+                best_idx = idx
+                break
+
+    # Priority 4: If still unpunctuated, extend forward across whole sentence to find next boundary
+    if best_idx is None and max_idx < total - 1:
+        for idx in range(max_idx + 1, total):
+            w_raw = words[idx].strip()
             if any(w_raw.endswith(p) for p in SENTENCE_CLAUSE_PUNCTUATION):
                 best_idx = idx
                 break
 
     cand = best_idx if best_idx is not None else target_idx
 
-    # Disallowed tail guard: avoid ending a scene on articles/prepositions/conjunctions
-    while cand > min_idx and words[cand].lower().strip(".,;:!?\"'—–") in DISALLOWED_TAIL_WORDS:
-        cand -= 1
+    # Disallowed tail guard: avoid ending a scene on articles/conjunctions, or dangling prepositions without terminal punctuation
+    always_disallowed = {"a", "an", "the", "and", "or", "but"}
+    while cand > min_idx:
+        w_raw = words[cand].strip()
+        w_clean = w_raw.lower().strip(".,;:!?\"'—–")
+        is_terminal = any(w_raw.endswith(p) for p in [".", "!", "?"])
+        if w_clean in always_disallowed:
+            cand -= 1
+        elif w_clean in DISALLOWED_TAIL_WORDS and not is_terminal:
+            cand -= 1
+        else:
+            break
 
     return cand
 
@@ -122,8 +147,12 @@ def assert_sentence_boundary_validity(scenes: List[Any], full_text: Optional[str
             )
 
         # Check: does not end on a disallowed dangling word
-        last_word = narr.split()[-1].lower().strip(".,;:!?\"'—–")
-        if last_word in disallowed_tails and not is_last:
+        last_word_raw = narr.split()[-1]
+        last_word = last_word_raw.lower().strip(".,;:!?\"'—–")
+        is_terminal_punct = any(last_word_raw.endswith(p) for p in [".", "!", "?"])
+        always_disallowed = {"a", "an", "the", "and", "or", "but"}
+        is_dangling = (last_word in always_disallowed) or (last_word in disallowed_tails and not is_terminal_punct)
+        if is_dangling and not is_last:
             raise RuntimeError(
                 f"Stage 4 boundary failure: Scene #{sid} ends on disallowed dangling word '{last_word}': "
                 f"'{narr[-40:]}'"
@@ -349,23 +378,12 @@ class Stage4TemporalScheduler:
                         cur_ew = ew
                     else:
                         target_ew = min(ew - (n_parts - 1 - p_idx), cur_sw + max(2, beat_len // n_parts) - 1)
-                        # Search near target_ew for natural punctuation
-                        best_punc_idx = None
-                        search_start = max(cur_sw + 2, target_ew - 3)
-                        search_end = min(ew - (n_parts - 1 - p_idx), target_ew + 4)
-
-                        for cand_idx in range(search_start, search_end + 1):
-                            w_raw = words[cand_idx].word
-                            if any(w_raw.endswith(punc) for punc in [".", "!", "?", ";", ",", "—", "–"]):
-                                best_punc_idx = cand_idx
-                                break
-
-                        cand_ew = best_punc_idx if best_punc_idx is not None else target_ew
-                        # Semantic clause boundary protection: avoid splitting after articles, prepositions, or conjunctions
-                        disallowed_tail = {"a", "an", "the", "of", "to", "in", "on", "at", "for", "with", "and", "or", "but", "by", "as"}
-                        while cand_ew > cur_sw + 2 and words[cand_ew].word.lower().strip(".,;:!?\"'—–") in disallowed_tail:
-                            cand_ew -= 1
-
+                        cand_ew = find_sentence_clause_split_point(
+                            [w.word for w in words],
+                            target_idx=target_ew,
+                            min_idx=cur_sw + 1,
+                            max_idx=ew - (n_parts - 1 - p_idx)
+                        )
                         cur_ew = cand_ew
 
                     seg_sub_words = [words[w].word for w in range(cur_sw, cur_ew + 1)]

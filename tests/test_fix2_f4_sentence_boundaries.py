@@ -13,6 +13,7 @@ from app.models.planning import (
     VisualBeat,
     ScheduledScene
 )
+from app.models.timeline import NarrationData, WordTimestamp
 from app.models.scene import VisualScene
 from backend.pipeline.stage4_scheduling import (
     find_sentence_clause_split_point,
@@ -226,3 +227,159 @@ def test_stage4_tail_split_sentence_aware():
         assert s.narration_text[-1] in [".", "!", "?", ";", ":", "—", "–"]
     assert "dawn." in storyboard.scenes[0].narration_text
     assert "cliffs." in storyboard.scenes[-1].narration_text
+
+
+def test_stage4_speakers_come_on_splits_at_period_not_voice():
+    """
+    Regression test for Scene #005 cutting mid-sentence:
+    Transcript lines: 'Then the speakers come on. A flat mechanical voice orders everyone to evacuate immediately.'
+    Verifies that Stage 4's timestamp alignment subsegmenting uses find_sentence_clause_split_point(),
+    splitting Scene #005 cleanly at 'on.' and starting Scene #006 with 'A flat mechanical voice'.
+    """
+    words = [
+        # Preceding 4 beats to align Scene numbering to Scene #005 / Scene #006
+        WordTimestamp(word="First", start=0.0, end=1.0),
+        WordTimestamp(word="beat", start=1.0, end=2.0),
+        WordTimestamp(word="starts", start=2.0, end=3.0),
+        WordTimestamp(word="here.", start=3.0, end=4.0),
+
+        WordTimestamp(word="Second", start=4.0, end=5.0),
+        WordTimestamp(word="beat", start=5.0, end=6.0),
+        WordTimestamp(word="starts", start=6.0, end=7.0),
+        WordTimestamp(word="here.", start=7.0, end=8.0),
+
+        WordTimestamp(word="Third", start=8.0, end=9.0),
+        WordTimestamp(word="beat", start=9.0, end=10.0),
+        WordTimestamp(word="starts", start=10.0, end=11.0),
+        WordTimestamp(word="here.", start=11.0, end=12.0),
+
+        WordTimestamp(word="Fourth", start=12.0, end=13.0),
+        WordTimestamp(word="beat", start=13.0, end=14.0),
+        WordTimestamp(word="starts", start=14.0, end=15.0),
+        WordTimestamp(word="here.", start=15.0, end=16.0),
+
+        # Beat 5: exact transcript lines spanning 8.5s (> 6.8s ceiling -> subsegment split)
+        WordTimestamp(word="Then", start=16.0, end=16.5),
+        WordTimestamp(word="the", start=16.5, end=17.0),
+        WordTimestamp(word="speakers", start=17.0, end=17.6),
+        WordTimestamp(word="come", start=17.6, end=18.1),
+        WordTimestamp(word="on.", start=18.1, end=18.8),
+        WordTimestamp(word="A", start=18.8, end=19.2),
+        WordTimestamp(word="flat", start=19.2, end=19.8),
+        WordTimestamp(word="mechanical", start=19.8, end=20.5),
+        WordTimestamp(word="voice", start=20.5, end=21.1),
+        WordTimestamp(word="orders", start=21.1, end=21.7),
+        WordTimestamp(word="everyone", start=21.7, end=22.4),
+        WordTimestamp(word="to", start=22.4, end=22.9),
+        WordTimestamp(word="evacuate", start=22.9, end=23.6),
+        WordTimestamp(word="immediately.", start=23.6, end=24.5),
+    ]
+
+    full_text = " ".join(w.word for w in words)
+    narration_data = NarrationData(
+        duration_seconds=24.5,
+        words=words,
+        transcript=full_text
+    )
+
+    visual_beats = [
+        VisualBeat(
+            beat_id="VB-001",
+            exact_narration_segment="First beat starts here.",
+            narrative_purpose="P1",
+            primary_visual_concept="C1",
+            what_new_information_is_shown="Info 1",
+            composition="Comp 1",
+            lighting_and_atmosphere="Light 1",
+            why_this_is_not_repetitive="Unique 1",
+            continuity_references=[]
+        ),
+        VisualBeat(
+            beat_id="VB-002",
+            exact_narration_segment="Second beat starts here.",
+            narrative_purpose="P2",
+            primary_visual_concept="C2",
+            what_new_information_is_shown="Info 2",
+            composition="Comp 2",
+            lighting_and_atmosphere="Light 2",
+            why_this_is_not_repetitive="Unique 2",
+            continuity_references=[]
+        ),
+        VisualBeat(
+            beat_id="VB-003",
+            exact_narration_segment="Third beat starts here.",
+            narrative_purpose="P3",
+            primary_visual_concept="C3",
+            what_new_information_is_shown="Info 3",
+            composition="Comp 3",
+            lighting_and_atmosphere="Light 3",
+            why_this_is_not_repetitive="Unique 3",
+            continuity_references=[]
+        ),
+        VisualBeat(
+            beat_id="VB-004",
+            exact_narration_segment="Fourth beat starts here.",
+            narrative_purpose="P4",
+            primary_visual_concept="C4",
+            what_new_information_is_shown="Info 4",
+            composition="Comp 4",
+            lighting_and_atmosphere="Light 4",
+            why_this_is_not_repetitive="Unique 4",
+            continuity_references=[]
+        ),
+        VisualBeat(
+            beat_id="VB-005",
+            exact_narration_segment="Then the speakers come on. A flat mechanical voice orders everyone to evacuate immediately.",
+            narrative_purpose="P5",
+            primary_visual_concept="Speakers activate and evacuation order is broadcast",
+            what_new_information_is_shown="Evacuation announcement",
+            composition="Medium wide tracking",
+            lighting_and_atmosphere="Emergency lighting",
+            why_this_is_not_repetitive="Key turning point",
+            continuity_references=[]
+        ),
+    ]
+
+    plan = VisualBeatPlan(visual_beats=visual_beats)
+    storyboard = Stage4TemporalScheduler.execute(
+        engine=None,
+        visual_plan=plan,
+        narration=narration_data,
+        story_text=full_text,
+        total_audio_duration=24.5
+    )
+
+    # Must produce 6 total scenes (Beat 5 split into Scene 005 and 006)
+    assert len(storyboard.scenes) == 6
+    scene_005 = next(s for s in storyboard.scenes if s.scene_id == "005")
+    scene_006 = next(s for s in storyboard.scenes if s.scene_id == "006")
+
+    # Assert Scene #005 ends cleanly at 'on.'
+    assert scene_005.narration_text.strip().endswith("on.")
+    assert "voice" not in scene_005.narration_text
+
+    # Assert Scene #006 begins with 'A flat mechanical voice' and ends at 'immediately.'
+    assert scene_006.narration_text.strip().startswith("A flat mechanical voice")
+    assert scene_006.narration_text.strip().endswith("immediately.")
+
+    # Invariant validator must pass without raising
+    assert_sentence_boundary_validity(storyboard.scenes)
+
+
+def test_find_sentence_clause_split_point_fallback_extends_to_next_boundary():
+    """
+    Verifies that find_sentence_clause_split_point never silently cuts mid-sentence:
+    if no punctuation is found in the search window, it extends to the next available
+    sentence/clause boundary instead of falling back to the raw arithmetic target index.
+    """
+    words = [
+        "The", "soldiers", "marched", "quietly", "through", "the",
+        "dense", "valley", "fog", "until", "they", "reached", "the", "ridge."
+    ]
+    # target_idx=3 ('quietly') with search_window=2 -> window [1..5] ('soldiers'..'the')
+    # No punctuation exists within the window.
+    # The next punctuation is at index 13 ('ridge.').
+    # The fallback MUST extend forward to the boundary, not cut mid-sentence at target_idx=3.
+    idx = find_sentence_clause_split_point(words, target_idx=3, min_idx=1, max_idx=13, search_window=2)
+    assert idx == 13
+    assert words[idx] == "ridge."
