@@ -255,29 +255,47 @@ class PipelineOrchestrator:
             val_res = Stage8FinalValidator.execute(
                 scenes=current_scenes,
                 narration=request.narration,
-                total_audio_duration=scheduled_storyboard.total_duration
+                total_audio_duration=scheduled_storyboard.total_duration,
+                audit_report=audit_report
             )
 
             store.set_scenes(job_id, current_scenes)
 
             # =========================================================================
             # RELEASE GATE & COMPLETION:
-            # If any scene has failed prompt generation, mark job FAILED
-            # and name the exact failed scenes, while preserving all valid scenes.
+            # If any scene has failed prompt generation, or if the quality audit
+            # rejected the storyboard after 3 replanning rounds, or if final
+            # validation is invalid, mark job FAILED and name the exact failed
+            # scenes and audit score, while preserving all valid scenes for inspection.
             # =========================================================================
             failed_prompt_scenes = [
                 s for s in current_scenes
                 if not s.prompt or not s.prompt.strip() or (s.validation_notes and "PROMPT_GENERATION_FAILED" in s.validation_notes)
             ]
-            if failed_prompt_scenes or not current_scenes:
+            failed_audit = (
+                audit_report.final_recommendation != "APPROVED" or
+                audit_report.overall_score < 85.0 or
+                len(audit_report.alignment_findings) > 0
+            )
+
+            if failed_prompt_scenes or not current_scenes or failed_audit or not val_res.is_valid:
+                reasons = []
                 if failed_prompt_scenes:
                     failed_ids_str = ", ".join(f"#{s.scene_id}" for s in failed_prompt_scenes)
-                    failure_summary = (
+                    reasons.append(
                         f"Prompt generation incomplete: {len(failed_prompt_scenes)} scene(s) failed ({failed_ids_str}). "
                         f"{len(current_scenes) - len(failed_prompt_scenes)}/{len(current_scenes)} scenes generated successfully."
                     )
-                else:
-                    failure_summary = val_res.validation_summary
+                if failed_audit:
+                    flagged_ids = [af.scene_id for af in audit_report.alignment_findings] or [sr.scene_id for sr in audit_report.scene_repairs]
+                    flagged_str = f" on scenes: {', '.join(f'#{sid}' for sid in flagged_ids)}" if flagged_ids else ""
+                    reasons.append(
+                        f"Quality audit rejected storyboard (Score: {audit_report.overall_score:.1f}/100, Recommendation: {audit_report.final_recommendation}){flagged_str}"
+                    )
+                if not val_res.is_valid and not failed_audit and not failed_prompt_scenes:
+                    reasons.append(val_res.validation_summary)
+
+                failure_summary = "; ".join(reasons) if reasons else val_res.validation_summary
 
                 store.update_progress(
                     job_id,
@@ -292,11 +310,7 @@ class PipelineOrchestrator:
             # =========================================================================
             # COMPLETED (100%)
             # =========================================================================
-            msg = f"Complete visual planning finished successfully! {len(current_scenes)} scenes ready."
-            if not val_res.is_valid:
-                msg += f" Note: Pacing {val_res.min_scene_duration:.1f}s - {val_res.max_scene_duration:.1f}s."
-            else:
-                msg += f" Audit score: {audit_report.overall_score:.0f}/100."
+            msg = f"Complete visual planning finished successfully! {len(current_scenes)} scenes ready. Audit score: {audit_report.overall_score:.0f}/100."
             store.update_progress(
                 job_id,
                 stage=JobStage.COMPLETED,

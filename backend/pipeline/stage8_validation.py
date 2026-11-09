@@ -223,12 +223,30 @@ class Stage8FinalValidator:
                 except Exception as e:
                     disk_validation_failures.append(f"Error checking beat plan traceability: {e}")
 
+        # Quality Audit Report release gate check
+        audit_failures: List[str] = []
+        if audit_report is not None:
+            if audit_report.final_recommendation != "APPROVED":
+                audit_failures.append(
+                    f"Audit recommendation is '{audit_report.final_recommendation}' (Score: {audit_report.overall_score:.1f}/100, minimum required: 85.0)."
+                )
+            if audit_report.overall_score < 85.0:
+                audit_failures.append(
+                    f"Audit quality score ({audit_report.overall_score:.1f}/100) is below the 85.0 approval threshold."
+                )
+            if audit_report.alignment_findings:
+                flagged_ids = [af.scene_id for af in audit_report.alignment_findings]
+                audit_failures.append(
+                    f"Audit flagged {len(audit_report.alignment_findings)} critical alignment mismatch(es) on scenes: {', '.join(f'#{sid}' for sid in flagged_ids)}."
+                )
+
         # Final release validity
         is_valid = (
             len(scenes_exceeding_8s) == 0 and
             not has_overlaps and
             len(duplicate_word_errors) == 0 and
-            len(disk_validation_failures) == 0
+            len(disk_validation_failures) == 0 and
+            len(audit_failures) == 0
         )
 
         summary_parts = [
@@ -242,6 +260,8 @@ class Stage8FinalValidator:
             summary_parts.append(f"FAIL: {len(duplicate_word_errors)} boundary word duplications.")
         if disk_validation_failures:
             summary_parts.append(f"FAIL: Disk artifact defects: {'; '.join(disk_validation_failures)}")
+        if audit_failures:
+            summary_parts.append(f"FAIL: Quality Audit Gate: {'; '.join(audit_failures)}")
         if is_valid:
             summary_parts.append("RELEASE GATE: PASSED. All invariants, disk files, and quality criteria verified.")
         else:
@@ -257,7 +277,7 @@ class Stage8FinalValidator:
             has_overlaps=has_overlaps,
             scenes_exceeding_8s=scenes_exceeding_8s,
             uncovered_narration_gaps=uncovered_gaps,
-            repetition_alerts=rep_alerts + duplicate_word_errors + disk_validation_failures,
+            repetition_alerts=rep_alerts + duplicate_word_errors + disk_validation_failures + audit_failures,
             validation_summary=" ".join(summary_parts)
         )
 

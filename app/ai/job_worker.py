@@ -343,7 +343,8 @@ class CloudJobWorker(QThread):
             val_res = Stage8FinalValidator.execute(
                 scenes=current_scenes,
                 narration=self.request.narration,
-                total_audio_duration=total_aud_dur
+                total_audio_duration=total_aud_dur,
+                audit_report=audit_report
             )
 
             validated_scenes = current_scenes
@@ -351,22 +352,39 @@ class CloudJobWorker(QThread):
 
             # -------------------------------------------------------------
             # RELEASE GATE & COMPLETION:
-            # If any scene has failed prompt generation, mark job FAILED
-            # and name the exact failed scenes, while preserving all valid scenes.
+            # If any scene has failed prompt generation, or if the quality audit
+            # rejected the storyboard after 3 replanning rounds, or if final
+            # validation is invalid, mark job FAILED and name the exact failed
+            # scenes and audit score, while preserving all valid scenes for inspection.
             # -------------------------------------------------------------
             failed_prompt_scenes = [
                 s for s in validated_scenes
                 if not s.prompt or not s.prompt.strip() or (s.validation_notes and "PROMPT_GENERATION_FAILED" in s.validation_notes)
             ]
-            if failed_prompt_scenes or not validated_scenes:
+            failed_audit = (
+                audit_report.final_recommendation != "APPROVED" or
+                audit_report.overall_score < 85.0 or
+                len(audit_report.alignment_findings) > 0
+            )
+
+            if failed_prompt_scenes or not validated_scenes or failed_audit or not val_res.is_valid:
+                reasons = []
                 if failed_prompt_scenes:
                     failed_ids_str = ", ".join(f"#{s.scene_id}" for s in failed_prompt_scenes)
-                    failure_details = (
+                    reasons.append(
                         f"Prompt generation incomplete: {len(failed_prompt_scenes)} scene(s) failed ({failed_ids_str}). "
                         f"{len(validated_scenes) - len(failed_prompt_scenes)}/{len(validated_scenes)} scenes generated successfully."
                     )
-                else:
-                    failure_details = val_res.validation_summary
+                if failed_audit:
+                    flagged_ids = [af.scene_id for af in audit_report.alignment_findings] or [sr.scene_id for sr in audit_report.scene_repairs]
+                    flagged_str = f" on scenes: {', '.join(f'#{sid}' for sid in flagged_ids)}" if flagged_ids else ""
+                    reasons.append(
+                        f"Quality audit rejected storyboard (Score: {audit_report.overall_score:.1f}/100, Recommendation: {audit_report.final_recommendation}){flagged_str}"
+                    )
+                if not val_res.is_valid and not failed_audit and not failed_prompt_scenes:
+                    reasons.append(val_res.validation_summary)
+
+                failure_details = "; ".join(reasons) if reasons else val_res.validation_summary
 
                 self.progress_updated.emit(ProgressInfo(
                     stage=JobStage.FINAL_VALIDATION,
@@ -376,7 +394,7 @@ class CloudJobWorker(QThread):
                     error_message=f"Stage 8 RELEASE GATE FAILED.\n\n{failure_details}"
                 ))
                 self.job_failed.emit(
-                    f"Prompt generation failed for {len(failed_prompt_scenes)} scene(s)" if failed_prompt_scenes else "Storyboard failed final validation. No scenes could be generated.",
+                    "Stage 8 Release Gate rejected storyboard",
                     f"Stage 8 Release Gate FAILED.\n\n{failure_details}"
                 )
                 return
@@ -384,11 +402,7 @@ class CloudJobWorker(QThread):
             # -------------------------------------------------------------
             # FINISHED
             # -------------------------------------------------------------
-            status_msg = f"Generation completed successfully! ({len(validated_scenes)} scenes created."
-            if not val_res.is_valid:
-                status_msg += f" Pacing: {val_res.min_scene_duration:.1f}s - {val_res.max_scene_duration:.1f}s)."
-            else:
-                status_msg += f" Quality score: {audit_report.overall_score:.0f}/100)."
+            status_msg = f"Generation completed successfully! ({len(validated_scenes)} scenes created. Quality score: {audit_report.overall_score:.0f}/100)."
 
             self.progress_updated.emit(ProgressInfo(
                 stage=JobStage.COMPLETED,
