@@ -129,7 +129,8 @@ class PipelineOrchestrator:
             visual_plan: VisualBeatPlan = Stage3VisualPlanner.execute(
                 engine=engine,
                 story_text=request.story_text,
-                analysis=script_analysis
+                analysis=script_analysis,
+                subject_preset=subject_preset
             )
 
             if store.is_cancelled(job_id):

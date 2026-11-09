@@ -12,6 +12,7 @@ from typing import List, Optional, Tuple, Dict, Any
 from app.models.planning import StoryboardValidationResult, StoryboardAuditReport
 from app.models.scene import VisualScene
 from app.models.timeline import NarrationData
+from backend.pipeline.story_pack import StoryPackManager
 
 
 class Stage8FinalValidator:
@@ -91,20 +92,23 @@ class Stage8FinalValidator:
                     scenes[-1].duration = round(scenes[-1].end - scenes[-1].start, 2)
 
         # Repetition & Prompt Integrity scan
+        story_text = " ".join([s.narration_excerpt for s in scenes]) if scenes else ""
+        active_pack = StoryPackManager.match_pack(story_text)
         seen_subjects = {}
         rep_alerts = []
         for s in scenes:
             subj_clean = s.visual_subject.strip().lower()
             p_lower = s.prompt.lower()
 
-            # Faction color validation (Caesar = RED, others = BLUE)
-            if re.search(r"\bblue\s+(3d\s+)?(stick\s+figure|stickman)\s*\((caesar|the dictator)\)", p_lower) or re.search(r"\bblue\s+(3d\s+)?stick\s+figure\s+caesar\b", p_lower):
-                disk_validation_failures.append(f"Faction color inversion: Scene #{s.scene_id} describes Caesar as blue (must be red).")
-            if re.search(r"\bred\s+(3d\s+)?(stick\s+figure|stickman|figures|stickmen)\s*\((conspirators?|assassins?|liberatores?|cimber|casca|brutus)\)", p_lower):
-                disk_validation_failures.append(f"Faction color inversion: Scene #{s.scene_id} describes conspirators as red (must be blue).")
+            # Faction color validation (gated by active pack or protagonist)
+            if active_pack and active_pack.id == "caesar-44bc":
+                if re.search(r"\bblue\s+(3d\s+)?(stick\s+figure|stickman)\s*\((caesar|the dictator)\)", p_lower) or re.search(r"\bblue\s+(3d\s+)?stick\s+figure\s+caesar\b", p_lower):
+                    disk_validation_failures.append(f"Faction color inversion: Scene #{s.scene_id} describes Caesar as blue (must be red).")
+                if re.search(r"\bred\s+(3d\s+)?(stick\s+figure|stickman|figures|stickmen)\s*\((conspirators?|assassins?|liberatores?|cimber|casca|brutus|cassius|senators?)\)", p_lower):
+                    disk_validation_failures.append(f"Faction color inversion: Scene #{s.scene_id} describes conspirators as red (must be blue).")
 
             # Scaffolding leak validation
-            if any(k in s.prompt for k in ["Active progression:", "Consequential development:", "Establishing perspective:", "Setting: Fortified historical cityscape and defensive ramparts"]):
+            if any(k in s.prompt for k in ["Active progression:", "Consequential development:", "Establishing perspective:", "Setting: Fortified"]):
                 disk_validation_failures.append(f"Pipeline scaffolding leak: Scene #{s.scene_id} contains internal planning metadata.")
 
             if subj_clean in seen_subjects:

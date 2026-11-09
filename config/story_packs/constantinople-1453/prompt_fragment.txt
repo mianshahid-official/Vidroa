@@ -1,0 +1,5 @@
+STORY-SPECIFIC CONTEXT (Fall of Constantinople 1453):
+Chronology: 1. Ottoman artillery preparations & camp outside walls -> 2. Siege begins with bombardment -> 3. Byzantine defenders frantically repair breached masonry -> 4. Sultan orders tactical overland naval transport across Galata into the Golden Horn -> 5. Final breach and hand-to-hand combat -> 6. Fall of the city.
+NO premature reveals of overland ship transport or discarded crowns.
+Attacking forces (Ottoman forces, Sultan Mehmed II) = RED stickmen; Defending forces (Byzantine defenders, Emperor Constantine XI) = BLUE stickmen.
+Inside the city walls is exclusively solid blue; outside the city walls is exclusively bright red.

@@ -20,6 +20,7 @@ from app.models.planning import (
 from app.models.scene import VisualScene
 from backend.inference.engine import BaseInferenceEngine
 from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
+from backend.pipeline.story_pack import StoryPackManager
 
 
 def load_system_prompt() -> str:
@@ -39,6 +40,9 @@ class Stage6StoryboardAuditor:
         progress_callback: Optional[Callable[[int, int, str], None]] = None
     ) -> StoryboardAuditReport:
         auditor_system_prompt = load_system_prompt()
+        active_pack = StoryPackManager.match_pack(story_text)
+        is_1453 = bool(active_pack and active_pack.id == "constantinople-1453")
+        is_caesar = bool(active_pack and active_pack.id == "caesar-44bc")
 
         if progress_callback:
             progress_callback(1, 2, "Auditing complete storyboard for narration alignment, pacing, and repetition...")
@@ -137,24 +141,21 @@ Return strictly valid JSON matching this schema:
             raw_tokens = re.findall(r"\b[a-z]{4,}\b", text.lower())
             return {t for t in raw_tokens if t not in stop_words}
 
-        # Whole-storyboard repetition tracking (inspect visual subjects, excluding style boilerplate)
-        cannon_scenes: List[str] = []
-        breach_scenes: List[str] = []
+        # Whole-storyboard repetition tracking for specific story packs
+        if is_1453:
+            cannon_scenes: List[str] = []
+            for s in scenes:
+                txt_lower = s.visual_subject.lower()
+                if any(k in txt_lower for k in ["cannon", "bombard", "artillery battery"]):
+                    cannon_scenes.append(s.scene_id)
 
-        for s in scenes:
-            txt_lower = s.visual_subject.lower()
-            if any(k in txt_lower for k in ["cannon", "bombard", "artillery battery"]):
-                cannon_scenes.append(s.scene_id)
-            if any(k in txt_lower for k in ["crumble", "projectile slammed", "shattered stone battlements", "shattered wall", "falling wall"]):
-                breach_scenes.append(s.scene_id)
-
-        # Flag excessive repetition clusters across whole storyboard
-        if len(cannon_scenes) > 6:
-            rep_findings.append(RepetitionFinding(
-                scene_ids=cannon_scenes[3:],
-                reason=f"Repetitive artillery cluster: {len(cannon_scenes)} scenes across storyboard depict cannon bombardment.",
-                severity="critical"
-            ))
+            # Flag excessive repetition clusters across whole storyboard
+            if len(cannon_scenes) > 6:
+                rep_findings.append(RepetitionFinding(
+                    scene_ids=cannon_scenes[3:],
+                    reason=f"Repetitive artillery cluster: {len(cannon_scenes)} scenes across storyboard depict cannon bombardment.",
+                    severity="critical"
+                ))
 
         # Check consecutive scene repetition
         for idx in range(len(scenes) - 1):
@@ -172,20 +173,22 @@ Return strictly valid JSON matching this schema:
             clean_s2 = re.sub(r"\s*\(.*?\)", "", s2.visual_subject).strip().lower()
             identical_subject = (clean_s1 == clean_s2 and len(clean_s1) > 10)
 
-            both_cannon = (
-                any(k in s1.visual_subject.lower() for k in ["cannon", "bombard", "artillery battery", "firing artillery"]) and
-                any(k in s2.visual_subject.lower() for k in ["cannon", "bombard", "artillery battery", "firing artillery"])
-            )
-            both_wall_impact = (
-                any(k in s1.visual_subject.lower() for k in ["crumble", "projectile slammed", "shattered wall", "broken wall", "falling wall"]) and
-                any(k in s2.visual_subject.lower() for k in ["crumble", "projectile slammed", "shattered wall", "broken wall", "falling wall"])
-            )
-
             is_duplicate = (
                 identical_subject or
-                (both_cannon and both_wall_impact) or
                 (subj_overlap >= 3 and subj_jaccard >= 0.70)
             )
+
+            if is_1453:
+                both_cannon = (
+                    any(k in s1.visual_subject.lower() for k in ["cannon", "bombard", "artillery battery", "firing artillery"]) and
+                    any(k in s2.visual_subject.lower() for k in ["cannon", "bombard", "artillery battery", "firing artillery"])
+                )
+                both_wall_impact = (
+                    any(k in s1.visual_subject.lower() for k in ["crumble", "projectile slammed", "shattered wall", "broken wall", "falling wall"]) and
+                    any(k in s2.visual_subject.lower() for k in ["crumble", "projectile slammed", "shattered wall", "broken wall", "falling wall"])
+                )
+                if both_cannon and both_wall_impact:
+                    is_duplicate = True
 
             if is_duplicate:
                 rep_findings.append(RepetitionFinding(
@@ -204,38 +207,37 @@ Return strictly valid JSON matching this schema:
                         suggested_visual_direction=sugg
                     ))
 
-        # Check 3-scene window repetition
-        for idx in range(len(scenes) - 2):
-            s1 = scenes[idx]
-            s2 = scenes[idx + 1]
-            s3 = scenes[idx + 2]
-            # Exclude retrospective/summary conclusion scenes and non-combat youth/army encampment scenes from bombardment repetition flags
-            window_cannon_scenes = [
-                sc for sc in [s1, s2, s3]
-                if any(k in sc.visual_subject.lower() for k in ["cannon", "bombard", "artillery battery", "artillery crew", "projectile slammed", "cannonball"])
-                and not any(w in sc.narration_excerpt.lower() for w in ["rewrite history", "combination of", "remarkable part", "entire era", "21 years", "twenty-one", "young sultan", "wanted one thing", "enormous army", "tens of thousands"])
-            ]
-            if len(window_cannon_scenes) >= 2:
-                # Find the redundant cannon scene (prefer the second one in the window)
-                repeat_sc = window_cannon_scenes[1]
-                rep_findings.append(RepetitionFinding(
-                    scene_ids=[window_cannon_scenes[0].scene_id, repeat_sc.scene_id],
-                    reason=f"Repetitive artillery bombardment: Scenes #{window_cannon_scenes[0].scene_id} and #{repeat_sc.scene_id} both depict cannon firing/impact.",
-                    severity="critical"
-                ))
-                if not any(sr.scene_id == repeat_sc.scene_id for sr in scene_repairs):
-                    from backend.pipeline.stage4_scheduling import derive_progressive_subsegment_concept
-                    rep_narr = repeat_sc.narration_excerpt.lower()
-                    if any(w in rep_narr for w in ["repair", "timber", "rubble", "earth", "defenders rushed"]):
-                        dir_sugg = "Byzantine defenders frantically stacking timber beams, earth, and rubble behind damaged wall sectors to plug crumbling breaches"
-                    else:
-                        dir_sugg = derive_progressive_subsegment_concept(repeat_sc.visual_subject, repeat_sc.narration_excerpt.split(), 1, 2)
-                    scene_repairs.append(SceneRepairInstruction(
-                        scene_id=repeat_sc.scene_id,
-                        problem="Repetitive artillery bombardment loop",
-                        required_change="Replace duplicate cannon scene with progressive visual action matching narration",
-                        suggested_visual_direction=dir_sugg
+        # Check 3-scene window repetition (for 1453 siege artillery)
+        if is_1453:
+            for idx in range(len(scenes) - 2):
+                s1 = scenes[idx]
+                s2 = scenes[idx + 1]
+                s3 = scenes[idx + 2]
+                window_cannon_scenes = [
+                    sc for sc in [s1, s2, s3]
+                    if any(k in sc.visual_subject.lower() for k in ["cannon", "bombard", "artillery battery", "artillery crew", "projectile slammed", "cannonball"])
+                    and not any(w in sc.narration_excerpt.lower() for w in ["rewrite history", "combination of", "remarkable part", "entire era", "21 years", "twenty-one", "young sultan", "wanted one thing", "enormous army", "tens of thousands"])
+                ]
+                if len(window_cannon_scenes) >= 2:
+                    repeat_sc = window_cannon_scenes[1]
+                    rep_findings.append(RepetitionFinding(
+                        scene_ids=[window_cannon_scenes[0].scene_id, repeat_sc.scene_id],
+                        reason=f"Repetitive artillery bombardment: Scenes #{window_cannon_scenes[0].scene_id} and #{repeat_sc.scene_id} both depict cannon firing/impact.",
+                        severity="critical"
                     ))
+                    if not any(sr.scene_id == repeat_sc.scene_id for sr in scene_repairs):
+                        from backend.pipeline.stage4_scheduling import derive_progressive_subsegment_concept
+                        rep_narr = repeat_sc.narration_excerpt.lower()
+                        if any(w in rep_narr for w in ["repair", "timber", "rubble", "earth", "defenders rushed"]):
+                            dir_sugg = "Byzantine defenders frantically stacking timber beams, earth, and rubble behind damaged wall sectors to plug crumbling breaches"
+                        else:
+                            dir_sugg = derive_progressive_subsegment_concept(repeat_sc.visual_subject, repeat_sc.narration_excerpt.split(), 1, 2)
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=repeat_sc.scene_id,
+                            problem="Repetitive artillery bombardment loop",
+                            required_change="Replace duplicate cannon scene with progressive visual action matching narration",
+                            suggested_visual_direction=dir_sugg
+                        ))
 
         # 3. Scene-by-scene semantic alignment check
         is_stickman_storyboard = bool(scenes and sum(1 for sc in scenes if "stickman" in sc.prompt.lower()) >= len(scenes) / 2)
@@ -246,51 +248,52 @@ Return strictly valid JSON matching this schema:
             p_lower = s.prompt.lower()
 
             # Premature event check: before siege begins (typically early scenes), depicting wall breaches or destruction
-            is_early_exposition = idx < 10 and any(w in narr_lower for w in ["thousand years", "empire", "continents", "capital", "conquer", "21 years old", "shadow of its former glory"])
-            if is_early_exposition and any(w in subj_lower for w in ["crumbling", "shattered wall", "projectile slammed", "breach", "collapsed"]):
-                align_findings.append(AlignmentFinding(
-                    scene_id=s.scene_id,
-                    issue=f"Premature event in scene #{s.scene_id}: Depicts wall breach/destruction before the siege even began ({s.narration_excerpt[:50]})."
-                ))
-                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
-                    scene_repairs.append(SceneRepairInstruction(
+            if is_1453:
+                is_early_exposition = idx < 10 and any(w in narr_lower for w in ["thousand years", "empire", "continents", "capital", "conquer", "21 years old", "shadow of its former glory"])
+                if is_early_exposition and any(w in subj_lower for w in ["crumbling", "shattered wall", "projectile slammed", "breach", "collapsed"]):
+                    align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
-                        problem="Premature depiction of wall breach during historical exposition",
-                        required_change="Show historical subject from narration instead of siege destruction",
-                        suggested_visual_direction=f"Depict narration subject: {s.narration_excerpt[:60]}"
+                        issue=f"Premature event in scene #{s.scene_id}: Depicts wall breach/destruction before the siege even began ({s.narration_excerpt[:50]})."
                     ))
+                    if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=s.scene_id,
+                            problem="Premature depiction of wall breach during historical exposition",
+                            required_change="Show historical subject from narration instead of siege destruction",
+                            suggested_visual_direction=f"Depict narration subject: {s.narration_excerpt[:60]}"
+                        ))
 
-            # Introduction mismatch: Narration introduces Mehmed II, but visual depicts wall breach or cannon without commander
-            is_intro = any(w in narr_lower for w in ["his name was mehmed", "young ottoman sultan", "twenty-one years old", "21 years old", "wanted one thing above"])
-            if is_intro and not any(w in subj_lower or w in p_lower for w in ["mehmed", "sultan", "commander", "ruler", "young"]):
-                align_findings.append(AlignmentFinding(
-                    scene_id=s.scene_id,
-                    issue=f"Character introduction mismatch in scene #{s.scene_id}: Spoken narration introduces Mehmed II but visual lacks the commander."
-                ))
-                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
-                    scene_repairs.append(SceneRepairInstruction(
+                # Introduction mismatch: Narration introduces Mehmed II, but visual depicts wall breach or cannon without commander
+                is_intro = any(w in narr_lower for w in ["his name was mehmed", "young ottoman sultan", "twenty-one years old", "21 years old", "wanted one thing above"])
+                if is_intro and not any(w in subj_lower or w in p_lower for w in ["mehmed", "sultan", "commander", "ruler", "young"]):
+                    align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
-                        problem="Failed character introduction",
-                        required_change="Depict the young Sultan Mehmed II overlooking army",
-                        suggested_visual_direction="Young Sultan Mehmed II focused with singular ambition on his goal to conquer Constantinople"
+                        issue=f"Character introduction mismatch in scene #{s.scene_id}: Spoken narration introduces Mehmed II but visual lacks the commander."
                     ))
+                    if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=s.scene_id,
+                            problem="Failed character introduction",
+                            required_change="Depict the young Sultan Mehmed II overlooking army",
+                            suggested_visual_direction="Young Sultan Mehmed II focused with singular ambition on his goal to conquer Constantinople"
+                        ))
 
-            # Powerful cannons capable of smashing walls (Scene 10)
-            if any(w in narr_lower for w in ["powerful cannons capable", "cannons capable of smashing"]) and not any(w in subj_lower for w in ["cannon", "bombard", "artillery"]):
-                align_findings.append(AlignmentFinding(
-                    scene_id=s.scene_id,
-                    issue=f"Semantic mismatch in scene #{s.scene_id}: Narration speaks of powerful cannons capable of smashing walls, but visual lacks artillery."
-                ))
-                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
-                    scene_repairs.append(SceneRepairInstruction(
+                # Powerful cannons capable of smashing walls (Scene 10)
+                if any(w in narr_lower for w in ["powerful cannons capable", "cannons capable of smashing"]) and not any(w in subj_lower for w in ["cannon", "bombard", "artillery"]):
+                    align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
-                        problem="Missing powerful cannons",
-                        required_change="Depict the colossal bronze bombard artillery battery outside the walls",
-                        suggested_visual_direction="Colossal bronze siege bombard deployed outside the city walls: Ottoman artillery engineers preparing the massive cannon to smash stone defenses"
+                        issue=f"Semantic mismatch in scene #{s.scene_id}: Narration speaks of powerful cannons capable of smashing walls, but visual lacks artillery."
                     ))
+                    if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=s.scene_id,
+                            problem="Missing powerful cannons",
+                            required_change="Depict the colossal bronze bombard artillery battery outside the walls",
+                            suggested_visual_direction="Colossal bronze siege bombard deployed outside the city walls: Ottoman artillery engineers preparing the massive cannon to smash stone defenses"
+                        ))
 
             # 1. Character Faction Inversion Check (Caesar = RED, conspirators = BLUE) for stickman, OR Stickman Leak Check for non-stickman styles
-            if is_stickman_storyboard:
+            if is_caesar and is_stickman_storyboard:
                 if re.search(r"\bblue\s+(3d\s+)?(stick\s+figure|stickman)\s*\((caesar|the dictator)\)", p_lower) or re.search(r"\bblue\s+(3d\s+)?stick\s+figure\s+caesar\b", p_lower):
                     align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
@@ -316,8 +319,8 @@ Return strictly valid JSON matching this schema:
                             required_change="Designate conspirators and senators as solid blue 3D stick figures",
                             suggested_visual_direction="Solid blue 3D stick figures (conspirators and senators)"
                         ))
-            else:
-                # In non-stickman styles (e.g. Century-Old Photograph), ANY stickman mention is a critical defect
+            elif not is_stickman_storyboard:
+                # In non-stickman styles (e.g. Century-Old Photograph, Paper-Cutout), ANY stickman mention is a critical defect
                 if any(k in p_lower for k in ["stickman", "stick figure", "stickmen", "red 3d stick", "blue 3d stick"]):
                     align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
@@ -326,13 +329,13 @@ Return strictly valid JSON matching this schema:
                     if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
                         scene_repairs.append(SceneRepairInstruction(
                             scene_id=s.scene_id,
-                            problem="3D stick figure leaked into photographic/historical visual style",
-                            required_change="Replace stick figure with period-accurate human figures in historical attire",
-                            suggested_visual_direction=f"Period-authentic human figures matching spoken narration: {s.narration_excerpt[:60]}"
+                            problem="3D stick figure leaked into non-stickman visual style",
+                            required_change="Replace stick figure with visual subjects matching narrative style",
+                            suggested_visual_direction=f"Visual figures matching spoken narration: {s.narration_excerpt[:60]}"
                         ))
 
             # 2. Pipeline Scaffolding / Fallback Leaks Check
-            if any(k in s.prompt for k in ["Active progression:", "Consequential development:", "Establishing perspective:", "Setting: Fortified historical cityscape and defensive ramparts"]):
+            if any(k in s.prompt for k in ["Active progression:", "Consequential development:", "Establishing perspective:", "Setting: Fortified"]):
                 align_findings.append(AlignmentFinding(
                     scene_id=s.scene_id,
                     issue=f"Pipeline scaffolding leak in scene #{s.scene_id}: Internal planning tags found in prompt."
@@ -346,72 +349,75 @@ Return strictly valid JSON matching this schema:
                     ))
 
             # 3. Premature Assassination Action Check (outdoor/street scenes depicting Curia ambush)
-            is_outdoor_street = any(k in narr_lower for k in ["street", "crowd", "litter", "soothsayer", "spurinna", "artemidorus", "journey", "route", "morning of the ides", "domus"])
-            has_ambush_visual = any(k in p_lower or k in subj_lower for k in ["knees with hands clasped in a false plea", "tillius cimber is on his knees", "glint of steel", "pack of starving wolves", "daggers concealed within the heavy folds"])
-            if is_outdoor_street and has_ambush_visual:
-                align_findings.append(AlignmentFinding(
-                    scene_id=s.scene_id,
-                    issue=f"CRITICAL CHRONOLOGY VIOLATION in scene #{s.scene_id}: Street/outdoor narration depicts premature Senate assassination ambush."
-                ))
-                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
-                    scene_repairs.append(SceneRepairInstruction(
+            if is_caesar:
+                is_outdoor_street = any(k in narr_lower for k in ["street", "crowd", "litter", "soothsayer", "spurinna", "artemidorus", "journey", "route", "morning of the ides", "domus"])
+                has_ambush_visual = any(k in p_lower or k in subj_lower for k in ["knees with hands clasped in a false plea", "tillius cimber is on his knees", "glint of steel", "pack of starving wolves", "daggers concealed within the heavy folds"])
+                if is_outdoor_street and has_ambush_visual:
+                    align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
-                        problem="Assassination ambush depicted prematurely outside Senate",
-                        required_change="Replace with outdoor street, litter procession, or crowd visual matching narration",
-                        suggested_visual_direction=f"Crowded Roman stone avenue with citizens and litter: {s.narration_excerpt[:60]}"
+                        issue=f"CRITICAL CHRONOLOGY VIOLATION in scene #{s.scene_id}: Street/outdoor narration depicts premature Senate assassination ambush."
                     ))
+                    if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=s.scene_id,
+                            problem="Assassination ambush depicted prematurely outside Senate",
+                            required_change="Replace with outdoor street, litter procession, or crowd visual matching narration",
+                            suggested_visual_direction=f"Crowded Roman stone avenue with citizens and litter: {s.narration_excerpt[:60]}"
+                        ))
 
             # 4. Premature Overland Ship Transport Reveal (depicting overland naval transport before narrated)
-            has_overland_visual = any(k in p_lower or k in subj_lower for k in ["overland transit", "wooden trackway", "dragged overland", "greased wooden platform", "hauling warship", "wooden rollers", "warship is positioned on a greased"])
-            narr_has_overland = any(k in narr_lower for k in ["overland", "greased", "transported", "dragged across", "another direction"])
-            if has_overland_visual and not narr_has_overland:
-                align_findings.append(AlignmentFinding(
-                    scene_id=s.scene_id,
-                    issue=f"CRITICAL CHRONOLOGY VIOLATION in scene #{s.scene_id}: Overland naval transport or trackway depicted before the operation is narrated."
-                ))
-                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
-                    if any(k in narr_lower for k in ["chain", "harbor", "golden horn"]):
-                        fix_change = "Depict the entrance of the Golden Horn harbor blocked by the massive defensive iron chain"
-                        fix_dir = "Massive heavy iron chain anchored between stone towers across the water, blocking the Ottoman fleet"
-                    else:
-                        fix_change = "Depict the 1453 Ottoman forces arriving and encamping outside the Theodosian land walls"
-                        fix_dir = "Ottoman forces and commanders encamped outside the massive Theodosian land fortifications"
-                    scene_repairs.append(SceneRepairInstruction(
+            if is_1453:
+                has_overland_visual = any(k in p_lower or k in subj_lower for k in ["overland transit", "wooden trackway", "dragged overland", "greased wooden platform", "hauling warship", "wooden rollers", "warship is positioned on a greased"])
+                narr_has_overland = any(k in narr_lower for k in ["overland", "greased", "transported", "dragged across", "another direction"])
+                if has_overland_visual and not narr_has_overland:
+                    align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
-                        problem="Premature depiction of overland naval transit",
-                        required_change=fix_change,
-                        suggested_visual_direction=fix_dir
+                        issue=f"CRITICAL CHRONOLOGY VIOLATION in scene #{s.scene_id}: Overland naval transport or trackway depicted before the operation is narrated."
                     ))
+                    if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                        if any(k in narr_lower for k in ["chain", "harbor", "golden horn"]):
+                            fix_change = "Depict the entrance of the Golden Horn harbor blocked by the massive defensive iron chain"
+                            fix_dir = "Massive heavy iron chain anchored between stone towers across the water, blocking the Ottoman fleet"
+                        else:
+                            fix_change = "Depict the 1453 Ottoman forces arriving and encamping outside the Theodosian land walls"
+                            fix_dir = "Ottoman forces and commanders encamped outside the massive Theodosian land fortifications"
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=s.scene_id,
+                            problem="Premature depiction of overland naval transit",
+                            required_change=fix_change,
+                            suggested_visual_direction=fix_dir
+                        ))
 
-            # 5. Premature Discarded Imperial Insignia Reveal (depicting fallen crown before narration)
-            has_discarded_regalia = any(k in p_lower or k in subj_lower for k in ["discarded", "thrown away", "falling away"]) and any(k in p_lower or k in subj_lower for k in ["insignia", "crown", "regalia", "sash"])
-            narr_has_discarded = any(k in narr_lower for k in ["insignia", "threw away", "disappearing", "last emperor"])
-            if has_discarded_regalia and not narr_has_discarded:
-                align_findings.append(AlignmentFinding(
-                    scene_id=s.scene_id,
-                    issue=f"CRITICAL CHRONOLOGY VIOLATION in scene #{s.scene_id}: Discarded imperial insignia/crown depicted before the narrative describes Constantine shedding his regalia."
-                ))
-                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
-                    scene_repairs.append(SceneRepairInstruction(
+                # 5. Premature Discarded Imperial Insignia Reveal (depicting fallen crown before narration)
+                has_discarded_regalia = any(k in p_lower or k in subj_lower for k in ["discarded", "thrown away", "falling away"]) and any(k in p_lower or k in subj_lower for k in ["insignia", "crown", "regalia", "sash"])
+                narr_has_discarded = any(k in narr_lower for k in ["insignia", "threw away", "disappearing", "last emperor"])
+                if has_discarded_regalia and not narr_has_discarded:
+                    align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
-                        problem="Premature depiction of discarded imperial insignia",
-                        required_change="Depict Emperor Constantine XI in full imperial armor actively commanding the night defense atop the battlements",
-                        suggested_visual_direction="Emperor Constantine XI in ornate Byzantine imperial armor leading exhausted defenders during the desperate night assault"
+                        issue=f"CRITICAL CHRONOLOGY VIOLATION in scene #{s.scene_id}: Discarded imperial insignia/crown depicted before the narrative describes Constantine shedding his regalia."
                     ))
+                    if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=s.scene_id,
+                            problem="Premature depiction of discarded imperial insignia",
+                            required_change="Depict Emperor Constantine XI in full imperial armor actively commanding the night defense atop the battlements",
+                            suggested_visual_direction="Emperor Constantine XI in ornate Byzantine imperial armor leading exhausted defenders during the desperate night assault"
+                        ))
 
-            # Anachronism & Contradiction check
-            if any(w in p_lower or w in subj_lower for w in ["tokyo", "laser", "neon skyscrapers", "denim", "holographic", "astronaut", "lunar", "spacesuit"]):
-                align_findings.append(AlignmentFinding(
-                    scene_id=s.scene_id,
-                    issue=f"Contradictory / anachronistic visual elements detected in scene #{s.scene_id}: {s.prompt[:80]}"
-                ))
-                if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
-                    scene_repairs.append(SceneRepairInstruction(
+            # Anachronism & Contradiction check (for historical packs)
+            if is_1453 or is_caesar:
+                if any(w in p_lower or w in subj_lower for w in ["tokyo", "laser", "neon skyscrapers", "denim", "holographic", "astronaut", "lunar", "spacesuit"]):
+                    align_findings.append(AlignmentFinding(
                         scene_id=s.scene_id,
-                        problem="Anachronistic or contradictory content",
-                        required_change="Align strictly with narrative period",
-                        suggested_visual_direction="Visual reconstruction matching spoken narration"
+                        issue=f"Contradictory / anachronistic visual elements detected in scene #{s.scene_id}: {s.prompt[:80]}"
                     ))
+                    if not any(sr.scene_id == s.scene_id for sr in scene_repairs):
+                        scene_repairs.append(SceneRepairInstruction(
+                            scene_id=s.scene_id,
+                            problem="Anachronistic or contradictory content",
+                            required_change="Align strictly with narrative period",
+                            suggested_visual_direction="Visual reconstruction matching spoken narration"
+                        ))
 
             # Style violation check for stickman (inspect positive prompt description, ignoring negative prompt exclusions)
             if "stickman" in p_lower:

@@ -1,4 +1,5 @@
 from backend.pipeline.prompt_loader import load_system_prompt
+from backend.pipeline.story_pack import StoryPackManager
 
 def load_stage1_system_prompt() -> str:
     return load_system_prompt("stage1_analysis.txt")
@@ -201,73 +202,19 @@ class Stage1Analyzer:
             except Exception:
                 pass
 
+        pack = StoryPackManager.match_pack(story_text)
+
         if not characters:
-            if "constantinople" in text_lower or "mehmed" in text_lower or "constantine" in text_lower:
-                characters = [
-                    CharacterContinuity(
-                        name="Mehmed II",
-                        role="Ottoman Sultan and Conqueror",
-                        physical_description="Young man of 21 with sharp piercing gaze, dark beard, commanding royal presence",
-                        clothing="Rich Ottoman imperial kaftan, silk robes, ceremonial turban with jewel",
-                        key_features="Youthful determined expression, imperial demeanor"
-                    ),
-                    CharacterContinuity(
-                        name="Emperor Constantine XI Palaiologos",
-                        role="Last Byzantine Emperor",
-                        physical_description="Weary monarch in late 40s, greying beard, weathered determined face",
-                        clothing="Byzantine imperial regalia, decorated gilded plate armor over dark tunics",
-                        key_features="Imperial insignia, tragic resolute gaze"
-                    ),
-                    CharacterContinuity(
-                        name="Byzantine Defenders",
-                        role="Garrison protecting the walls",
-                        physical_description="Exhausted, resolute soldiers of various ages, dust-covered and battle-worn",
-                        clothing="Battered chainmail, iron helmets, gambesons, worn tunics",
-                        key_features="Bandaged wounds, grim determination"
-                    ),
-                    CharacterContinuity(
-                        name="Ottoman Forces",
-                        role="Besieging imperial army",
-                        physical_description="Disciplined and vast military corps, gunners and janissaries",
-                        clothing="Layered armors, cloth turbans, leather vests, conical iron helmets",
-                        key_features="Cannon torches, standard banners"
-                    )
-                ]
-            elif "cortés" in text_lower or "aztec" in text_lower or "montezuma" in text_lower:
-                characters = [
-                    CharacterContinuity(
-                        name="Hernán Cortés",
-                        role="Spanish Conquistador Commander",
-                        physical_description="Mid-thirties, trimmed dark beard, sharp intense gaze, sunburnt complexion",
-                        clothing="Polished 16th-century steel morion helmet, steel breastplate over dark doublet",
-                        key_features="Commanding stance, sword hilt in hand"
-                    ),
-                    CharacterContinuity(
-                        name="Montezuma II",
-                        role="Tlatoani / Aztec Emperor",
-                        physical_description="Regal Mesoamerican monarch, high cheekbones, composed dignified expression",
-                        clothing="Elaborate quetzal feather headdress, gold jewelry, finely woven tilmàtli mantle",
-                        key_features="Imperial ceremonial sandals, obsidian-tipped staff"
-                    )
-                ]
-            elif "dorothea" in text_lower or "dix" in text_lower:
-                characters = [
-                    CharacterContinuity(
-                        name="Dorothea Dix",
-                        role="Investigator and Social Reformer",
-                        physical_description="39-year-old woman with composed, dignified features, sharp observant eyes, hair tied back neatly",
-                        clothing="Modest, dark 1840s wool Victorian dress with white linen collar and shawl",
-                        key_features="Holding an ink quill and notebook, determined quiet gaze"
-                    )
-                ]
+            if pack and pack.characters:
+                characters = [CharacterContinuity(**c) for c in pack.characters]
             else:
                 characters = [
                     CharacterContinuity(
                         name="Narrative Protagonist",
-                        role="Central historical actor",
-                        physical_description="Period-authentic figure with weathered expressive features",
-                        clothing="Authentic historical clothing constructed from period materials",
-                        key_features="Natural posture and period grooming"
+                        role="Central figure",
+                        physical_description="Key focal figure matching narration context",
+                        clothing="Attire appropriate to the setting",
+                        key_features="Natural posture and distinctive role attributes"
                     )
                 ]
 
@@ -276,58 +223,21 @@ class Stage1Analyzer:
         for l in data.get("locations", []):
             try:
                 name = l.get("name", "").strip()
-                if name and name.lower() not in ("primary historical setting", "generic setting", "historical environment"):
+                if name and name.lower() not in ("primary setting", "primary historical setting", "generic setting", "historical environment"):
                     locations.append(LocationContinuity(**l))
             except Exception:
                 pass
 
         if not locations:
-            if "constantinople" in text_lower or "golden horn" in text_lower:
-                locations = [
-                    LocationContinuity(
-                        name="The Theodosian Walls of Constantinople",
-                        architectural_style="5th-century monumental Roman/Byzantine stone and brick ramparts",
-                        environmental_features="Towering stone battlements, deep moats, breached masonry, timber-and-earth barricades",
-                        lighting_mood="Dramatic smoke-filled dawn daylight and nighttime torchlight"
-                    ),
-                    LocationContinuity(
-                        name="The Golden Horn Harbor",
-                        architectural_style="Deep natural harbor enclosed by Byzantine fortifications",
-                        environmental_features="Harbor water blocked by massive forged iron chain links, Galata hills in background",
-                        lighting_mood="Atmospheric maritime mist and morning sun reflection"
-                    ),
-                    LocationContinuity(
-                        name="Galata Overland Transit Route",
-                        architectural_style="Steep forested hills and rough wooden trackways outside the northern walls",
-                        environmental_features="Greased log platform rollers, teams of oxen and Ottoman soldiers hauling galleys",
-                        lighting_mood="Dusty sunbeams filtering through coastal hillside trees"
-                    )
-                ]
-            elif "aztec" in text_lower or "tenochtitlan" in text_lower:
-                locations = [
-                    LocationContinuity(
-                        name="Tenochtitlan",
-                        architectural_style="Monumental Mesoamerican stepped pyramids, grand causeways, and canal networks",
-                        environmental_features="Island metropolis situated on Lake Texcoco, whitewashed temples and stucco plazas",
-                        lighting_mood="Vibrant high-altitude tropical sunlight and reflective lake water"
-                    )
-                ]
-            elif "dorothea" in text_lower or "jail" in text_lower:
-                locations = [
-                    LocationContinuity(
-                        name="East Cambridge Jail Basement",
-                        architectural_style="Early 19th-century rough-hewn granite masonry basement",
-                        environmental_features="Freezing damp stone walls, iron-barred cells, frozen straw bedding, lack of warmth",
-                        lighting_mood="Dim flickering oil lamp light casting long cold shadows"
-                    )
-                ]
+            if pack and pack.locations:
+                locations = [LocationContinuity(**l) for l in pack.locations]
             else:
                 locations = [
                     LocationContinuity(
-                        name="Central Historical Setting",
-                        architectural_style="Authentic period architecture matching the setting epoch",
-                        environmental_features="Natural weathered surfaces, period construction materials",
-                        lighting_mood="Directional daylight with chiaroscuro contrast"
+                        name="Central Story Setting",
+                        architectural_style="Architecture and spatial features matching the setting",
+                        environmental_features="Natural textures and setting materials",
+                        lighting_mood="Atmospheric natural or source lighting"
                     )
                 ]
 
@@ -339,83 +249,30 @@ class Stage1Analyzer:
             except Exception:
                 pass
 
-        if not objects:
-            if "constantinople" in text_lower:
-                objects = [
-                    ObjectContinuity(
-                        name="Basilic / Urban Supercannon",
-                        visual_description="Massive cast bronze bombard on heavy timber siege carriage",
-                        significance="Decisive weapon capable of shattering ancient stone walls"
-                    ),
-                    ObjectContinuity(
-                        name="The Great Harbor Chain",
-                        visual_description="Heavy forged iron links supported by wooden floats spanning the harbor entrance",
-                        significance="Impenetrable maritime barrier securing the Golden Horn"
-                    ),
-                    ObjectContinuity(
-                        name="Imperial Regalia of Constantine XI",
-                        visual_description="Byzantine crown, purple boots, and double-headed eagle emblem insignias",
-                        significance="Discarded by the emperor before charging into combat"
-                    )
-                ]
-            elif "aztec" in text_lower:
-                objects = [
-                    ObjectContinuity(
-                        name="Spanish Caravels",
-                        visual_description="Wooden ocean-going exploration ships anchored off the coast",
-                        significance="Destroyed by Cortés to prevent retreat"
-                    )
-                ]
+        if not objects and pack and pack.objects:
+            objects = [ObjectContinuity(**o) for o in pack.objects]
 
-        # 4. Strict Period Anchoring (Visual style must NEVER turn 1453 into 1890s)
+        # 4. Period Anchoring
         tp_data = data.get("time_period", {})
-        era_raw = str(tp_data.get("era", "")).lower() if isinstance(tp_data, dict) else ""
-        year_raw = str(tp_data.get("decade_or_year", "")).lower() if isinstance(tp_data, dict) else ""
-
-        if "1453" in story_text or "constantinople" in text_lower or "byzantine" in text_lower:
+        if pack and pack.period:
+            time_period = TimePeriodContinuity(**pack.period)
+        elif isinstance(tp_data, dict) and tp_data:
             time_period = TimePeriodContinuity(
-                era="15th Century Late Medieval Era",
-                decade_or_year="1453",
-                technology_level="Cast bronze bombards, sailing galleys, composite bows, iron siege chains, masonry fortifications",
-                lighting_methods="Flickering pine torches, iron oil braziers, morning sunlight through cannon smoke",
-                wardrobe_norms="Lamellar armor, chainmail, Byzantine silk tunics, Ottoman turbans and kaftans",
-                atmosphere_notes="Late medieval siege atmosphere, heavy smoke, crumbling stone, dramatic chiaroscuro"
-            )
-        elif "1519" in story_text or "cortés" in text_lower or "aztec" in text_lower:
-            time_period = TimePeriodContinuity(
-                era="16th Century Renaissance / Mesoamerican Era",
-                decade_or_year="1519-1521",
-                technology_level="Spanish matchlocks, steel swords, caravels, Aztec obsidian macuahuitl, canoes",
-                lighting_methods="Tropical daylight, campfires, torchlight",
-                wardrobe_norms="Spanish steel breastplates, morion helmets, Aztec quilted cotton armor, feather mantles",
-                atmosphere_notes="Dramatic coastal and Mesoamerican imperial atmosphere"
-            )
-        elif "1841" in story_text or "dorothea" in text_lower:
-            time_period = TimePeriodContinuity(
-                era="Antebellum Victorian Era",
-                decade_or_year="1841-1843",
-                technology_level="Stagecoaches, oil lamps, early railways, steel dip pens and bound paper notebooks",
-                lighting_methods="Whale oil lamps, tallow candles, weak grey winter window light",
-                wardrobe_norms="Wool frock coats, dark modest Victorian dresses, linen collars, shawls",
-                atmosphere_notes="Somber 19th-century documentary atmosphere, damp granite, winter chill"
-            )
-        elif isinstance(tp_data, dict) and tp_data and not ("1890" in year_raw and ("medieval" in text_lower or any(int(y) < 1800 for y in found_years))):
-            time_period = TimePeriodContinuity(
-                era=tp_data.get("era", "Historical Era"),
-                decade_or_year=tp_data.get("decade_or_year", "Historical Period"),
-                technology_level=tp_data.get("technology_level", "Period authentic technology"),
-                lighting_methods=tp_data.get("lighting_methods", "Natural daylight, period lighting"),
-                wardrobe_norms=tp_data.get("wardrobe_norms", "Authentic period garments"),
-                atmosphere_notes=tp_data.get("atmosphere_notes", "Historical documentary atmosphere")
+                era=tp_data.get("era", "Setting Period"),
+                decade_or_year=tp_data.get("decade_or_year", "Contemporary / Unspecified"),
+                technology_level=tp_data.get("technology_level", "Setting-authentic tools and materials"),
+                lighting_methods=tp_data.get("lighting_methods", "Natural or source illumination"),
+                wardrobe_norms=tp_data.get("wardrobe_norms", "Costumes appropriate to setting"),
+                atmosphere_notes=tp_data.get("atmosphere_notes", "Authentic narrative atmosphere")
             )
         else:
             time_period = TimePeriodContinuity(
-                era="Historical Era",
-                decade_or_year="Historical Period",
-                technology_level="Period-authentic materials and tools",
-                lighting_methods="Authentic period illumination",
-                wardrobe_norms="Period-accurate costume",
-                atmosphere_notes="Authentic archival rendering"
+                era="Setting Period",
+                decade_or_year="Contemporary / Unspecified",
+                technology_level="Setting-authentic tools and materials",
+                lighting_methods="Natural or source illumination",
+                wardrobe_norms="Costumes appropriate to setting",
+                atmosphere_notes="Authentic narrative atmosphere"
             )
 
         continuity = StoryContinuity(

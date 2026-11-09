@@ -1,0 +1,46 @@
+{
+  "id": "cortes-1519",
+  "name": "Hernán Cortés & Tenochtitlan (1519)",
+  "match_keywords": ["cortés", "cortes", "montezuma", "tenochtitlan", "aztec", "1519", "conquistador"],
+  "characters": [
+    {
+      "name": "Hernán Cortés",
+      "role": "Spanish Conquistador Commander",
+      "physical_description": "Mid-thirties, trimmed dark beard, sharp intense gaze, sunburnt complexion",
+      "clothing": "Polished 16th-century steel morion helmet, steel breastplate over dark doublet",
+      "key_features": "Commanding stance, sword hilt in hand"
+    },
+    {
+      "name": "Montezuma II",
+      "role": "Tlatoani / Aztec Emperor",
+      "physical_description": "Regal Mesoamerican monarch, high cheekbones, composed dignified expression",
+      "clothing": "Elaborate quetzal feather headdress, gold jewelry, finely woven tilmàtli mantle",
+      "key_features": "Imperial ceremonial sandals, obsidian-tipped staff"
+    }
+  ],
+  "locations": [
+    {
+      "name": "Tenochtitlan",
+      "architectural_style": "Monumental Mesoamerican stepped pyramids, grand causeways, and canal networks",
+      "environmental_features": "Island metropolis situated on Lake Texcoco, whitewashed temples and stucco plazas",
+      "lighting_mood": "Vibrant high-altitude tropical sunlight and reflective lake water"
+    }
+  ],
+  "objects": [
+    {
+      "name": "Spanish Caravels",
+      "visual_description": "Wooden ocean-going exploration ships anchored off the coast",
+      "significance": "Destroyed by Cortés to prevent retreat"
+    }
+  ],
+  "period": {
+    "era": "16th Century Renaissance / Mesoamerican Era",
+    "decade_or_year": "1519-1521",
+    "technology_level": "Spanish matchlocks, steel swords, caravels, Aztec obsidian macuahuitl, canoes",
+    "lighting_methods": "Tropical daylight, campfires, torchlight",
+    "wardrobe_norms": "Spanish steel breastplates, morion helmets, Aztec quilted cotton armor, feather mantles",
+    "atmosphere_notes": "Dramatic coastal and Mesoamerican imperial atmosphere"
+  },
+  "spoiler_rules": [],
+  "audit_checks": []
+}

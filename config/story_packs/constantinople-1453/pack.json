@@ -1,0 +1,106 @@
+{
+  "id": "constantinople-1453",
+  "name": "Fall of Constantinople (1453)",
+  "match_keywords": ["constantinople", "theodosian", "byzantine", "golden horn", "mehmed", "1453"],
+  "characters": [
+    {
+      "name": "Mehmed II",
+      "role": "Ottoman Sultan and Conqueror",
+      "physical_description": "Young man of 21 with sharp piercing gaze, dark beard, commanding royal presence",
+      "clothing": "Rich Ottoman imperial kaftan, silk robes, ceremonial turban with jewel",
+      "key_features": "Youthful determined expression, imperial demeanor"
+    },
+    {
+      "name": "Emperor Constantine XI Palaiologos",
+      "role": "Last Byzantine Emperor",
+      "physical_description": "Weary monarch in late 40s, greying beard, weathered determined face",
+      "clothing": "Byzantine imperial regalia, decorated gilded plate armor over dark tunics",
+      "key_features": "Imperial insignia, tragic resolute gaze"
+    },
+    {
+      "name": "Byzantine Defenders",
+      "role": "Garrison protecting the walls",
+      "physical_description": "Exhausted, resolute soldiers of various ages, dust-covered and battle-worn",
+      "clothing": "Battered chainmail, iron helmets, gambesons, worn tunics",
+      "key_features": "Bandaged wounds, grim determination"
+    },
+    {
+      "name": "Ottoman Forces",
+      "role": "Besieging imperial army",
+      "physical_description": "Disciplined and vast military corps, gunners and janissaries",
+      "clothing": "Layered armors, cloth turbans, leather vests, conical iron helmets",
+      "key_features": "Cannon torches, standard banners"
+    }
+  ],
+  "locations": [
+    {
+      "name": "The Theodosian Walls of Constantinople",
+      "architectural_style": "5th-century monumental Roman/Byzantine stone and brick ramparts",
+      "environmental_features": "Towering stone battlements, deep moats, breached masonry, timber-and-earth barricades",
+      "lighting_mood": "Dramatic smoke-filled dawn daylight and nighttime torchlight"
+    },
+    {
+      "name": "The Golden Horn Harbor",
+      "architectural_style": "Deep natural harbor enclosed by Byzantine fortifications",
+      "environmental_features": "Harbor water blocked by massive forged iron chain links, Galata hills in background",
+      "lighting_mood": "Atmospheric maritime mist and morning sun reflection"
+    },
+    {
+      "name": "Galata Overland Transit Route",
+      "architectural_style": "Steep forested hills and rough wooden trackways outside the northern walls",
+      "environmental_features": "Greased log platform rollers, teams of oxen and Ottoman soldiers hauling galleys",
+      "lighting_mood": "Dusty sunbeams filtering through coastal hillside trees"
+    }
+  ],
+  "objects": [
+    {
+      "name": "Basilic / Urban Supercannon",
+      "visual_description": "Massive cast bronze bombard on heavy timber siege carriage",
+      "significance": "Decisive weapon capable of shattering ancient stone walls"
+    },
+    {
+      "name": "The Great Harbor Chain",
+      "visual_description": "Heavy forged iron links supported by wooden floats spanning the harbor entrance",
+      "significance": "Impenetrable maritime barrier securing the Golden Horn"
+    },
+    {
+      "name": "Imperial Regalia of Constantine XI",
+      "visual_description": "Byzantine crown, purple boots, and double-headed eagle emblem insignias",
+      "significance": "Discarded by the emperor before charging into combat"
+    }
+  ],
+  "period": {
+    "era": "15th Century Late Medieval Era",
+    "decade_or_year": "1453",
+    "technology_level": "Cast bronze bombards, sailing galleys, composite bows, iron siege chains, masonry fortifications",
+    "lighting_methods": "Flickering pine torches, iron oil braziers, morning sunlight through cannon smoke",
+    "wardrobe_norms": "Lamellar armor, chainmail, Byzantine silk tunics, Ottoman turbans and kaftans",
+    "atmosphere_notes": "Late medieval siege atmosphere, heavy smoke, crumbling stone, dramatic chiaroscuro"
+  },
+  "faction_rules": {
+    "has_siege_purity": true,
+    "defending_keywords": ["repaired", "defenders", "inside the city", "rubble", "timber", "walls resisted", "harbor", "chain"],
+    "attacking_keywords": ["cannon", "bombard", "encampment", "dragged overland", "artillery battery", "opened fire outside", "ottoman cannons"],
+    "defending_color": "solid blue",
+    "attacking_color": "solid bright red"
+  },
+  "spoiler_rules": [
+    {
+      "trigger": "overland",
+      "forbid": "premature reveals of overland ship transport across Galata before the naval bypass beat"
+    },
+    {
+      "trigger": "crown",
+      "forbid": "premature reveals of Constantine XI's discarded imperial regalia before the final breach"
+    }
+  ],
+  "audit_checks": [
+    "cannon_cluster",
+    "cannon_window",
+    "mehmed_intro",
+    "scene_10_cannons",
+    "overland_ships",
+    "constantine_regalia",
+    "premature_breach"
+  ]
+}

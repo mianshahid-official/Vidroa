@@ -9,8 +9,10 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Callable
 from app.models.planning import ScriptAnalysis, VisualBeat, VisualBeatPlan
+from app.models.presets import SubjectPreset
 from backend.inference.engine import BaseInferenceEngine
 from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
+from backend.pipeline.story_pack import StoryPackManager
 
 
 def load_system_prompt() -> str:
@@ -26,13 +28,15 @@ class Stage3VisualPlanner:
         engine: BaseInferenceEngine,
         story_text: str,
         analysis: ScriptAnalysis,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None
+        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        subject_preset: Optional[SubjectPreset] = None
     ) -> VisualBeatPlan:
         system_prompt = load_system_prompt()
+        pack = StoryPackManager.match_pack(story_text)
 
         char_ctx = "; ".join([f"{c.name} ({c.role}): {c.appearance[:80]}" for c in analysis.continuity_bible.characters[:6]])
         loc_ctx = "; ".join([f"{l.name}: {l.description[:80]}" for l in analysis.continuity_bible.locations[:4]])
-        era_ctx = analysis.historical_or_setting_period or "Ancient Roman Republic (44 BC)"
+        era_ctx = analysis.historical_or_setting_period or (pack.period.get("era") if pack and pack.period else "Setting Period")
 
         # Partition story_text into granular units to guarantee high visual progression,
         # strict chronological pacing, and eliminate premature action assignment.
@@ -132,9 +136,9 @@ class Stage3VisualPlanner:
 {units_text}
 
 ### CONTEXT & CONTINUITY:
-- Setting Era: {era_ctx}
-- Characters: {char_ctx or 'Historical figures and senators'}
-- Locations: {loc_ctx or 'Ancient Roman locations'}
+- Setting: {era_ctx}
+- Characters: {char_ctx or 'Focal figures from narration'}
+- Locations: {loc_ctx or 'Key locations from narration'}
 - Preceding Visual Moments: {prior_context}
 
 ### INSTRUCTIONS:
@@ -143,12 +147,7 @@ Plan exactly {len(batch_units)} distinct visual beats (exactly one visual beat f
 - Every visual beat must correspond to the exact spoken words in its respective unit.
 - STRICT CHRONOLOGY (NO PREMATURE ACTIONS OR SPOILERS):
   * Depict ONLY what has physically occurred up to the current narration moment. NEVER anticipate future story beats or secret tactical maneuvers!
-  * Caesar/Rome: Domestic domus -> Crowded Roman streets/soothsayer (NO Curia ambush) -> Curia entrance -> Cimber petition -> Climax assassination ONLY when narration explicitly reaches it.
-  * Constantinople/Siege:
-    - Early arrival / siege initiation: Depict Ottoman encampment, war pavilions, and cannons arriving outside land walls. NEVER depict the Galata overland ship route or hauled warships before the naval bypass is narrated!
-    - Golden Horn harbor & chain: Depict the water harbor and the massive iron chain blocking ships. NEVER depict warships being hauled overland until the narration explicitly states ships transported overland!
-    - Night battle & assaults: Depict active combat on the walls with the Emperor fighting in full armor. NEVER depict discarded insignia, fallen crowns, or fallen city until the narration explicitly reaches the breach and discarding of insignia!
-  * General Story: Never reveal late-stage developments (breaches, surrenders, retreats, secret maneuvers) during early exposition.
+  * General Story: Never reveal late-stage developments (breaches, surrenders, retreats, secret maneuvers) during early exposition.{f"\n\n### STORY-SPECIFIC RULES:\n{pack.prompt_fragment}" if pack and pack.prompt_fragment else ""}{f"\n\n### SUBJECT RULES:\n{subject_preset.system_instructions}" if subject_preset and getattr(subject_preset, 'system_instructions', None) else ""}
 - Do NOT repeat concepts from preceding beats.
 
 Return strictly valid JSON with key "visual_beats":

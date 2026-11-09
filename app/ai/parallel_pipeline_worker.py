@@ -198,7 +198,8 @@ class ParallelPipelineWorker(QThread):
             visual_plan = Stage3VisualPlanner.execute(
                 engine=engine,
                 story_text=story_text,
-                analysis=script_analysis
+                analysis=script_analysis,
+                subject_preset=subject_preset
             )
 
             self.progress_updated.emit(ProgressInfo(

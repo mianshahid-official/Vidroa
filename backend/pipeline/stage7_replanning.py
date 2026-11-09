@@ -2,7 +2,7 @@
 Stage 7: Automatic Replanning.
 Repairs specific failing scenes identified by the Storyboard Quality Audit.
 Replaces repetitive concepts, fixes timing violations, and regenerates style-compliant prompts.
-Guarantees authoritative character faction coloring (Caesar = RED, conspirators = BLUE)
+Guarantees authoritative character faction coloring (protagonist = RED, supporting = BLUE)
 and verifies that repairs do not introduce color inversions or copy-pasted actions.
 """
 import json
@@ -24,6 +24,7 @@ from backend.pipeline.stage5_prompts import (
     sanitize_action_summary
 )
 from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
+from backend.pipeline.story_pack import StoryPackManager, sanitize_stickman_prompt
 
 
 def load_system_prompt() -> str:
@@ -64,7 +65,9 @@ class Stage7Replanner:
             progress_callback(1, 2, f"Replanning {len(failing_scene_ids)} scenes flagged by quality audit...")
 
         # Authoritative character color resolution
-        protagonist_name, supporting_names = resolve_stickman_characters(analysis)
+        story_text = " ".join([s.narration_excerpt for s in scenes]) if scenes else ""
+        active_pack = StoryPackManager.match_pack(story_text)
+        protagonist_name, supporting_names = resolve_stickman_characters(analysis, story_text)
 
         failing_payload = []
         for sid in failing_scene_ids:
@@ -169,11 +172,14 @@ Return strictly valid JSON matching this schema:
                 if new_conc and orig_sc and new_conc.lower() == orig_sc.visual_subject.strip().lower():
                     continue
                 # Reject if contains copy-pasted Cimber ambush for outdoor/street scenes
-                if int(sid) < 46 and ("cimber is on his knees" in new_conc.lower() or "daggers concealed" in new_conc.lower()):
+                if active_pack and active_pack.id == "caesar-44bc" and int(sid) < 46 and ("cimber is on his knees" in new_conc.lower() or "daggers concealed" in new_conc.lower()):
                     continue
                 # Accept non-empty repairs
                 if new_conc and r.get("repaired_prompt") and str(r.get("repaired_prompt")).strip():
                     repaired_by_id[sid] = r
+
+        is_3d_red_blue = (style_preset.id if style_preset else "") in ("3d_red_blue_stickman", "red_blue_stickman_3d") or "3d red & blue" in style_name.lower() or "red & blue" in style_name.lower()
+        is_general_stickman = any(k in (style_preset.id if style_preset else "").lower() or k in style_name.lower() for k in ["stickman", "stick_figure"])
 
         # Programmatic deterministic fallback repair for any failing scene not repaired by LLM
         for sr in repair_instructions:
@@ -183,16 +189,12 @@ Return strictly valid JSON matching this schema:
                 if sc:
                     new_concept = sr.suggested_visual_direction or f"Action reflecting spoken words: {sc.narration_excerpt[:70]}"
                     clean_concept = sanitize_action_summary(new_concept, sc.narration_excerpt)
-                    env = derive_contextual_environment(sc.narration_excerpt, analysis)
+                    env = derive_contextual_environment(sc.narration_excerpt, analysis, is_3d_stickman=is_general_stickman)
 
-                    if is_3d_stickman:
-                        narr_lower = sc.narration_excerpt.lower()
-                        has_caesar = any(k in narr_lower for k in ["caesar", "dictator", "magistrate", "husband"])
-                        
-                        if has_caesar:
-                            chars_clause = f"The solid bright red 3D stickman leader ({protagonist_name} with toy gold crown) alongside solid blue 3D stick figures"
-                        else:
-                            chars_clause = "Solid blue 3D stick figures with smooth featureless spherical heads and cylindrical limbs"
+                    if is_3d_red_blue or is_general_stickman:
+                        proto_prop = (active_pack.faction_rules.get("protagonist_prop") if active_pack and active_pack.faction_rules else "")
+                        proto_prop_clause = f" (with {proto_prop})" if proto_prop else ""
+                        chars_clause = f"The solid bright red 3D stickman protagonist ({protagonist_name}{proto_prop_clause}) alongside solid blue 3D stick figures"
 
                         fallback_p = (
                             f"3D red-and-blue stylized stickman animation. {env}. "
@@ -202,7 +204,7 @@ Return strictly valid JSON matching this schema:
                     else:
                         fallback_p = (
                             f"{style_name} illustration aesthetic. {env}. Subject & Action: {clean_concept}. "
-                            f"Authentic historical period details, cinematic composition, rich tactile art texture."
+                            f"Setting-authentic details, cinematic composition, rich tactile art texture."
                         )
 
                     repaired_by_id[sid] = {
@@ -223,58 +225,13 @@ Return strictly valid JSON matching this schema:
                 what_changed = rep.get("what_changed", "Scene replanned by audit")
 
                 if is_3d_red_blue:
-                    # Strip realistic facial features/clothing
-                    new_prompt = re.sub(r"\b(with a|with|having a|wearing a)?\s*(dark|trimmed|short|full|imperial)?\s*(beard|beards|mustache|mustaches)\b", "", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\b(wearing (an|a)?\s*(imperial|embroidered)?\s*(turban|silk caftan|velvet cape|tunic|leather boots|flowing robe|armor plate))\b", "solid matte colored stick figure", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\bhuman (face|eyes|skin|facial features|hair)\b", "featureless spherical 3D stickman head", new_prompt, flags=re.IGNORECASE)
-                    new_prompt = re.sub(r"\b(realistic|photorealistic|detailed)\s+(face|eyes|skin|beard|mustache|clothing)\b", "featureless smooth 3D geometry", new_prompt, flags=re.IGNORECASE)
-
-                    # Strict Faction Color Enforcement on repairs:
-                    # Caesar is ALWAYS RED
-                    new_prompt = re.sub(
-                        r"\b(solid\s+)?blue\s+(3d\s+)?(stick\s+figure|stickman)\s*\((caesar|the dictator|julius caesar)\)",
-                        r"solid bright red 3D stick figure (\4 with gold toy crown)",
-                        new_prompt,
-                        flags=re.IGNORECASE
+                    new_prompt = sanitize_stickman_prompt(
+                        prompt_text=new_prompt,
+                        protagonist_name=protagonist_name,
+                        supporting_names=supporting_names,
+                        active_pack=active_pack,
+                        narration_text=s.narration_excerpt
                     )
-                    new_prompt = re.sub(
-                        r"\b(solid\s+)?blue\s+(3d\s+)?stick\s+figure\s+caesar\b",
-                        "solid bright red 3D stick figure Caesar",
-                        new_prompt,
-                        flags=re.IGNORECASE
-                    )
-                    # Conspirators are ALWAYS BLUE
-                    new_prompt = re.sub(
-                        r"\b(solid\s+)?(bright\s+)?red\s+(3d\s+)?(stick\s+figure|stickman|figures|stickmen)\s*\((conspirators?|assassins?|liberatores?|cimber|casca|brutus|cassius|senators?)\)",
-                        r"solid blue 3D \4 (\5)",
-                        new_prompt,
-                        flags=re.IGNORECASE
-                    )
-                    new_prompt = re.sub(
-                        r"\ba\s+single\s+bright\s+red\s+3d\s+stick\s+figure\s*\(cimber\)",
-                        "a single solid blue 3D stick figure (Cimber)",
-                        new_prompt,
-                        flags=re.IGNORECASE
-                    )
-                    new_prompt = re.sub(
-                        r"\ba\s+pack\s+of\s+solid\s+bright\s+red\s+3d\s+stick\s+figures\s*\(liberatores\)",
-                        "a pack of solid blue 3D stick figures (Liberatores)",
-                        new_prompt,
-                        flags=re.IGNORECASE
-                    )
-
-                    # Clean scaffolding
-                    new_prompt = re.sub(r"\b(Active progression|Consequential development|Establishing perspective):\s*", "", new_prompt)
-                    new_prompt = re.sub(r"^(A wide, low|A split|A solitary, evocative wide shot)\s*—?\s*", "", new_prompt)
-                    new_prompt = re.sub(r"Setting:\s*Fortified historical cityscape and defensive ramparts\.?", "", new_prompt)
-                    new_prompt = re.sub(r"Setting:\s*Fortified historical setting\.?", "", new_prompt)
-                    new_prompt = re.sub(r"\s+", " ", new_prompt).strip()
-
-                    if "STRICT NEGATIVE:" not in new_prompt:
-                        new_prompt = (
-                            f"{new_prompt.rstrip('. ')}. 3D animated stickman universe, stylized toy CGI render, smooth matte plastic. "
-                            f"STRICT NEGATIVE: human face, realistic eyes, nose, mouth, beard, mustache, human hair, human skin texture, realistic fabric, realistic clothing, photorealism, live-action."
-                        )
                 else:
                     # NON-RED-BLUE STYLES (Century-Old Photograph, 3D Stickman, 2D Stickman, Black & White, Vintage, Oil Painting, etc.):
                     # 1. Clean scaffolding

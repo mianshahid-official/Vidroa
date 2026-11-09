@@ -1,0 +1,99 @@
+{
+  "id": "caesar-44bc",
+  "name": "Assassination of Julius Caesar (44 BC)",
+  "match_keywords": ["caesar", "julius", "cimber", "brutus", "cassius", "ides of march", "44 bc", "dictator", "curia", "senate"],
+  "characters": [
+    {
+      "name": "Julius Caesar",
+      "role": "Dictator of Rome",
+      "physical_description": "Prominent classical Roman ruler, balding brow, regal angular profile, sharp intense gaze",
+      "clothing": "Crimson senatorial toga over white tunic with gold embroidery",
+      "key_features": "Toy gold wire crown, majestic posture"
+    },
+    {
+      "name": "Marcus Junius Brutus",
+      "role": "Conspirator and Praetor",
+      "physical_description": "Somber Roman noble, clean-shaven, furrowed brow with conflicted expression",
+      "clothing": "Plain white senatorial wool toga",
+      "key_features": "Concealed iron dagger under toga fold"
+    },
+    {
+      "name": "Tillius Cimber",
+      "role": "Conspirator presenting petition",
+      "physical_description": "Desperate pleading Roman patrician on one knee",
+      "clothing": "Torn senatorial mantle clutching Caesar's toga robe",
+      "key_features": "Kneeling petition stance, signal for assassination"
+    },
+    {
+      "name": "Roman Senators and Conspirators",
+      "role": "Crowd surrounding Caesar",
+      "physical_description": "Aggressive pack of patricians with concealed daggers",
+      "clothing": "White wool senatorial togas",
+      "key_features": "Glinting steel blades"
+    }
+  ],
+  "locations": [
+    {
+      "name": "Roman Senate Curia of Pompey",
+      "architectural_style": "Classical Roman marble hall with grand Corinthian columns and stone dais",
+      "environmental_features": "Tiered stone benches, statue of Pompey, marble floor paving, golden magistrate chair",
+      "lighting_mood": "High clerestory morning sunlight casting dramatic architectural shadows"
+    },
+    {
+      "name": "Roman Forum Stone Avenue",
+      "architectural_style": "Towering classical insulae and temple porticos",
+      "environmental_features": "Rough stone pavement, bustling patrician and plebeian crowd, litter bearers",
+      "lighting_mood": "Bright dusty Mediterranean morning daylight"
+    },
+    {
+      "name": "Caesar's Domus Residence",
+      "architectural_style": "Classical aristocratic Roman domestic peristyle villa",
+      "environmental_features": "Central atrium, domestic altar, decorated stucco walls, marble basin",
+      "lighting_mood": "Soft shadowy pre-dawn domestic oil lamp light"
+    }
+  ],
+  "objects": [
+    {
+      "name": "Gold Toy Wire Crown",
+      "visual_description": "Simple geometric toy wire crown worn by red stickman Caesar",
+      "significance": "Signature visual attribute of the protagonist"
+    },
+    {
+      "name": "Concealed Iron Daggers",
+      "visual_description": "Short Roman pugio blades hidden within folded woolen togas",
+      "significance": "Weapons of the Liberatores assassination plot"
+    },
+    {
+      "name": "Petition Scroll of Cimber",
+      "visual_description": "Rolled parchment scroll presented on bended knee to distract Caesar",
+      "significance": "The tactical signal that initiates the assassination"
+    }
+  ],
+  "period": {
+    "era": "Ancient Roman Republic",
+    "decade_or_year": "44 BC",
+    "technology_level": "Iron daggers, bronze styluses, parchment scrolls, classical stone architecture",
+    "lighting_methods": "Morning sunlight, domestic oil lamps, torchlight",
+    "wardrobe_norms": "Senatorial togas, wool tunics, red military cloak for Caesar",
+    "atmosphere_notes": "Tense political intrigue, classical marble architecture, dramatic chiaroscuro"
+  },
+  "faction_rules": {
+    "protagonist_name": "Caesar",
+    "protagonist_keywords": ["caesar", "dictator", "julius", "husband"],
+    "protagonist_color": "bright red",
+    "protagonist_prop": "toy gold crown",
+    "opponents": ["conspirators", "assassins", "liberatores", "cimber", "casca", "brutus", "cassius", "senators", "citizens", "crowd"],
+    "opponents_color": "solid blue"
+  },
+  "spoiler_rules": [
+    {
+      "trigger": "assassination",
+      "scene_cutoff": 46,
+      "forbid": "premature Cimber kneeling petition or dagger attack before scene 46 / climactic Senate arrival"
+    }
+  ],
+  "audit_checks": [
+    "caesar_faction_inversion",
+    "premature_cimber_assassination"
+  ]
+}

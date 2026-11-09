@@ -1,0 +1,3 @@
+STORY-SPECIFIC CONTEXT (Dorothea Dix 1841):
+Chronology: 1. Cold winter arrival in East Cambridge -> 2. Descent into the unheated jail basement -> 3. Documenting confined patients with quill and notebook -> 4. Confrontation with authorities -> 5. Presentation of memorial to the Massachusetts legislature.
+Dorothea Dix = RED stickman; jailers and officials = BLUE stickmen.

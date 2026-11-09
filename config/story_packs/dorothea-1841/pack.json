@@ -1,0 +1,39 @@
+{
+  "id": "dorothea-1841",
+  "name": "Dorothea Dix & East Cambridge (1841)",
+  "match_keywords": ["dorothea", "dix", "dorothea dix", "1841", "east cambridge", "cambridge jail", "asylum"],
+  "characters": [
+    {
+      "name": "Dorothea Dix",
+      "role": "Investigator and Social Reformer",
+      "physical_description": "39-year-old woman with composed, dignified features, sharp observant eyes, hair tied back neatly",
+      "clothing": "Modest, dark 1840s wool Victorian dress with white linen collar and shawl",
+      "key_features": "Holding an ink quill and notebook, determined quiet gaze"
+    }
+  ],
+  "locations": [
+    {
+      "name": "East Cambridge Jail Basement",
+      "architectural_style": "Early 19th-century rough-hewn granite masonry basement",
+      "environmental_features": "Freezing damp stone walls, iron-barred cells, frozen straw bedding, lack of warmth",
+      "lighting_mood": "Dim flickering oil lamp light casting long cold shadows"
+    }
+  ],
+  "objects": [
+    {
+      "name": "Ink Quill and Notebook",
+      "visual_description": "Bound paper notebook with steel dip pen and iron gall ink",
+      "significance": "Primary evidentiary tool documenting conditions"
+    }
+  ],
+  "period": {
+    "era": "Antebellum Victorian Era",
+    "decade_or_year": "1841-1843",
+    "technology_level": "Stagecoaches, oil lamps, early railways, steel dip pens and bound paper notebooks",
+    "lighting_methods": "Whale oil lamps, tallow candles, weak grey winter window light",
+    "wardrobe_norms": "Wool frock coats, dark modest Victorian dresses, linen collars, shawls",
+    "atmosphere_notes": "Somber 19th-century documentary atmosphere, damp granite, winter chill"
+  },
+  "spoiler_rules": [],
+  "audit_checks": []
+}

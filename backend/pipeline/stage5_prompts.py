@@ -2,7 +2,7 @@
 Stage 5: Image Prompt Generation.
 Translates scheduled visual scenes into production image generation prompts
 honoring user-selected visual styles, continuity bibles, and narration synchronization.
-Guarantees authoritative character faction coloring (e.g. Caesar = RED, conspirators = BLUE),
+Guarantees authoritative character faction coloring (e.g. Protagonist = RED, supporting/opposing = BLUE),
 robust batching with per-scene retries, and zero pipeline scaffolding leakage.
 """
 import json
@@ -21,39 +21,25 @@ from app.models.presets import VisualStylePreset, SubjectPreset
 from app.models.scene import VisualScene
 from backend.inference.engine import BaseInferenceEngine
 from backend.pipeline.prompt_loader import load_system_prompt as _load_system_prompt
+from backend.pipeline.story_pack import StoryPackManager, sanitize_stickman_prompt
 
 
 def load_system_prompt() -> str:
     return _load_system_prompt("stage4_prompts.txt")
 
 
-def resolve_stickman_characters(analysis: ScriptAnalysis) -> Tuple[str, List[str]]:
-    """
-    Identifies the primary protagonist (who must be RED) and supporting characters (BLUE).
-    In 3D Red & Blue Stickman animation:
-    - Primary protagonist (Caesar) = SOLID BRIGHT RED 3D STICKMAN
-    - All other characters (Brutus, Cassius, Casca, Tillius Cimber, Antony, Calpurnia, senators, citizens) = SOLID BLUE 3D STICKMEN
-    """
+def resolve_stickman_characters(analysis: ScriptAnalysis, story_text: str = "") -> Tuple[str, List[str]]:
+    """Resolves protagonist and supporting cast from character bible or active story pack."""
     chars = analysis.continuity_bible.characters if analysis and analysis.continuity_bible else []
-    protagonist_name = "Caesar"
-    
-    # Check if there is an explicit protagonist or matching keywords
-    proto_keywords = ["caesar", "julius", "dictator", "protagonist", "emperor", "sultan", "lead"]
-    found = None
-    for c in chars:
-        c_role = (c.role or "").lower()
-        c_name = c.name.lower()
-        if any(k in c_role or k in c_name for k in proto_keywords):
-            found = c.name
-            break
-            
-    if found:
-        protagonist_name = found
-    elif chars:
-        protagonist_name = chars[0].name
+    pack = StoryPackManager.match_pack(story_text)
+    if pack and pack.faction_rules.get("protagonist_name"):
+        return pack.faction_rules["protagonist_name"], pack.faction_rules.get("opponents", [])
 
-    other_names = [c.name for c in chars if c.name.lower() != protagonist_name.lower()]
-    return protagonist_name, other_names
+    if chars:
+        protagonist_name = chars[0].name
+        other_names = [c.name for c in chars[1:]]
+        return protagonist_name, other_names
+    return "Protagonist", ["Supporting characters", "Crowd", "Citizens"]
 
 
 def sanitize_action_summary(raw_summary: str, narration: str) -> str:
@@ -71,32 +57,27 @@ def sanitize_action_summary(raw_summary: str, narration: str) -> str:
 
 
 def derive_contextual_environment(narration: str, analysis: ScriptAnalysis, is_3d_stickman: bool = False) -> str:
-    """Derives period-appropriate setting from narration text without hardcoded ramparts."""
+    """Derives setting from narration and continuity location bible without hardcoded Rome/Constantinople."""
     narr_l = narration.lower()
-    period = analysis.historical_or_setting_period if analysis else "Historical Setting"
+    period = analysis.historical_or_setting_period if analysis else "Setting"
+    pack = StoryPackManager.match_pack(narration)
 
-    if any(w in narr_l for w in ["senate", "curia", "pompey", "magistrate", "petition", "toga", "chamber", "throne", "gold chair"]):
-        if is_3d_stickman:
-            return "Interior of the grand Roman Senate Curia with smooth rounded marble columns and matte stone floor"
-        return "Interior of the grand Roman Senate Curia with towering marble columns and classical stone floor"
-    elif any(w in narr_l for w in ["street", "forum", "crowd", "litter", "soothsayer", "road", "walk", "avenue", "sprawling"]):
-        if is_3d_stickman:
-            return "Stylized 3D Roman forum stone avenue with rounded blocky insulae buildings and matte clay textures"
-        return "Ancient Roman forum stone avenue with classical insulae buildings and cobblestone paving"
-    elif any(w in narr_l for w in ["nightmare", "domus", "house", "calpurnia", "bed", "morning", "gable"]):
-        if is_3d_stickman:
-            return "Inside the private domus residence with stylized classical Roman architecture and soft morning lighting"
-        return "Inside the private domus residence with classical Roman domestic architecture and soft morning light"
-    elif any(w in narr_l for w in ["rubicon", "forces", "battle", "general", "triumph"]):
-        return "Panoramic vista of classical territories with atmospheric horizon"
-    elif any(w in narr_l for w in ["constantinople", "theodosian", "byzantine", "bosphorus", "golden horn", "sultan", "mehmed"]):
-        if is_3d_stickman:
-            return "Stylized 3D 15th-century stone and brick Theodosian fortifications of Constantinople"
-        return "Massive 15th-century stone and brick Theodosian fortifications of Constantinople"
-    else:
-        if is_3d_stickman:
-            return f"Stylized 3D {period} setting with rounded geometric classical stone structures"
-        return f"Authentic {period} setting with period architecture and atmospheric lighting"
+    # 1. Match from location bible
+    locations = analysis.continuity_bible.locations if analysis and analysis.continuity_bible else []
+    if not locations and pack and pack.locations:
+        locations = pack.locations
+    for loc in locations:
+        loc_name = getattr(loc, "name", "") if hasattr(loc, "name") else loc.get("name", "")
+        loc_desc = getattr(loc, "description", "") if hasattr(loc, "description") else loc.get("environmental_features", "")
+        if any(w in narr_l for w in loc_name.lower().split() if len(w) > 3):
+            if is_3d_stickman:
+                return f"Stylized 3D {loc_name} with {loc_desc[:60]} and smooth matte toy textures"
+            return f"{loc_name} with {loc_desc[:80]}"
+
+    # 2. Setting fallback
+    if is_3d_stickman:
+        return f"Stylized 3D {period} setting with clean geometric structures"
+    return f"Authentic {period} setting with atmospheric lighting"
 
 
 class Stage5PromptGenerator:
@@ -132,10 +113,16 @@ class Stage5PromptGenerator:
         is_general_stickman = any(k in (style_preset.id if style_preset else "").lower() or k in style_name.lower() for k in ["stickman", "stick_figure"])
 
         # Determine authoritative character color identity
-        protagonist_name, supporting_names = resolve_stickman_characters(analysis)
+        story_text = " ".join([s.narration_text for s in scenes]) if scenes else ""
+        active_pack = StoryPackManager.match_pack(story_text)
+        protagonist_name, supporting_names = resolve_stickman_characters(analysis, story_text)
 
         stickman_faction_rules = ""
         if is_3d_red_blue:
+            proto_prop = (active_pack.faction_rules.get("protagonist_prop") if active_pack and active_pack.faction_rules else "")
+            proto_prop_clause = f" (with {proto_prop})" if proto_prop else ""
+            pack_frag = f"\n{active_pack.prompt_fragment}\n" if active_pack and active_pack.prompt_fragment else ""
+
             stickman_faction_rules = f"""
 ### MANDATORY 3D RED & BLUE STICKMAN ANATOMY & FACTION COLOR DIRECTIVES:
 1. ZERO HUMAN ANATOMY & NO FACIAL FEATURES:
@@ -143,19 +130,21 @@ class Stage5PromptGenerator:
    - Every human is a simplified 3D stick figure with a smooth featureless spherical head and cylindrical limbs.
    - ZERO realistic cloth fabrics, embroidered silk caftans, velvet robes, tunics, or realistic armor. Bodies are solid matte colored 3D stick figures.
 2. STRICT AUTHORITATIVE CHARACTER COLOR IDENTITY (PERSISTENT & IMMUTABLE):
-   - PRIMARY PROTAGONIST ({protagonist_name}) = 100% EXCLUSIVELY SOLID BRIGHT RED 3D STICK FIGURE (with a simple toy gold wire crown, smooth red spherical head, cylindrical limbs).
-   - ALL OTHER CHARACTERS ({", ".join(supporting_names) or "senators, conspirators, crowds, citizens"}) = 100% EXCLUSIVELY SOLID BLUE 3D STICK FIGURES (smooth blue spherical heads, cylindrical limbs).
-   - ABSOLUTE RULE: {protagonist_name} MUST ALWAYS BE RED. {protagonist_name} NEVER becomes blue, even when attacked, sitting, walking, or falling!
-   - Conspirators and senators MUST ALWAYS BE BLUE. Conspirators NEVER become red!
+   - PRIMARY PROTAGONIST ({protagonist_name}) = 100% EXCLUSIVELY SOLID BRIGHT RED 3D STICK FIGURE{proto_prop_clause}.
+   - ALL OTHER CHARACTERS ({", ".join(supporting_names) or "supporting cast, crowd, citizens"}) = 100% EXCLUSIVELY SOLID BLUE 3D STICK FIGURES.
+   - ABSOLUTE RULE: {protagonist_name} MUST ALWAYS BE RED. {protagonist_name} NEVER becomes blue!
+   - Opposing and supporting figures MUST ALWAYS BE BLUE. They NEVER become red!
    - Faction color is bound strictly to character IDENTITY, never narrative aggression or location!
 3. RENDER STYLE:
-   - Stylized 3D CGI toy universe, smooth rounded geometry, matte plastic/clay surfaces, warm volumetric lighting, zero photorealism.
+   - Stylized 3D CGI toy universe, smooth rounded geometry, matte plastic/clay surfaces, warm volumetric lighting, zero photorealism.{pack_frag}
 """
 
         # Build character context for prompt
         if is_3d_red_blue:
+            proto_prop = (active_pack.faction_rules.get("protagonist_prop") if active_pack and active_pack.faction_rules else "")
+            proto_prop_clause = f", {proto_prop}" if proto_prop else ""
             char_ctx = (
-                f"{protagonist_name}: Solid bright red 3D stick figure with smooth featureless sphere head, simple geometric gold toy crown, cylindrical limbs. "
+                f"{protagonist_name}: Solid bright red 3D stick figure with smooth featureless sphere head{proto_prop_clause}, cylindrical limbs. "
                 f"Other figures ({', '.join(supporting_names[:5])}): Solid blue 3D stick figures with smooth featureless sphere heads, cylindrical limbs."
             )
         elif is_general_stickman:
@@ -218,8 +207,8 @@ Style: {style_name}
 ### INSTRUCTIONS:
 For each scene in this batch, write a standalone, vivid, production-ready image generation prompt.
 Strict rules:
-1. Ground the visual in the exact narration moment. Depict only what has occurred so far (NO premature actions; NO premature reveals of overland ship transport or discarded crowns).
-2. If style is 3D Red & Blue Stickman: Strictly follow character colors ({protagonist_name} = RED, all conspirators/senators = BLUE).
+1. Ground the visual in the exact narration moment. Depict only what has occurred so far (NO premature actions or spoilers).
+2. If style is 3D Red & Blue Stickman: Strictly follow character colors ({protagonist_name} = RED, supporting/opposing figures = BLUE).
 3. If style is photographic, cinematic, or historical (NOT stickman): Characters must be realistic human figures in authentic period attire. ZERO stick figures.
 4. Output concise, vivid prompts ready for image generation with composition, environment, subjects, and action.
 5. Do NOT output raw metadata tags like "Action:", "Setting:", or "Active progression:". Write natural English descriptions.
@@ -361,73 +350,13 @@ Return JSON: {{"scene_id": "{s.scene_id}", "prompt": "full prompt text", "subjec
                 # POST-PROCESSING SANITIZATION (Authoritative Rule Enforcement)
                 # =============================================================
                 if is_3d_red_blue:
-                    # 1. Strip any realistic human facial features or realistic clothing
-                    p_text = re.sub(r"\b(with a|with|having a|wearing a)?\s*(dark|trimmed|short|full|imperial)?\s*(beard|beards|mustache|mustaches)\b", "", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\b(wearing (an|a)?\s*(imperial|embroidered)?\s*(turban|silk caftan|velvet cape|tunic|leather boots|flowing robe|armor plate|cape|cloak))\b", "solid matte colored stick figure", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\bhuman (face|eyes|skin|facial features|hair)\b", "featureless spherical 3D stickman head", p_text, flags=re.IGNORECASE)
-                    p_text = re.sub(r"\b(realistic|photorealistic|detailed)\s+(face|eyes|skin|beard|mustache|clothing)\b", "featureless smooth 3D geometry", p_text, flags=re.IGNORECASE)
-
-                    # 2. Strict Faction Color Enforcement:
-                    # Caesar must ALWAYS be RED.
-                    p_text = re.sub(
-                        r"\b(solid\s+)?blue\s+(3d\s+)?(stick\s+figure|stickman)\s*\((caesar|the dictator|julius caesar)\)",
-                        r"solid bright red 3D stick figure (\4 with gold toy crown)",
-                        p_text,
-                        flags=re.IGNORECASE
+                    p_text = sanitize_stickman_prompt(
+                        prompt_text=p_text,
+                        protagonist_name=protagonist_name,
+                        supporting_names=supporting_names,
+                        active_pack=active_pack,
+                        narration_text=s.narration_text
                     )
-                    p_text = re.sub(
-                        r"\b(solid\s+)?blue\s+(3d\s+)?stick\s+figure\s+caesar\b",
-                        "solid bright red 3D stick figure Caesar",
-                        p_text,
-                        flags=re.IGNORECASE
-                    )
-                    # Conspirators / senators must ALWAYS be BLUE.
-                    p_text = re.sub(
-                        r"\b(solid\s+)?(bright\s+)?red\s+(3d\s+)?(stick\s+figure|stickman|figures|stickmen)\s*\((conspirators?|assassins?|liberatores?|cimber|casca|brutus|cassius|senators?)\)",
-                        r"solid blue 3D \4 (\5)",
-                        p_text,
-                        flags=re.IGNORECASE
-                    )
-                    p_text = re.sub(
-                        r"\ba\s+single\s+bright\s+red\s+3d\s+stick\s+figure\s*\(cimber\)",
-                        "a single solid blue 3D stick figure (Cimber)",
-                        p_text,
-                        flags=re.IGNORECASE
-                    )
-                    p_text = re.sub(
-                        r"\ba\s+pack\s+of\s+solid\s+bright\s+red\s+3d\s+stick\s+figures\s*\(liberatores\)",
-                        "a pack of solid blue 3D stick figures (Liberatores)",
-                        p_text,
-                        flags=re.IGNORECASE
-                    )
-
-                    # 3. Faction purity enforcement for siege/defending/attacking scenes
-                    p_lower = p_text.lower()
-                    narr_lower = s.narration_text.lower()
-                    is_defending_scene = any(w in narr_lower or w in p_lower for w in ["repaired", "defenders", "inside the city", "rubble", "timber", "walls resisted", "harbor", "chain"])
-                    is_attacking_scene = any(w in narr_lower or w in p_lower for w in ["cannon", "bombard", "encampment", "dragged overland", "artillery battery", "opened fire outside", "ottoman cannons"])
-                    is_combat_clash = any(w in narr_lower or w in p_lower for w in ["final assault", "hand-to-hand", "clash", "storming", "combat"])
-
-                    if is_defending_scene and not is_combat_clash and "caesar" not in narr_lower:
-                        if "zero red figures" not in p_lower:
-                            p_text += " Exclusively solid blue 3D stick figures inside the city. Zero red figures present."
-                    elif is_attacking_scene and not is_combat_clash and "caesar" not in narr_lower:
-                        if "zero blue figures" not in p_lower:
-                            p_text += " Exclusively solid bright red 3D stick figures outside the fortifications. Zero blue figures present."
-
-                    # 4. Clean up any leaked pipeline scaffolding
-                    p_text = re.sub(r"\b(Active progression|Consequential development|Establishing perspective):\s*", "", p_text)
-                    p_text = re.sub(r"^(A wide, low|A split|A solitary, evocative wide shot)\s*—?\s*", "", p_text)
-                    p_text = re.sub(r"Setting:\s*Fortified historical cityscape and defensive ramparts\.?", "", p_text)
-                    p_text = re.sub(r"Setting:\s*Fortified historical setting\.?", "", p_text)
-                    p_text = re.sub(r"\s+", " ", p_text).strip()
-
-                    # 5. Append Negative Prompts
-                    if "STRICT NEGATIVE:" not in p_text:
-                        p_text = (
-                            f"{p_text.rstrip('. ')}. 3D animated stickman universe, stylized toy CGI render, smooth matte plastic. "
-                            f"STRICT NEGATIVE: human face, realistic eyes, nose, mouth, beard, mustache, human hair, human skin texture, realistic fabric, realistic clothing, turban, cape, cloak, tunic, boots, doll, claymation human, photorealism, live-action."
-                        )
                 else:
                     # NON-RED-BLUE STYLES (Century-Old Photograph, 3D Stickman, 2D Stickman, Black & White, Vintage, etc.):
                     # 1. Clean up any leaked pipeline scaffolding
