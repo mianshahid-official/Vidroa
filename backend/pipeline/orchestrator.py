@@ -48,19 +48,19 @@ class PipelineOrchestrator:
             subject_preset = PresetManager.get_subject_by_id(request.subject_id)
             if not subject_preset:
                 subject_preset = SubjectPreset(
-                    id="history",
-                    name="History",
-                    description="Historical focus",
-                    system_instructions=request.custom_subject or "Historical accuracy."
+                    id=request.subject_id or "general_documentary",
+                    name=request.subject_id or "General Documentary",
+                    description="General narrative focus",
+                    system_instructions=request.custom_subject or ""
                 )
 
             style_preset = PresetManager.get_style_by_id(request.visual_style_id)
             if not style_preset:
                 style_preset = VisualStylePreset(
-                    id="century_old_photograph",
-                    name="Century-Old Photograph",
-                    description="Archival vintage photographic style",
-                    system_instructions=request.custom_style or "Authentic archival photography. Rich silver-toned monochrome or warm sepia. Period optics, no modern RGB colors."
+                    id=request.visual_style_id or "2d_stickman",
+                    name=request.visual_style_id or "2D Stickman",
+                    description="Visual style",
+                    system_instructions=request.custom_style or ""
                 )
 
             p_dir = Path(project_dir) if project_dir else Path.cwd() / "projects" / (request.project_name or "default_project")

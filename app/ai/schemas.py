@@ -14,9 +14,9 @@ class JobCreateRequest(BaseModel):
     project_name: str
     story_text: str
     narration: Optional[NarrationData] = None
-    subject_id: str = "history"
+    subject_id: str = "general_documentary"
     custom_subject: Optional[str] = None
-    visual_style_id: str = "century_old_photograph"
+    visual_style_id: str = "2d_stickman"
     custom_style: Optional[str] = None
     image_count_mode: ImageCountMode = ImageCountMode.AUTOMATIC
     target_image_count: int = 30
@@ -67,9 +67,9 @@ class JobCancelResponse(BaseModel):
 class SceneRegenerateRequest(BaseModel):
     scene: VisualScene
     story_summary: Optional[str] = ""
-    subject_id: str = "history"
+    subject_id: str = "general_documentary"
     custom_subject: Optional[str] = None
-    visual_style_id: str = "century_old_photograph"
+    visual_style_id: str = "2d_stickman"
     custom_style: Optional[str] = None
     continuity: Optional[StoryContinuity] = None
     model_name: str = "Qwen3-30B-A3B-Instruct-2507"

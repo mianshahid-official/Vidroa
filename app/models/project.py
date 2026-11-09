@@ -22,9 +22,9 @@ class TimingMode(str, Enum):
 
 
 class ProjectConfig(BaseModel):
-    subject_id: str = Field(default="history", description="Selected subject ID")
+    subject_id: str = Field(default="general_documentary", description="Selected subject ID")
     custom_subject: Optional[str] = Field(default=None, description="Custom subject guidance if subject is custom")
-    visual_style_id: str = Field(default="century_old_photograph", description="Selected visual style ID")
+    visual_style_id: str = Field(default="2d_stickman", description="Selected visual style ID")
     custom_style: Optional[str] = Field(default=None, description="Custom style instructions")
     image_count_mode: ImageCountMode = Field(default=ImageCountMode.AUTOMATIC)
     target_image_count: int = Field(default=30, ge=1, le=500, description="Target scene count when exact mode is selected")

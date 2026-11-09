@@ -65,7 +65,12 @@ class ParallelPipelineWorker(QThread):
             return
 
         subject_preset = PresetManager.get_subject_by_id(self.request.subject_id) if hasattr(PresetManager, "get_subject_by_id") else None
+        if not subject_preset and hasattr(PresetManager, "get_subject_by_id"):
+            subject_preset = PresetManager.get_subject_by_id("general_documentary")
+
         style_preset = PresetManager.get_style_by_id(self.request.visual_style_id) if hasattr(PresetManager, "get_style_by_id") else None
+        if not style_preset and hasattr(PresetManager, "get_style_by_id"):
+            style_preset = PresetManager.get_style_by_id("2d_stickman")
 
         tts_result: Dict[str, Any] = {}
         analysis_result: Optional[StoryAnalysis] = None

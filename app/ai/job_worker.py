@@ -103,8 +103,8 @@ class CloudJobWorker(QThread):
                 subject_preset = SubjectPreset(
                     id=self.request.subject_id,
                     name=self.request.subject_id,
-                    description="Historical focus",
-                    system_instructions=self.request.custom_subject or "Historical accuracy."
+                    description="Subject",
+                    system_instructions=self.request.custom_subject or ""
                 )
 
             style_preset = PresetManager.get_style_by_id(self.request.visual_style_id)
@@ -112,8 +112,8 @@ class CloudJobWorker(QThread):
                 style_preset = VisualStylePreset(
                     id=self.request.visual_style_id,
                     name=self.request.visual_style_id,
-                    description="Archival style",
-                    system_instructions=self.request.custom_style or "Cinematic archival photography."
+                    description="Visual Style",
+                    system_instructions=self.request.custom_style or ""
                 )
 
             config = ProjectConfig(

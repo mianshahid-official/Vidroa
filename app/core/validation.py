@@ -239,21 +239,21 @@ class TimelineValidator:
                     suggested_action="Differentiate with progressive action, consequence, or new visual fact."
                 ))
 
-        # 7. Historical Anachronism Check
+        # 7. Setting and Anachronism Check
         if continuity and getattr(continuity, "time_period", None):
             tp = continuity.time_period
-            tp_text = f"{tp.era} {tp.decade_or_year or ''}".lower()
-            is_pre_1826 = any(w in tp_text for w in ["1453", "medieval", "crusade", "byzantine", "rome", "roman", "greece", "greek", "ancient", "1500", "1600", "1700"])
-            if is_pre_1826:
+            tp_text = f"{getattr(tp, 'era', '')} {getattr(tp, 'decade_or_year', '') or ''}".lower()
+            is_pre_modern = any(w in tp_text for w in ["1453", "medieval", "crusade", "byzantine", "rome", "roman", "greece", "greek", "ancient", "antiquity", "1500", "1600", "1700"])
+            if is_pre_modern:
                 for sc in scenes:
                     full_p = f"{sc.visual_subject} {sc.prompt}".lower()
-                    if "fez" in full_p:
+                    if any(modern_term in full_p for modern_term in ["smartphone", "laptop", "neon sign", "laser", "automobile", "television"]):
                         issues.append(ValidationIssue(
                             scene_id=sc.scene_id,
                             severity=ValidationSeverity.WARNING,
                             rule="ANACHRONISM_DETECTED",
-                            message=f"Scene {sc.scene_id} references a 'fez', which is anachronistic for pre-1826 historical settings.",
-                            suggested_action="Replace fez with period-appropriate turban or helmet."
+                            message=f"Scene {sc.scene_id} contains modern technology conflicting with the pre-modern setting ({getattr(tp, 'era', 'historical')}).",
+                            suggested_action="Replace modern element with setting-appropriate technology."
                         ))
 
         has_errors = any(i.severity == ValidationSeverity.ERROR for i in issues)

@@ -109,7 +109,7 @@ class PresetManager:
             cls.initialize()
         res = cls._subjects_cache.get(subject_id)
         if not res and cls._subjects_cache:
-            return cls._subjects_cache.get("history") or list(cls._subjects_cache.values())[0]
+            return cls._subjects_cache.get("general_documentary") or list(cls._subjects_cache.values())[0]
         return res
 
     @classmethod
@@ -145,7 +145,7 @@ class PresetManager:
             res = cls._styles_cache.get("vintage_photograph")
 
         if not res and cls._styles_cache:
-            return cls._styles_cache.get("century_old_photograph") or cls._styles_cache.get("vintage_photograph") or list(cls._styles_cache.values())[0]
+            return cls._styles_cache.get("2d_stickman") or list(cls._styles_cache.values())[0]
         return res
 
     @classmethod
