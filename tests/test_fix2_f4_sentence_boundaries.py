@@ -30,11 +30,18 @@ def test_find_sentence_clause_split_point_punctuation_and_tail_guard():
     assert idx == 4
     assert words[idx] == "gates."
 
-    # Clause boundary with comma
-    words2 = ["While", "advancing", "silently,", "the", "vanguard", "observed", "the", "ridge."]
+    # Clause boundary with comma followed by valid conjunction in CLAUSE_CONTINUATION_CONJUNCTIONS
+    words2 = ["While", "advancing", "silently,", "and", "vanguard", "observed", "the", "ridge."]
     idx2 = find_sentence_clause_split_point(words2, target_idx=3, min_idx=1, max_idx=6)
     assert idx2 == 2
     assert words2[idx2] == "silently,"
+
+    # Comma followed by non-conjunction (e.g. 'the', 'you') is skipped at every search level
+    words2_invalid_comma = ["While", "advancing", "silently,", "the", "vanguard", "observed", "the", "ridge."]
+    idx2_skipped = find_sentence_clause_split_point(words2_invalid_comma, target_idx=3, min_idx=1, max_idx=6)
+    # Extends forward past max_idx to the next sentence terminator 'ridge.'
+    assert idx2_skipped == 7
+    assert words2_invalid_comma[idx2_skipped] == "ridge."
 
     # Disallowed tail guard: avoid ending on 'the', 'of', 'and'
     words3 = ["They", "saw", "the", "silhouette", "of", "the", "tower."]
@@ -383,3 +390,87 @@ def test_find_sentence_clause_split_point_fallback_extends_to_next_boundary():
     idx = find_sentence_clause_split_point(words, target_idx=3, min_idx=1, max_idx=13, search_window=2)
     assert idx == 13
     assert words[idx] == "ridge."
+
+
+def test_stage4_skips_invalid_comma_and_extends_past_8s_without_cutting_at_worse():
+    """
+    Regression test for Scene #009 cutting mid-sentence at 'worse,':
+    Fixture sentence:
+    '400,000 square feet of mall drops into blackness. You are not getting out tonight,
+     and as the screaming outside turns into something worse, you realize you are not getting out tomorrow either.'
+
+    Verifies that:
+    1. The comma after 'worse,' is recognized as invalid because the next word ('you')
+       is not in CLAUSE_CONTINUATION_CONJUNCTIONS.
+    2. The scheduler skips 'worse,' at every search level.
+    3. The scene does NOT cut at 'worse,' — the scene ends at '...tomorrow either.'
+    4. assert_sentence_boundary_validity passes, even if the scene duration exceeds 8s.
+    """
+    fixture_text = (
+        "400,000 square feet of mall drops into blackness. You are not getting out tonight, "
+        "and as the screaming outside turns into something worse, you realize you are not getting out tomorrow either."
+    )
+    words_list = fixture_text.split()
+    words = []
+    t = 0.0
+    for w in words_list:
+        dur = 0.35
+        words.append(WordTimestamp(word=w, start=t, end=round(t + dur, 2)))
+        t = round(t + dur + 0.05, 2)
+
+    total_dur = words[-1].end
+    narration_data = NarrationData(
+        duration_seconds=total_dur,
+        words=words,
+        transcript=fixture_text
+    )
+
+    plan = VisualBeatPlan(
+        visual_beats=[
+            VisualBeat(
+                beat_id="VB-001",
+                exact_narration_segment=fixture_text,
+                narrative_purpose="Mall blackness and entrapment",
+                primary_visual_concept="Darkened mall interior with survivors trapped",
+                what_new_information_is_shown="Entrapment realization",
+                composition="Wide dramatic shot",
+                lighting_and_atmosphere="Pitch black with dim emergency lights",
+                why_this_is_not_repetitive="Turning point into total isolation",
+                continuity_references=[]
+            )
+        ]
+    )
+
+    storyboard = Stage4TemporalScheduler.execute(
+        engine=None,
+        visual_plan=plan,
+        narration=narration_data,
+        story_text=fixture_text,
+        total_audio_duration=total_dur
+    )
+
+    # 1. Assert no scene cuts at 'worse,'
+    for sc in storyboard.scenes:
+        assert not sc.narration_text.strip().endswith("worse,")
+        assert not sc.narration_text.strip().endswith("worse")
+
+    # 2. Assert the scene covering the screaming ends at 'tomorrow either.'
+    screaming_scene = next(sc for sc in storyboard.scenes if "screaming" in sc.narration_text)
+    assert screaming_scene.narration_text.strip().endswith("tomorrow either.")
+    assert "something worse," in screaming_scene.narration_text
+
+    # 3. Invariant check passes cleanly without raising
+    assert_sentence_boundary_validity(storyboard.scenes)
+
+    # 4. Direct split test: when targeting 'worse,' with cap before 'either.', skips 'worse,' and extends to 'either.'
+    worse_idx = next(i for i, w in enumerate(words_list) if "worse" in w)
+    either_idx = next(i for i, w in enumerate(words_list) if "either" in w)
+    split_pt = find_sentence_clause_split_point(
+        words_list,
+        target_idx=worse_idx,
+        min_idx=14,  # after 'tonight,'
+        max_idx=either_idx - 1
+    )
+    assert words_list[split_pt] != "worse,"
+    assert split_pt == either_idx
+    assert words_list[split_pt] == "either."

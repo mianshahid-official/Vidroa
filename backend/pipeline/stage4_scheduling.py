@@ -27,6 +27,58 @@ CLAUSE_CONTINUATION_CONJUNCTIONS = {
 }
 
 
+def is_sentence_terminator(w_raw: str) -> bool:
+    """Checks if a word ends with a sentence terminator ('.', '!', '?')."""
+    return any(w_raw.endswith(p) for p in [".", "!", "?"])
+
+
+def is_valid_clause_boundary(words: List[str], idx: int) -> bool:
+    """
+    Checks if words[idx] ends at a valid clause boundary.
+    - Semicolons, colons, em-dashes (';', ':', '—', '–') are clause boundaries.
+    - A comma (',') is valid ONLY IF the subsequent word is in CLAUSE_CONTINUATION_CONJUNCTIONS.
+    """
+    if idx < 0 or idx >= len(words):
+        return False
+    w_raw = words[idx].strip()
+    if any(w_raw.endswith(p) for p in [";", ":", "—", "–"]):
+        return True
+    if w_raw.endswith(","):
+        if idx + 1 < len(words):
+            next_word = words[idx + 1].strip().lower().strip(".,;:!?\"'—–")
+            return next_word in CLAUSE_CONTINUATION_CONJUNCTIONS
+    return False
+
+
+def is_disallowed_tail(w_raw: str) -> bool:
+    """Checks if a word is a disallowed dangling tail word."""
+    w_clean = w_raw.lower().strip(".,;:!?\"'—–")
+    always_disallowed = {"a", "an", "the", "and", "or", "but"}
+    if w_clean in always_disallowed:
+        return True
+    if w_clean in DISALLOWED_TAIL_WORDS and not is_sentence_terminator(w_raw):
+        return True
+    return False
+
+
+def is_valid_split_point(words: List[str], idx: int) -> bool:
+    """
+    Shared validity rule for scene boundaries.
+    A word index is a valid split point iff:
+    1. It is not a disallowed tail word.
+    2. It terminates with a sentence terminator ('.', '!', '?') OR
+       a valid clause boundary (';', ':', '—', '–', or a comma followed by a conjunction in CLAUSE_CONTINUATION_CONJUNCTIONS).
+    """
+    if idx < 0 or idx >= len(words):
+        return False
+    w_raw = words[idx].strip()
+    if is_disallowed_tail(w_raw):
+        return False
+    if is_sentence_terminator(w_raw):
+        return True
+    return is_valid_clause_boundary(words, idx)
+
+
 def find_sentence_clause_split_point(
     words: List[str],
     target_idx: int,
@@ -37,8 +89,13 @@ def find_sentence_clause_split_point(
     """
     Finds the nearest sentence or clause punctuation boundary ('.', '!', '?', ';', ',', '—', '–', ':')
     around target_idx within ±search_window words.
-    If none found in the window, extends to the next boundary (or nearest preceding/following punctuation).
-    Ensures the split word does not end on a disallowed tail word (articles, prepositions, conjunctions).
+    Valid boundaries:
+    - Sentence terminators ('.', '!', '?')
+    - Semicolons, colons, em-dashes (';', ':', '—', '–')
+    - Commas (',') ONLY IF the next word is in CLAUSE_CONTINUATION_CONJUNCTIONS.
+    Invalid commas and disallowed tails are skipped at every search level.
+    When no valid boundary is within the cap (min_idx..max_idx), extends forward
+    past 8s to the next sentence terminator.
     """
     if not words:
         return 0
@@ -47,64 +104,67 @@ def find_sentence_clause_split_point(
         max_idx = total - 1
     target_idx = max(min_idx, min(max_idx, target_idx))
 
-    # Priority 1: Search within ±search_window of target_idx
     best_idx = None
     search_start = max(min_idx, target_idx - search_window)
     search_end = min(max_idx, target_idx + search_window)
 
-    # First preference in window: sentence terminators (. ! ?)
+    # Priority 1: Search within ±search_window of target_idx
+    # 1a. First preference in window: sentence terminators (. ! ?)
     for idx in range(search_start, search_end + 1):
-        w_raw = words[idx].strip()
-        if any(w_raw.endswith(p) for p in [".", "!", "?"]):
+        if is_sentence_terminator(words[idx]) and not is_disallowed_tail(words[idx]):
             best_idx = idx
             break
 
-    # Second preference in window: clause terminators (; , — – :)
+    # 1b. Second preference in window: valid clause terminators (; : — – or valid comma)
     if best_idx is None:
         for idx in range(search_start, search_end + 1):
-            w_raw = words[idx].strip()
-            if any(w_raw.endswith(p) for p in [";", ",", "—", "–", ":"]):
+            if is_valid_clause_boundary(words, idx) and not is_disallowed_tail(words[idx]):
                 best_idx = idx
                 break
 
-    # Priority 2: If no punctuation in window, extend to the next boundary (forward scan up to max_idx)
+    # Priority 2: Forward scan within cap (search_end + 1 to max_idx)
     if best_idx is None:
         for idx in range(search_end + 1, max_idx + 1):
-            w_raw = words[idx].strip()
-            if any(w_raw.endswith(p) for p in SENTENCE_CLAUSE_PUNCTUATION):
+            if is_sentence_terminator(words[idx]) and not is_disallowed_tail(words[idx]):
+                best_idx = idx
+                break
+    if best_idx is None:
+        for idx in range(search_end + 1, max_idx + 1):
+            if is_valid_clause_boundary(words, idx) and not is_disallowed_tail(words[idx]):
                 best_idx = idx
                 break
 
-    # Priority 3: If no forward boundary within max_idx, scan backward to the nearest preceding boundary
+    # Priority 3: Backward scan within cap (search_start - 1 down to min_idx)
     if best_idx is None:
         for idx in range(search_start - 1, min_idx - 1, -1):
-            w_raw = words[idx].strip()
-            if any(w_raw.endswith(p) for p in SENTENCE_CLAUSE_PUNCTUATION):
+            if is_sentence_terminator(words[idx]) and not is_disallowed_tail(words[idx]):
+                best_idx = idx
+                break
+    if best_idx is None:
+        for idx in range(search_start - 1, min_idx - 1, -1):
+            if is_valid_clause_boundary(words, idx) and not is_disallowed_tail(words[idx]):
                 best_idx = idx
                 break
 
-    # Priority 4: If still unpunctuated, extend forward across whole sentence to find next boundary
-    if best_idx is None and max_idx < total - 1:
+    # Priority 4: When no valid boundary is within the cap, extend forward past 8s to the next sentence terminator
+    if best_idx is None:
         for idx in range(max_idx + 1, total):
-            w_raw = words[idx].strip()
-            if any(w_raw.endswith(p) for p in SENTENCE_CLAUSE_PUNCTUATION):
+            if is_sentence_terminator(words[idx]) and not is_disallowed_tail(words[idx]):
+                best_idx = idx
+                break
+
+    # Priority 5: If no forward sentence terminator, check forward for any valid clause boundary
+    if best_idx is None:
+        for idx in range(max_idx + 1, total):
+            if is_valid_clause_boundary(words, idx) and not is_disallowed_tail(words[idx]):
                 best_idx = idx
                 break
 
     cand = best_idx if best_idx is not None else target_idx
 
     # Disallowed tail guard: avoid ending a scene on articles/conjunctions, or dangling prepositions without terminal punctuation
-    always_disallowed = {"a", "an", "the", "and", "or", "but"}
-    while cand > min_idx:
-        w_raw = words[cand].strip()
-        w_clean = w_raw.lower().strip(".,;:!?\"'—–")
-        is_terminal = any(w_raw.endswith(p) for p in [".", "!", "?"])
-        if w_clean in always_disallowed:
-            cand -= 1
-        elif w_clean in DISALLOWED_TAIL_WORDS and not is_terminal:
-            cand -= 1
-        else:
-            break
+    while cand > min_idx and is_disallowed_tail(words[cand]):
+        cand -= 1
 
     return cand
 
@@ -374,7 +434,7 @@ class Stage4TemporalScheduler:
                 cur_sw = sw
 
                 for p_idx in range(n_parts):
-                    if p_idx == n_parts - 1:
+                    if p_idx == n_parts - 1 or cur_sw >= ew:
                         cur_ew = ew
                     else:
                         target_ew = min(ew - (n_parts - 1 - p_idx), cur_sw + max(2, beat_len // n_parts) - 1)
@@ -384,7 +444,7 @@ class Stage4TemporalScheduler:
                             min_idx=cur_sw + 1,
                             max_idx=ew - (n_parts - 1 - p_idx)
                         )
-                        cur_ew = cand_ew
+                        cur_ew = min(ew, cand_ew)
 
                     seg_sub_words = [words[w].word for w in range(cur_sw, cur_ew + 1)]
                     prog_summary = derive_progressive_subsegment_concept(
@@ -405,6 +465,8 @@ class Stage4TemporalScheduler:
                         "alignment_confidence": 0.94
                     })
                     cur_sw = cur_ew + 1
+                    if cur_sw > ew:
+                        break
             else:
                 raw_segments.append({
                     "beat_id": beat.beat_id,
@@ -473,71 +535,75 @@ class Stage4TemporalScheduler:
             ))
 
         # If the final scene exceeds 8.00s, split the tail into two compliant scenes
+        # ONLY if a valid sentence/clause boundary exists within the scene.
+        # If no valid boundary exists within the cap, retain the scene ending at its sentence terminator.
         if final_scenes and final_scenes[-1].duration > 8.00:
-            last = final_scenes.pop()
+            last = final_scenes[-1]
             l_words = last.narration_text.split()
+            w_mid_idx = None
             if len(l_words) >= 4:
-                w_mid_idx = find_sentence_clause_split_point(
+                cand_idx = find_sentence_clause_split_point(
                     l_words,
                     target_idx=len(l_words) // 2,
                     min_idx=1,
                     max_idx=len(l_words) - 2
                 )
+                if cand_idx < len(l_words) - 1 and is_valid_split_point(l_words, cand_idx):
+                    w_mid_idx = cand_idx
+
+            if w_mid_idx is not None:
+                final_scenes.pop()
                 w_part1 = l_words[:w_mid_idx + 1]
                 w_part2 = l_words[w_mid_idx + 1:]
-            else:
-                w_mid = max(1, len(l_words) // 2)
-                w_part1 = l_words[:w_mid]
-                w_part2 = l_words[w_mid:]
 
-            # Proportionally calculate mid timestamp based on word partition
-            ratio = len(w_part1) / max(1, len(l_words))
-            mid = round(last.start_time + ratio * last.duration, 2)
-            summary1 = derive_progressive_subsegment_concept(last.visual_summary, w_part1, 0, 2)
-            summary2 = derive_progressive_subsegment_concept(last.visual_summary, w_part2, 1, 2)
+                # Proportionally calculate mid timestamp based on word partition
+                ratio = len(w_part1) / max(1, len(l_words))
+                mid = round(last.start_time + ratio * last.duration, 2)
+                summary1 = derive_progressive_subsegment_concept(last.visual_summary, w_part1, 0, 2)
+                summary2 = derive_progressive_subsegment_concept(last.visual_summary, w_part2, 1, 2)
 
-            fallback_last_beat_id = f"BEAT-{len(visual_plan.visual_beats):03d}" if visual_plan and visual_plan.visual_beats else "BEAT-001"
-            last_narr_ids = list(last.source_narrative_beat_ids) if last.source_narrative_beat_ids else [fallback_last_beat_id]
-            last_vis_ids = list(last.source_visual_beat_ids) if last.source_visual_beat_ids else [last.beat_id]
+                fallback_last_beat_id = f"BEAT-{len(visual_plan.visual_beats):03d}" if visual_plan and visual_plan.visual_beats else "BEAT-001"
+                last_narr_ids = list(last.source_narrative_beat_ids) if last.source_narrative_beat_ids else [fallback_last_beat_id]
+                last_vis_ids = list(last.source_visual_beat_ids) if last.source_visual_beat_ids else [last.beat_id]
 
-            idx1 = len(final_scenes) + 1
-            final_scenes.append(ScheduledScene(
-                scene_id=f"{idx1:03d}",
-                index=idx1,
-                beat_id=last.beat_id,
-                source_narrative_beat_ids=last_narr_ids,
-                source_visual_beat_ids=last_vis_ids,
-                source_word_start=last.source_word_start,
-                source_word_end=last.source_word_start + len(w_part1) - 1 if last.source_word_start is not None else None,
-                character_ids=list(last.character_ids),
-                chronological_order=idx1,
-                start_time=last.start_time,
-                end_time=mid,
-                duration=round(mid - last.start_time, 2),
-                narration_text=" ".join(w_part1),
-                visual_summary=summary1,
-                scheduling_reason="Tail duration ceiling split",
-                alignment_confidence=0.92
-            ))
-            idx2 = len(final_scenes) + 1
-            final_scenes.append(ScheduledScene(
-                scene_id=f"{idx2:03d}",
-                index=idx2,
-                beat_id=last.beat_id,
-                source_narrative_beat_ids=last_narr_ids,
-                source_visual_beat_ids=last_vis_ids,
-                source_word_start=(last.source_word_start + len(w_part1)) if last.source_word_start is not None else None,
-                source_word_end=last.source_word_end,
-                character_ids=list(last.character_ids),
-                chronological_order=idx2,
-                start_time=mid,
-                end_time=last.end_time,
-                duration=round(last.end_time - mid, 2),
-                narration_text=" ".join(w_part2),
-                visual_summary=summary2,
-                scheduling_reason="Tail duration ceiling split",
-                alignment_confidence=0.92
-            ))
+                idx1 = len(final_scenes) + 1
+                final_scenes.append(ScheduledScene(
+                    scene_id=f"{idx1:03d}",
+                    index=idx1,
+                    beat_id=last.beat_id,
+                    source_narrative_beat_ids=last_narr_ids,
+                    source_visual_beat_ids=last_vis_ids,
+                    source_word_start=last.source_word_start,
+                    source_word_end=last.source_word_start + len(w_part1) - 1 if last.source_word_start is not None else None,
+                    character_ids=list(last.character_ids),
+                    chronological_order=idx1,
+                    start_time=last.start_time,
+                    end_time=mid,
+                    duration=round(mid - last.start_time, 2),
+                    narration_text=" ".join(w_part1),
+                    visual_summary=summary1,
+                    scheduling_reason="Tail duration ceiling split",
+                    alignment_confidence=0.92
+                ))
+                idx2 = len(final_scenes) + 1
+                final_scenes.append(ScheduledScene(
+                    scene_id=f"{idx2:03d}",
+                    index=idx2,
+                    beat_id=last.beat_id,
+                    source_narrative_beat_ids=last_narr_ids,
+                    source_visual_beat_ids=last_vis_ids,
+                    source_word_start=(last.source_word_start + len(w_part1)) if last.source_word_start is not None else None,
+                    source_word_end=last.source_word_end,
+                    character_ids=list(last.character_ids),
+                    chronological_order=idx2,
+                    start_time=mid,
+                    end_time=last.end_time,
+                    duration=round(last.end_time - mid, 2),
+                    narration_text=" ".join(w_part2),
+                    visual_summary=summary2,
+                    scheduling_reason="Tail duration ceiling split",
+                    alignment_confidence=0.92
+                ))
 
         return final_scenes
 
@@ -595,8 +661,9 @@ class Stage4TemporalScheduler:
                 prev_w = 0
                 for p in range(n_parts):
                     p_end = en if p == n_parts - 1 else round(p_start + sub_dur, 2)
-                    if p == n_parts - 1:
+                    if p == n_parts - 1 or prev_w >= len(beat_words) - 1:
                         seg_sub_words = beat_words[prev_w:]
+                        prev_w = len(beat_words)
                     else:
                         target = prev_w + max(2, len(beat_words) // n_parts)
                         split_w = find_sentence_clause_split_point(
@@ -605,6 +672,7 @@ class Stage4TemporalScheduler:
                             min_idx=prev_w + 1,
                             max_idx=len(beat_words) - (n_parts - p)
                         )
+                        split_w = min(len(beat_words) - 1, split_w)
                         seg_sub_words = beat_words[prev_w : split_w + 1]
                         prev_w = split_w + 1
 
@@ -625,6 +693,8 @@ class Stage4TemporalScheduler:
                         "summary": prog_summary
                     })
                     p_start = p_end
+                    if prev_w >= len(beat_words):
+                        break
             else:
                 raw_scenes.append({
                     "beat_id": beat.beat_id,
