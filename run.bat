@@ -7,20 +7,27 @@ echo          PROMPTBEAST PRODUCTION STUDIO
 echo =======================================================
 echo.
 
-:: Check if Python is installed
-python --version >nul 2>&1
-if errorlevel 1 (
-    color 0c
-    echo [ERROR] Python is not found in your system PATH!
-    echo Please install Python 3.10+ and check 'Add python.exe to PATH'.
-    echo.
-    pause
-    exit
-)
-
 :: Set working directory and pythonpath
 cd /d "%~dp0"
 set "PYTHONPATH=%~dp0"
+
+:: Activate virtual environment if present
+if exist "%~dp0venv\Scripts\activate.bat" (
+    call "%~dp0venv\Scripts\activate.bat"
+) else if exist "%~dp0.venv\Scripts\activate.bat" (
+    call "%~dp0.venv\Scripts\activate.bat"
+)
+
+:: Check if Python is installed or venv is active
+python --version >nul 2>&1
+if errorlevel 1 (
+    color 0c
+    echo [ERROR] Python is not found in your system PATH or virtual environment!
+    echo Please run install.bat first to set up the application environment.
+    echo.
+    pause
+    exit /b 1
+)
 
 echo Launching PromptBeast Desktop Studio...
 echo.
