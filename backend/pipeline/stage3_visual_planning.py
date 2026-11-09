@@ -189,12 +189,22 @@ Return strictly valid JSON with key "visual_beats":
 
             while len(beats_data) < len(batch_units):
                 missing_u = batch_units[len(beats_data)]
-                u_text = missing_u.get("text", "")
+                u_text = missing_u.get("text", "").strip()
+                if not u_text:
+                    raise RuntimeError(f"Stage 3 planning failure: Unit {missing_u.get('unit_id')} has empty text.")
+                u_words = [w for w in re.sub(r"[^\w\s]", "", u_text).split() if len(w) >= 4 and w.lower() not in {
+                    "that", "this", "with", "from", "into", "their", "have", "been", "were", "they", "there", "what", "when", "where", "which"
+                }]
+                if not u_words:
+                    raise RuntimeError(f"Stage 3 planning failure: Unit {missing_u.get('unit_id')} text '{u_text}' contains no groundable content.")
+                core_focus = ", ".join(u_words[:4])
+                grounded_concept = f"Concrete depiction of {core_focus} during narrative action: {u_text.rstrip('.')}."
+
                 beats_data.append({
                     "exact_narration_segment": u_text,
-                    "narrative_purpose": f"Visualizes story progression: {u_text[:50]}",
-                    "primary_visual_concept": f"Historical scene depicting {u_text[:70]}",
-                    "what_new_information_is_shown": f"Advances narrative: {u_text[:50]}",
+                    "narrative_purpose": f"Visualizes story progression: {core_focus}",
+                    "primary_visual_concept": grounded_concept,
+                    "what_new_information_is_shown": f"Focuses narrative on {core_focus}",
                     "composition": "Eye-level medium-wide shot",
                     "lighting_and_atmosphere": "Authentic period lighting with dramatic chiaroscuro contrast",
                     "continuity_references": [],
@@ -208,7 +218,11 @@ Return strictly valid JSON with key "visual_beats":
                 matched_u = batch_units[idx_b]
                 exact_narr = b.get("exact_narration_segment") or matched_u.get("text", "")
                 purp = b.get("narrative_purpose") or "Visualizes narration moment"
-                concept = b.get("primary_visual_concept") or b.get("subject") or f"Historical scene: {matched_u.get('text', '')[:60]}"
+                concept = b.get("primary_visual_concept") or b.get("subject")
+                if not concept:
+                    u_t = matched_u.get("text", "").strip()
+                    cw = [w for w in re.sub(r"[^\w\s]", "", u_t).split() if len(w) >= 4]
+                    concept = f"Concrete depiction of {', '.join(cw[:3])}: {u_t.rstrip('.')}."
                 new_info = b.get("what_new_information_is_shown") or "Advances story development"
                 comp = b.get("composition") or "Eye-level medium-wide shot"
                 light = b.get("lighting_and_atmosphere") or "Directional chiaroscuro lighting"

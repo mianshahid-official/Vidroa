@@ -152,28 +152,38 @@ def derive_progressive_subsegment_concept(base_concept: str, seg_words: List[str
     Derives an authentic, distinct, story-driven progressive visual concept for each subsegment
     when a long beat is divided to satisfy the strict <= 8.0s hard ceiling.
     Eliminates repetitive action loops by advancing narrative perspective (Establishing -> Detail -> Climax/Consequence).
-    Generates natural, fluent English descriptions without internal pipeline tags.
+    Derives the subsegment concept from the segment's actual action verbs and objects, not keyword salad.
     """
     clean_base = re.sub(r"\s*\(Angle\s*\d+\)", "", base_concept).strip()
     clean_base = re.sub(r"\s*—\s*.*$", "", clean_base).strip()
     clean_base = re.sub(r"\s*-\s*.*$", "", clean_base).strip()
     clean_base = re.sub(r"\s*\((Establishing development|Active progression|Dramatic consequence|Climax|Resolution)\)", "", clean_base).strip()
 
-    seg_text = " ".join(seg_words).strip()
-    words_clean = [w for w in seg_words if len(w) > 3 and w.lower() not in [
-        "with", "that", "from", "into", "their", "have", "been", "were", "this", "they", "there", "what", "when", "where", "which"
-    ]]
-    action_phrase = " ".join(words_clean[:5]) if words_clean else seg_text[:35]
+    seg_text = " ".join(seg_words).strip().rstrip(".,;:!?")
+    if not seg_text:
+        raise RuntimeError("Stage 4 concept derivation failure: Subsegment has empty narration words.")
+
+    stop_words = {
+        "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with",
+        "by", "from", "into", "through", "over", "under", "about", "above", "below",
+        "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do",
+        "does", "did", "will", "would", "shall", "should", "may", "might", "must", "can",
+        "could", "this", "that", "these", "those", "their", "they", "them", "there", "what",
+        "when", "where", "which", "who", "whom", "whose", "why", "how", "each", "all"
+    }
+
+    content_words = [w for w in seg_words if re.sub(r"[^\w]", "", w).lower() not in stop_words and len(w) > 2]
+    action_verb_object = " ".join(content_words[:4]).rstrip(".,;:!?") if content_words else seg_text
 
     if total_parts <= 1:
         return clean_base
 
     if part_idx == 0:
-        return f"Wide establishing shot: {clean_base}"
+        return f"Establishing angle: {clean_base} focusing on {action_verb_object}"
     elif part_idx == total_parts - 1:
-        return f"Dramatic focal perspective highlighting {action_phrase or clean_base}"
+        return f"Consequential climax: {clean_base} resolving {action_verb_object}"
     else:
-        return f"Dynamic medium shot depicting {action_phrase or clean_base}"
+        return f"Dynamic progression: {clean_base} actively depicting {action_verb_object}"
 
 
 class Stage4TemporalScheduler:

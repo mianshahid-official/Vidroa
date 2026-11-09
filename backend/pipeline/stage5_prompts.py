@@ -57,7 +57,7 @@ def sanitize_action_summary(raw_summary: str, narration: str) -> str:
 
 
 def derive_contextual_environment(narration: str, analysis: ScriptAnalysis, is_3d_stickman: bool = False) -> str:
-    """Derives setting from narration and continuity location bible without hardcoded Rome/Constantinople."""
+    """Derives setting from narration and continuity location bible without generic templates."""
     narr_l = narration.lower()
     period = analysis.historical_or_setting_period if analysis else "Setting"
     pack = StoryPackManager.match_pack(narration)
@@ -74,10 +74,28 @@ def derive_contextual_environment(narration: str, analysis: ScriptAnalysis, is_3
                 return f"Stylized 3D {loc_name} with {loc_desc[:60]} and smooth matte toy textures"
             return f"{loc_name} with {loc_desc[:80]}"
 
-    # 2. Setting fallback
+    # 2. Grounded derivation from narration nouns and setting period (zero generic templates)
+    narr_clean = re.sub(r"[^\w\s]", "", narration)
+    stop_words = {
+        "the", "and", "with", "from", "into", "that", "this", "over", "under", "scene", "shot",
+        "view", "camera", "showing", "depicting", "visual", "figure", "figures", "style", "animation",
+        "stickman", "authentic", "damaged", "warm", "faded", "tones", "black", "sharp", "central",
+        "animated", "stylized", "smooth", "strict", "human", "they", "their", "were", "been", "have",
+        "about", "which", "where", "when", "there", "below", "above", "across", "along", "through",
+        "then", "than", "these", "those", "them", "some", "such", "each", "more", "most", "also",
+        "just", "only", "even", "once", "here", "ever", "very", "much"
+    }
+    content_nouns = [w for w in narr_clean.split() if len(w) >= 4 and w.lower() not in stop_words]
+    if not content_nouns:
+        raise RuntimeError(
+            f"Stage 5 environment derivation failure: Narration '{narration[:60]}' contains no groundable content nouns. "
+            f"Generic template fallback ('Authentic {period} setting') is strictly prohibited."
+        )
+
+    focal_nouns = ", ".join(content_nouns[:3])
     if is_3d_stickman:
-        return f"Stylized 3D {period} setting with clean geometric structures"
-    return f"Authentic {period} setting with atmospheric lighting"
+        return f"Stylized 3D {period} environment focusing on {focal_nouns} with clean geometric shapes"
+    return f"{period} environment featuring {focal_nouns} with grounded atmospheric lighting"
 
 
 def derive_safe_batch_size(
