@@ -8,7 +8,7 @@ Each prompt is custom-tailored to one of PromptBeast's **11 production visual st
 
 ---
 
-## 1. Directory of the 4 Dedicated Style Prompts
+## 1. Directory of Dedicated Style Prompts
 
 | File Name | Visual Style | Aesthetic Identity & Key Locks |
 | :--- | :--- | :--- |
@@ -16,6 +16,9 @@ Each prompt is custom-tailored to one of PromptBeast's **11 production visual st
 | `02_whatif_flat_vector_ai_prompt.txt` | **What-If Flat Vector** | 2D flat vector night-world (`#12182E`, `#0A0E17`). Minimalist black stick figure with strictly locked bright RED hoodie (`#FF0000`), uniform limb thickness, tiny white dot eyes. Zero gradients, localized golden light pools. |
 | `03_century_old_photograph_ai_prompt.txt` | **Century-Old Photograph** | Authentic damaged archival print. Warm faded sepia, aged albumen, or silver gelatin monochrome. Naturally torn/chipped borders, dust specks, vertical scratches. Features 9 dynamic archival treatments (Map Overlays, Diptych Splits, Engraving Splits, Leporello Folders, Silver Bleeding, Fold Creases, Document Archives, Split-Screen Trios, Textured Blur). Strictly zero modern RGB colors. |
 | `05_3d_red_blue_stickman_ai_prompt.txt` | **3D Red & Blue Stickman** | Fully 3D toy-like CGI universe. Strict faction separation: Attackers/Invaders = 100% Solid Bright Red; Defenders = 100% Solid Blue. No color mixing on tasks. Featureless spherical heads, rounded block geometry. Zero realistic anatomy. |
+| `06_antique_engraving_ai_prompt.txt` | **Antique Engraving** | 18th/19th-century copperplate and steel engraving. Fine black-ink cross-hatching, stippling, and precise etched line work on aged cream paper. Black ink only — NO color, NO sepia wash, NO photographic look, NO torn edges. Stills held completely still. Machine-parseable B-roll `VIDEO of ... KEYWORDS ...` supported. |
+| `07_authentic_archival_photography_ai_prompt.txt` | **Authentic Archival Photography** | Genuine period photograph. Silver gelatin or albumen print, warm sepia tones, film grain, dust spots, thin scratches, faded contrast, slight vignette. The photograph FILLS the frame edge-to-edge with NO torn edges and NO paper borders. Stills held completely still. Machine-parseable B-roll `VIDEO of ... KEYWORDS ...` supported. |
+| `08_historical_maps_ai_prompt.txt` | **Historical Maps** | Aged parchment period cartography. Hand-drawn coastlines, ornate compass rose, period place names, trade routes, battle lines, and empire territories as they existed at the narrative time. Zero modern map looks, zero satellite styling. Narratively relevant geography. Stills held completely still (never pan/zoom across map). Machine-parseable B-roll `VIDEO of ... KEYWORDS ...` supported. |
 
 ---
 

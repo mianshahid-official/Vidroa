@@ -19,6 +19,22 @@ CENTURY_OLD_FILTER = (
     "eq=brightness='0.03*sin(16*PI*t)'"
 )
 
+# Authentic Archival Photography: same sepia grade as century-old
+ARCHIVAL_PHOTOGRAPHY_FILTER = CENTURY_OLD_FILTER
+
+# Antique Engraving: high-contrast ink-like grade for footage
+ANTIQUE_ENGRAVING_FILTER = (
+    "format=gray,"
+    "eq=contrast=1.75:brightness=-0.05,"
+    "colorchannelmixer=.92:.92:.92:0:.88:.88:.88:0:.80:.80:.80"
+)
+
+# Historical Maps: light sepia grade, footage used with antique warm parchment tone
+HISTORICAL_MAPS_FILTER = (
+    "colorchannelmixer=.5:.5:0:0:.4:.5:.1:0:.3:.4:.3:0,"
+    "eq=contrast=1.05:saturation=0.8"
+)
+
 FLAT_2D_CARTOON_FILTER = (
     "lutrgb=r='trunc(val/64)*64':g='trunc(val/64)*64':b='trunc(val/64)*64',"
     "smartblur=lr=2.0:ls=-0.5,"
@@ -30,8 +46,12 @@ GENERAL_CINEMATIC_FILTER = "eq=contrast=1.06:saturation=1.05:gamma=0.98"
 
 def get_style_filter(style_id: str) -> str:
     """Returns the appropriate FFmpeg grading filter chain for the given style."""
-    s = (style_id or "").lower()
-    if any(k in s for k in ["century_old", "vintage", "archival", "sepia", "history"]):
+    s = (style_id or "").lower().strip()
+    if any(k in s for k in ["antique_engraving", "engraving", "copperplate", "etching"]):
+        return ANTIQUE_ENGRAVING_FILTER
+    elif any(k in s for k in ["historical_maps", "map", "maps", "cartography"]):
+        return HISTORICAL_MAPS_FILTER
+    elif any(k in s for k in ["authentic_archival_photography", "archival_photography", "archival_photo", "archival", "century_old", "vintage", "sepia", "history"]):
         return CENTURY_OLD_FILTER
     elif any(k in s for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime"]):
         return FLAT_2D_CARTOON_FILTER

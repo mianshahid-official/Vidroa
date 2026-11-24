@@ -24,6 +24,36 @@ def is_cartoon_style(style_id: str) -> bool:
     return any(k in s for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime", "animation"])
 
 
+def determine_stock_route(style_id: str, keywords: Optional[List[str]] = None) -> tuple[str, str]:
+    """
+    Determines stock video provider priority and video_type filter.
+    Returns: (first_provider, video_type) where first_provider is 'pexels' or 'pixabay',
+    and video_type is 'animation' or 'all'.
+
+    Routing Rules:
+      - Archival photography / Century-old: Pexels first (realistic, video_type='all').
+      - Engraving and Maps: Pixabay first with video_type='animation' ONLY if the style
+        or scene explicitly needs animation (keywords contain animation/animated/drawing/sketch/cgi),
+        otherwise Pexels first for real footage of the place or subject (video_type='all').
+      - Flat 2D / Cartoon styles (zombie, whatif, stickman): Pixabay first with video_type='animation'.
+      - All other styles: Pexels first.
+    """
+    sid = (style_id or "").lower().strip()
+    kw_str = " ".join(keywords or []).lower()
+    animation_needed = any(w in kw_str for w in ["animation", "animated", "cartoon", "drawing", "illustration", "sketch", "cgi"])
+
+    if any(k in sid for k in ["archival_photo", "archival_photography", "authentic_archival_photography", "century_old"]):
+        return ("pexels", "all")
+    elif any(k in sid for k in ["antique_engraving", "engraving", "copperplate", "historical_maps", "map", "maps"]):
+        if animation_needed:
+            return ("pixabay", "animation")
+        return ("pexels", "all")
+    elif any(k in sid for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime"]):
+        return ("pixabay", "animation")
+    else:
+        return ("pexels", "all")
+
+
 class StockVideoService:
     """Manages searching and downloading stock video footage from Pexels and Pixabay."""
 
@@ -57,13 +87,13 @@ class StockVideoService:
         p_key = (pexels_key or keys["pexels"]).strip()
         px_key = (pixabay_key or keys["pixabay"]).strip()
 
-        cartoon = is_cartoon_style(style_id)
+        first_provider, video_type = determine_stock_route(style_id, keywords)
         candidates: List[Dict[str, Any]] = []
 
-        if cartoon:
+        if first_provider == "pixabay":
             # Pixabay first
             if px_key:
-                candidates.extend(cls.search_pixabay(keywords, api_key=px_key, video_type="animation"))
+                candidates.extend(cls.search_pixabay(keywords, api_key=px_key, video_type=video_type))
             # Fallback to Pexels
             if len(candidates) < max_candidates and p_key:
                 candidates.extend(cls.search_pexels(keywords, api_key=p_key))
