@@ -1,0 +1,434 @@
+1. CHARACTER BIBLE
+CHARACTER 1: THE PROTAGONIST
+
+Role: Main survivor and narrator
+Gender: Unspecified (maintain consistent appearance throughout)
+Age: Approximately 30–40 years
+Build: Average build, physically capable but gradually exhausted
+Appearance: Tired face, slightly unkempt hair, subtle facial stubble if male, realistic skin texture, alert and observant eyes.
+
+Clothing:
+Dark charcoal or navy work shirt.
+Practical dark work trousers.
+Worn black or brown work shoes.
+Simple utility belt.
+No unnecessary tactical equipment.
+Clothing becomes progressively dirtier, more wrinkled, and worn.
+
+Important Props:
+Box cutter.
+Clipboard.
+Flashlight.
+Yellow notepad.
+Crowbar.
+Small survival backpack.
+Work gloves when appropriate.
+
+Personality Through Visual Expression:
+Initially alert and confused.
+Gradually becomes analytical, cautious, and resourceful.
+Rarely shows unnecessary panic.
+Maintains a serious, observant expression.
+By Day 60, appears physically exhausted, sleep-deprived, and emotionally hardened.
+
+Visual Continuity: The protagonist must look like the same person throughout the entire story. Facial structure, hairstyle, body proportions, and clothing identity should remain recognizable. Clothing deterioration should progress naturally with time.
+
+CHARACTER 2: MILLER
+
+Role: Second survivor, delivery driver.
+Age: Approximately 35–45 years.
+Build: Lean, underweight, physically exhausted.
+
+Appearance:
+Gaunt face.
+Dark, tired eyes.
+Short, slightly unkempt hair.
+Visible facial stubble.
+Dehydrated appearance when first discovered.
+Nervous facial expressions.
+
+Clothing:
+Faded delivery-driver uniform.
+Dark work trousers.
+Worn work shoes.
+Clothing visibly dirty and creased after 42 days of isolation.
+
+Important Props:
+Metal pipe.
+Survival backpack.
+Empty water container.
+Paperback book.
+Small photograph of his daughter.
+Lighter.
+
+Personality Through Visual Expression:
+Frightened and defensive when discovered.
+Talks excessively when nervous.
+Emotionally attached to his daughter's photograph.
+Struggles with isolation and darkness.
+Becomes visibly distressed during the herd attack.
+Appears physically weakened after his calf injury.
+
+Visual Continuity: Miller must retain the same facial appearance, hairstyle, body proportions, and delivery uniform throughout his appearances. His injury must remain on the same calf and should be consistently represented as a serious, bandaged leg injury after the escape.
+
+CHARACTER 3: THE INFECTED
+
+Role: Threatening infected humans.
+
+Appearance:
+Human proportions and anatomy.
+Pale, unhealthy-looking skin.
+Disheveled clothing.
+Clouded or unfocused eyes.
+Unnatural posture.
+Slow, unstable movement.
+Dirt and deterioration appropriate to the environment.
+
+Clothing: Ordinary civilian clothing appropriate to a modern shopping mall:
+Casual shirts.
+Jeans.
+Jackets.
+Dresses.
+Everyday shoes.
+
+Important Rules:
+They must remain recognizable as infected humans.
+Avoid fantasy monsters, supernatural creatures, or exaggerated mutations.
+No unnecessary gore.
+Maintain realistic physical proportions.
+Their appearance should become increasingly dirty and deteriorated as appropriate.
+
+CHARACTER 4: THE WOMAN BITTEN IN THE PARKING LOT
+
+Role: First clearly observed infected survivor.
+
+Appearance:
+Adult woman.
+Ordinary civilian clothing.
+Visible bite injury.
+Initially frightened and physically weakened.
+Later stands with an unnatural, unstable posture.
+
+Continuity: She must remain visually identifiable as the same woman between her collapse and reanimation scenes.
+
+2. ENVIRONMENT BIBLE
+LOCATION 1: THE SHOPPING MALL
+
+Primary Setting: Large modern American-style shopping mall.
+
+Architecture:
+Approximately 400,000 square feet.
+Two main retail floors.
+Large central atrium.
+Glass skylight dome.
+Multiple retail corridors.
+Central fountain.
+Escalators connecting both floors.
+Service stairwells.
+Underground maintenance tunnels.
+Large parking lot.
+Multiple exterior entrances.
+
+Interior Design:
+Modern commercial architecture.
+Polished tile floors.
+Glass storefronts.
+Metal security shutters.
+Suspended ceiling lights.
+Retail signage.
+Food court seating.
+Decorative planters.
+Mall directories.
+
+Visual Progression:
+Beginning: Normal, fully operational shopping mall.
+Early outbreak: Darkened, abandoned, and increasingly chaotic.
+Middle: Dusty, contaminated, and deteriorating.
+Day 51: Roof damage, broken skylight, and rain entering.
+Day 57: Massive destruction across the ground floor.
+Day 60: Ground floor devastated while the second floor remains comparatively intact.
+
+LOCATION 2: SPORTING GOODS STORE
+
+Primary Survival Base.
+Location: Second floor of the mall.
+
+Architecture:
+One main entrance.
+Heavy steel drop-down security grate.
+No exterior windows.
+Retail shelving and display racks.
+Camping equipment sections.
+Sporting merchandise.
+Ladder leading to maintenance catwalks.
+
+Interior Arrangement:
+Organized food and water supplies.
+Yellow notepad and planning area.
+Sleeping area.
+First-aid supplies.
+Flashlights and tools.
+Reinforced entrance.
+Small peephole overlooking the lower floor.
+
+Visual Progression: Initially an ordinary sporting goods store. Gradually transformed into a compact survival fortress.
+
+By Day 60:
+Reinforced entrance.
+Organized remaining supplies.
+Dirty but functional sleeping area.
+Medical supplies.
+Damaged clothing and equipment.
+Heavy plastic sealing.
+Dark, controlled interior.
+
+LOCATION 3: SECURITY ROOM
+
+Architecture:
+Small commercial security control room.
+Multiple surveillance monitors.
+Security desk.
+Computer equipment.
+Camera-control panels.
+Backup power system.
+
+Visual Progression: Initially operational with illuminated camera feeds. By Day 3, all monitors are dead and the room is dark.
+
+LOCATION 4: DEPARTMENT STORE BACK CORRIDOR
+
+Architecture:
+Narrow employee-only corridor.
+Storage doors.
+Utility shelves.
+Fluorescent lighting.
+Stockroom access.
+Commercial flooring.
+
+Important Details: The protagonist initially stands here with a box cutter and clipboard when the emergency announcement begins.
+
+LOCATION 5: FOOD COURT
+
+Architecture:
+Open commercial dining area.
+Restaurant counters.
+Shared seating.
+Commercial freezers.
+Food preparation areas.
+Overhead ventilation.
+
+Visual Progression: Initially operational. By Day 4, abandoned food and failed freezers create a visibly spoiled environment.
+
+LOCATION 6: GROCERY STORE
+
+Architecture:
+Supermarket-style shelving.
+Food aisles.
+Refrigerated sections.
+Bottled-water displays.
+Storage areas.
+
+Important Items: Rice, beans, canned chicken, peanut butter, and bottled water.
+
+LOCATION 7: FIRST-FLOOR PHARMACY
+
+Architecture:
+Retail pharmacy shelving.
+Glass display counters.
+Medicine storage.
+Rear storage areas.
+
+Important Continuity: A concealed emergency cache is placed here, containing approximately 30,000 calories and 20 gallons of water. The cache is later lost when the herd passes through.
+
+LOCATION 8: WEST-WING SHOE STORE
+
+Architecture:
+Glass storefront.
+Metal security gate.
+Shoe displays.
+Shelving and retail counters.
+Small rear storage area.
+
+Important Props:
+Five-gallon water container.
+Canned food.
+Paperback book.
+Candle.
+Lighter.
+Photograph of Miller's daughter.
+
+This location becomes Miller's temporary shelter.
+
+LOCATION 9: UNDERGROUND SERVICE TUNNELS
+
+Architecture:
+Narrow concrete corridors.
+Exposed electrical pipes.
+Electrical rooms.
+Maintenance doors.
+Damp concrete floors.
+Utility infrastructure.
+Low ceilings.
+Dark intersecting passages.
+
+Atmosphere: Cold, damp, abandoned, and poorly ventilated.
+
+Important Details:
+Accumulated dust.
+Human footprints.
+Ration-meat tin.
+Discarded flashlight.
+Drag marks.
+Hidden passages.
+Fishing-line warning traps.
+
+LOCATION 10: CENTRAL ATRIUM AND FOUNTAIN
+
+Architecture:
+Large open vertical space.
+Two central escalators.
+Decorative fountain.
+Upper-floor balcony.
+Glass skylight overhead.
+Retail stores surrounding the concourse.
+
+Important Continuity: The infected figure appears here on Day 19. The escalators are later dropped into their structural pits to isolate the second floor.
+
+3. OBJECT AND PROP BIBLE
+
+Maintain consistent appearance and placement of important objects.
+
+Survival Equipment:
+Yellow notepad: Primary survival planning document.
+Flashlight: Main portable light source.
+Stock cart: Used to transport supplies.
+T-shirts: Wrapped around cart wheels.
+Box cutter: Initial work tool.
+Clipboard: Initial work prop.
+Crowbar: Used during Miller's rescue.
+Fishing line: Underground warning system.
+Empty soda cans: Improvised alarm.
+Emergency flare: Used to reveal Miller.
+Steel pins: Four locking pins securing the store entrance.
+Steel cable: Connected to the escalator-release system.
+Chains: Used to secure stairwell doors.
+Plastic sheeting: Used to seal corridors and conceal the survival base.
+
+Food and Water:
+Bottled water.
+Five-gallon water jug.
+Commercial water heater.
+Rainwater collection buckets.
+Carbon, sand, and cotton filtration materials.
+Rice.
+Beans.
+Canned chicken.
+Peanut butter.
+Canned food.
+Ration meat tins.
+Water storage containers.
+
+Important Personal Items:
+Miller's daughter's photograph.
+Miller's paperback book.
+Miller's lighter.
+Miller's metal pipe.
+Miller's delivery backpack.
+
+Structural Elements:
+Steel security shutters.
+Glass storefront panels.
+Central escalators.
+Roof skylight.
+Maintenance catwalks.
+Fire doors.
+Stairwell chains.
+Concrete service corridors.
+
+4. CINEMATIC STYLE BIBLE
+Overall Visual Identity
+
+Genre: Realistic survival horror documentary.
+Visual Approach: Photorealistic, grounded, atmospheric, and believable.
+The world should resemble an actual modern shopping mall experiencing a prolonged catastrophic emergency.
+
+Avoid:
+Fantasy environments.
+Futuristic technology.
+Exaggerated monsters.
+Cartoon aesthetics.
+Superhero-style characters.
+Overly stylized video-game environments.
+Unnecessary dramatic effects.
+
+Lighting Progression:
+Night 1: Fluorescent commercial lighting, followed by sudden darkness.
+Days 3–15: Flashlight illumination, weak emergency lights, and limited ambient light.
+Days 19–42: Deep shadows, occasional lightning, flashlight beams, and red flare illumination.
+Days 51–57: Violent storm lighting, skylight illumination, and rain entering the mall.
+Days 58–60: Very dark survival base contrasted with the ruined, dimly illuminated mall below.
+
+Color Progression:
+Normal mall: Neutral whites, beige, commercial lighting.
+Early outbreak: Cold grey, dark blue, black.
+Underground: Concrete grey, dirty brown, muted green.
+Sporting goods base: Dark grey, muted green, dusty brown.
+Flare scenes: Deep red, black.
+Storm scenes: Cold blue, charcoal, rain grey.
+Final scenes: Desaturated grey, dark brown, muted natural colors.
+
+Composition Variety:
+Wide architectural establishing shots.
+Medium character shots.
+Close-ups of important objects.
+Overhead mall layouts.
+Surveillance-camera perspectives.
+First-person observational perspectives.
+Mezzanine viewpoints.
+Underground tunnel perspectives.
+Environmental destruction shots.
+Intimate character moments.
+
+Avoid repeating the same composition in consecutive visuals.
+
+5. CHRONOLOGY AND CONTINUITY BIBLE
+
+Timeline:
+Night 1: Sixty people trapped inside the mall; outbreak begins outside.
+Day 3: Security batteries die.
+Day 4: Food court begins rotting.
+Days 4–15: Survival base and supplies established.
+Day 15: 100 gallons of water and 200,000 calories.
+Day 19: Infected survivor emerges from underground tunnels.
+Day 20: Protagonist eliminates the infected and discovers evidence of another survivor.
+Day 42: Miller is discovered; receives a separate shelter in the west wing.
+Day 47: Miller is caught using a candle.
+Day 51: Storm destroys the skylight and rooftop collection system.
+Day 56: Herd begins approaching the mall.
+Day 57: Main entrance is breached; Miller is injured and rescued; Phase Three activated.
+Days 57–58: Thirty-six hours of darkness and silence.
+Day 58: Herd activity begins decreasing.
+Day 60: Ground floor inspected through peephole; remaining food and water calculated.
+
+6. IMPORTANT VISUAL CONTINUITY RULES
+The protagonist must retain the same appearance throughout all scenes.
+Miller must retain the same appearance throughout all scenes.
+Miller's daughter's photograph must remain the same recognizable object.
+Miller's leg injury occurs during the Day 57 escape, not earlier.
+The protagonist's yellow notepad must remain visually consistent.
+The sporting goods store must always occupy the second floor.
+Miller's shoe store must remain on the west side of the first floor.
+The central fountain and escalators must retain their spatial relationship.
+The skylight damage only occurs during the Day 51 storm.
+The main entrance is breached on Day 57.
+The second-floor escalator defenses are activated during the Day 57 invasion.
+The ground floor is heavily damaged by Day 60.
+The second floor remains comparatively intact.
+The final inventory must show 44,000 calories and 47 gallons of water.
+Miller remains injured and unable to put weight on his leg at the end.
+
+7. FINAL STORY VISUAL IDENTITY
+The central visual contrast of the entire story is:
+Below: Chaos, infected crowds, destroyed storefronts, broken glass, exposed architecture, and darkness.
+Above: A small, fortified survival space, carefully organized supplies, silence, darkness, and two exhausted survivors.
+Every generated image should reinforce that grounded survival-documentary identity.
+

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg_uf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E1B4B"/>
+      <stop offset="50%" stop-color="#4338CA"/>
+      <stop offset="100%" stop-color="#0F0C2E"/>
+    </linearGradient>
+    <linearGradient id="cyan_glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#818CF8"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg_uf)"/>
+  <circle cx="60" cy="46" r="16" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+  <path d="M 37 94 C 37 75 47 68 60 68 C 73 68 83 75 83 94 Z" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+  <!-- Crescent moon acoustic arc -->
+  <path d="M 82 32 A 14 14 0 1 1 70 20 A 10 10 0 1 0 82 32 Z" fill="url(#cyan_glow)"/>
+  <path d="M 40 46 A 20 20 0 0 1 80 46" fill="none" stroke="url(#cyan_glow)" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="38" cy="46" r="4.5" fill="#A5B4FC"/>
+  <circle cx="82" cy="46" r="4.5" fill="#A5B4FC"/>
+</svg>

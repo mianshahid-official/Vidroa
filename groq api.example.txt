@@ -1,0 +1,13 @@
+# ==============================================================================
+# Groq API Keys Configuration Template
+# ==============================================================================
+# Rename or copy this file to "groq api.txt" and paste your Groq API keys below.
+# You can paste multiple keys (one per line). PromptBeast will automatically:
+# 1. Pool and rotate across all keys.
+# 2. Track rate limits (HTTP 429) in real-time.
+# 3. Seamlessly switch to ready keys to ensure uninterrupted generation.
+#
+# Format:
+# gsk_your_groq_api_key_here_1
+# gsk_your_groq_api_key_here_2
+

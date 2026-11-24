@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg_hm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451A03"/>
+      <stop offset="50%" stop-color="#9A3412"/>
+      <stop offset="100%" stop-color="#1C0A02"/>
+    </linearGradient>
+    <linearGradient id="saffron" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FED7AA"/>
+      <stop offset="50%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="24" fill="url(#bg_hm)"/>
+  <!-- Mandala Sun Ring -->
+  <circle cx="60" cy="50" r="38" fill="none" stroke="#EA580C" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.7"/>
+  <circle cx="60" cy="46" r="17" fill="#7C2D12" stroke="url(#saffron)" stroke-width="2"/>
+  <path d="M 36 94 C 36 75 46 68 60 68 C 74 68 84 75 84 94 Z" fill="#7C2D12" stroke="url(#saffron)" stroke-width="2"/>
+  <!-- Tilak / Aura -->
+  <ellipse cx="60" cy="38" rx="2" ry="5" fill="#FEF08A"/>
+  <!-- Classical Swar Waves -->
+  <path d="M 46 64 Q 60 56 74 64" fill="none" stroke="url(#saffron)" stroke-width="2.5"/>
+  <path d="M 40 70 Q 60 60 80 70" fill="none" stroke="#FDE047" stroke-width="1.8"/>
+</svg>

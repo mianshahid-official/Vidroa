@@ -1,0 +1,19 @@
+{
+  "modal_api_url": "https://joybenny3333--omnivoice-studio-fastapi-app.modal.run",
+  "api_key": "",
+  "api_keys": [],
+  "auth_token": "",
+  "default_model": "qwen/qwen3.8-27b",
+  "default_subject_id": "history",
+  "default_visual_style_id": "zombie_survival",
+  "default_min_duration": 1.5,
+  "default_preferred_duration": 4.5,
+  "default_max_duration": 6.0,
+  "default_batch_size": 15,
+  "workspace_directory": "",
+  "recent_projects": [],
+  "auto_save_interval_seconds": 60,
+  "window_geometry": null,
+  "pexels_api_key": "",
+  "pixabay_api_key": ""
+}

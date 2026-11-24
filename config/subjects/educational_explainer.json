@@ -1,0 +1,7 @@
+{
+  "id": "educational_explainer",
+  "name": "Educational Explainer",
+  "category": "Explainer & Conceptual",
+  "description": "Immediate comprehension, visual clarity, uncluttered composition, and direct concept representation.",
+  "system_instructions": "Prioritize immediate viewer comprehension, visual simplicity, focal clarity, uncluttered compositions, and direct pictorial representation of concepts. Minimize background noise and extraneous details so the core educational concept is unmistakable within milliseconds."
+}

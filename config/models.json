@@ -1,0 +1,38 @@
+{
+  "default_model": "qwen/qwen3.8-27b",
+  "models": [
+    {
+      "name": "qwen/qwen3.8-27b",
+      "display_name": "Qwen 3.8 27B (Groq Accelerated)",
+      "provider": "groq",
+      "context_window": 32768,
+      "max_output_tokens": 8192,
+      "default_temperature": 0.3,
+      "default_top_p": 0.9,
+      "supports_structured_json": true,
+      "supports_batching": true
+    },
+    {
+      "name": "openai/gpt-oss-120b",
+      "display_name": "GPT-OSS 120B (Groq)",
+      "provider": "groq",
+      "context_window": 32768,
+      "max_output_tokens": 8192,
+      "default_temperature": 0.3,
+      "default_top_p": 0.9,
+      "supports_structured_json": true,
+      "supports_batching": true
+    },
+    {
+      "name": "openai/gpt-oss-20b",
+      "display_name": "GPT-OSS 20B (Fast)",
+      "provider": "groq",
+      "context_window": 32768,
+      "max_output_tokens": 4096,
+      "default_temperature": 0.3,
+      "default_top_p": 0.9,
+      "supports_structured_json": true,
+      "supports_batching": true
+    }
+  ]
+}
