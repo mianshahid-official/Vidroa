@@ -57,12 +57,14 @@ class VideoWorker:
         run_log.append(f"[VideoWorker] Scene {scene.scene_id}: Searching stock video with keywords: {keywords}")
 
         # 1. Search candidates
+        treatment = getattr(scene, "treatment", None)
         if candidate_provider:
             candidates = candidate_provider(keywords, style_id)
         else:
             candidates = StockVideoService.search_candidates(
                 keywords=keywords,
                 style_id=style_id,
+                treatment=treatment,
                 max_candidates=3
             )
 
@@ -110,7 +112,7 @@ class VideoWorker:
 
                     # Style grading
                     graded_p = str(scene_cache / f"{cand_id}_graded.mp4")
-                    grade_video_clip(trimmed_p, graded_p, style_id=style_id)
+                    grade_video_clip(trimmed_p, graded_p, style_id=style_id, treatment=treatment)
 
                     cand["trimmed_path"] = trimmed_p
                     cand["graded_path"] = graded_p

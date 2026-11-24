@@ -44,16 +44,29 @@ FLAT_2D_CARTOON_FILTER = (
 GENERAL_CINEMATIC_FILTER = "eq=contrast=1.06:saturation=1.05:gamma=0.98"
 
 
-def get_style_filter(style_id: str) -> str:
-    """Returns the appropriate FFmpeg grading filter chain for the given style."""
+def get_style_filter(style_id: str = "century_old_photograph", treatment: Optional[str] = None) -> str:
+    """
+    Returns the appropriate FFmpeg grading filter chain for the given style and treatment.
+    For Century-Old Photograph style:
+      - treatment="antique_engraving" (or containing engraving): returns ANTIQUE_ENGRAVING_FILTER
+      - treatment="authentic_archival" (or containing archival): returns ARCHIVAL_PHOTOGRAPHY_FILTER
+      - treatment="historical_maps" (or containing map): returns HISTORICAL_MAPS_FILTER
+      - default (no treatment): returns CENTURY_OLD_FILTER (sepia + grain + flicker + vignette)
+    """
     s = (style_id or "").lower().strip()
-    if any(k in s for k in ["antique_engraving", "engraving", "copperplate", "etching"]):
-        return ANTIQUE_ENGRAVING_FILTER
-    elif any(k in s for k in ["historical_maps", "map", "maps", "cartography"]):
-        return HISTORICAL_MAPS_FILTER
-    elif any(k in s for k in ["authentic_archival_photography", "archival_photography", "archival_photo", "archival", "century_old", "vintage", "sepia", "history"]):
-        return CENTURY_OLD_FILTER
-    elif any(k in s for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime"]):
+    t = (treatment or "").lower().strip()
+
+    if any(k in s for k in ["century_old", "vintage", "archival", "sepia", "history"]):
+        if any(k in t for k in ["antique_engraving", "engraving", "copperplate", "etching", "10"]):
+            return ANTIQUE_ENGRAVING_FILTER
+        elif any(k in t for k in ["historical_maps", "map", "maps", "cartography", "12"]):
+            return HISTORICAL_MAPS_FILTER
+        elif any(k in t for k in ["authentic_archival", "archival_photography", "archival_photo", "11"]):
+            return ARCHIVAL_PHOTOGRAPHY_FILTER
+        else:
+            return CENTURY_OLD_FILTER
+
+    if any(k in s for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime"]):
         return FLAT_2D_CARTOON_FILTER
     else:
         return GENERAL_CINEMATIC_FILTER
@@ -63,12 +76,13 @@ def grade_video_clip(
     input_path: str,
     output_path: str,
     style_id: str = "century_old_photograph",
+    treatment: Optional[str] = None,
 ) -> str:
     """
-    Applies style grading to an input video clip using FFmpeg.
+    Applies style and treatment grading to an input video clip using FFmpeg.
     Ensures the clip is never used raw.
     """
-    filter_chain = get_style_filter(style_id)
+    filter_chain = get_style_filter(style_id=style_id, treatment=treatment)
     out_p = Path(output_path)
     out_p.parent.mkdir(parents=True, exist_ok=True)
 

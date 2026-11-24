@@ -227,13 +227,6 @@ class StylePreviewDialog(QDialog):
             "cutout": "paper_cutout",
             "paper_cut": "paper_cutout",
             "paper_cutout_illustration": "paper_cutout",
-            "engraving": "antique_engraving",
-            "copperplate_engraving": "antique_engraving",
-            "archival_photography": "authentic_archival_photography",
-            "archival_photo": "authentic_archival_photography",
-            "maps": "historical_maps",
-            "map": "historical_maps",
-            "cartography": "historical_maps",
         }
         if style_id in aliases:
             candidate_ids.append(aliases[style_id])

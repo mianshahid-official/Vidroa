@@ -98,6 +98,9 @@ class VisualScene(BaseModel):
     image_requirements: str = Field(default="", description="Specific requirements for prompt generation")
     generation_status: str = Field(default="pending", description="pending | generating | generated | error")
 
+    # Archival image treatment field (e.g. for Century-Old Photograph 12 treatments)
+    treatment: Optional[str] = Field(default=None, description="Optional archival image treatment identifier, e.g. 'antique_engraving', 'authentic_archival', 'historical_maps'")
+
     # B-roll stock video scene fields
     is_video: bool = Field(default=False, description="Whether this scene uses a stock B-roll video clip instead of a generated still")
     video_shot_description: Optional[str] = Field(default="", description="Shot description parsed from VIDEO of ...")

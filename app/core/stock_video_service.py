@@ -24,31 +24,40 @@ def is_cartoon_style(style_id: str) -> bool:
     return any(k in s for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime", "animation"])
 
 
-def determine_stock_route(style_id: str, keywords: Optional[List[str]] = None) -> tuple[str, str]:
+def determine_stock_route(
+    style_id: str = "century_old_photograph",
+    keywords: Optional[List[str]] = None,
+    treatment: Optional[str] = None,
+) -> tuple[str, str]:
     """
     Determines stock video provider priority and video_type filter.
     Returns: (first_provider, video_type) where first_provider is 'pexels' or 'pixabay',
     and video_type is 'animation' or 'all'.
 
     Routing Rules:
-      - Archival photography / Century-old: Pexels first (realistic, video_type='all').
-      - Engraving and Maps: Pixabay first with video_type='animation' ONLY if the style
-        or scene explicitly needs animation (keywords contain animation/animated/drawing/sketch/cgi),
-        otherwise Pexels first for real footage of the place or subject (video_type='all').
+      - Archival treatment (treatment 11): Pexels first (realistic, video_type='all').
+      - Engraving and Maps treatments (treatments 10 & 12): Pixabay first with
+        video_type='animation' ONLY if the keywords explicitly ask for animation
+        (animation, animated, drawing, sketch, cgi, cartoon), otherwise Pexels first
+        for real footage of the place or subject (video_type='all').
       - Flat 2D / Cartoon styles (zombie, whatif, stickman): Pixabay first with video_type='animation'.
-      - All other styles: Pexels first.
+      - Baseline Century-Old / Other styles: Pexels first (realistic, video_type='all').
     """
     sid = (style_id or "").lower().strip()
+    t = (treatment or "").lower().strip()
     kw_str = " ".join(keywords or []).lower()
     animation_needed = any(w in kw_str for w in ["animation", "animated", "cartoon", "drawing", "illustration", "sketch", "cgi"])
 
-    if any(k in sid for k in ["archival_photo", "archival_photography", "authentic_archival_photography", "century_old"]):
+    # 1. Check treatments (for Century-Old Photograph style)
+    if any(k in t for k in ["authentic_archival", "archival_photography", "archival_photo", "archival", "11"]):
         return ("pexels", "all")
-    elif any(k in sid for k in ["antique_engraving", "engraving", "copperplate", "historical_maps", "map", "maps"]):
+    elif any(k in t for k in ["antique_engraving", "engraving", "copperplate", "etching", "10", "historical_maps", "map", "maps", "cartography", "12"]):
         if animation_needed:
             return ("pixabay", "animation")
         return ("pexels", "all")
-    elif any(k in sid for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime"]):
+
+    # 2. Check base visual style
+    if any(k in sid for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime"]):
         return ("pixabay", "animation")
     else:
         return ("pexels", "all")
@@ -73,21 +82,20 @@ class StockVideoService:
         cls,
         keywords: List[str],
         style_id: str = "century_old_photograph",
+        treatment: Optional[str] = None,
         max_candidates: int = 3,
         pexels_key: Optional[str] = None,
         pixabay_key: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Searches for stock video candidates using keywords and style priority.
-        For flat 2D / cartoon: queries Pixabay animation first, then Pexels.
-        For realistic / history: queries Pexels first, then Pixabay.
+        Searches for stock video candidates using keywords, style, and treatment priority.
         Returns top candidates with metadata.
         """
         keys = cls.get_api_keys()
         p_key = (pexels_key or keys["pexels"]).strip()
         px_key = (pixabay_key or keys["pixabay"]).strip()
 
-        first_provider, video_type = determine_stock_route(style_id, keywords)
+        first_provider, video_type = determine_stock_route(style_id=style_id, keywords=keywords, treatment=treatment)
         candidates: List[Dict[str, Any]] = []
 
         if first_provider == "pixabay":

@@ -53,19 +53,13 @@ STYLE_PROMPT_MAP = {
     "whatif_flat_vector": "02_whatif_flat_vector_ai_prompt.txt",
     "century_old_photograph": "03_century_old_photograph_ai_prompt.txt",
     "3d_red_blue_stickman": "05_3d_red_blue_stickman_ai_prompt.txt",
-    "antique_engraving": "06_antique_engraving_ai_prompt.txt",
-    "authentic_archival_photography": "07_authentic_archival_photography_ai_prompt.txt",
-    "historical_maps": "08_historical_maps_ai_prompt.txt",
 }
 
 STYLE_FEATURE_HIGHLIGHTS = {
     "zombie_survival": "🔒 Zombie Survival Directives: Locked Hero 'YOU' (Backwards Red Cap #D63A2A, Charcoal Hoodie #333333, Pure White T-Shirt #FFFFFF, Brown Crossbody Strap #4A2E1B) | Locked Horde (Uniform Olive-Green #8A9A66 Skin, White Eyes with Dot Pupils, Sharp Jagged Teeth, Tattered Brown Jacket #5C4033) | Thick Black #1A1A1A Outlines | Zero Blood/Gore.",
     "whatif_flat_vector": "🔒 What-If Flat Vector Directives: Minimalist Black Stick Figure | Strictly Locked Vibrant Bright RED Hoodie (#FF0000) across all scenes | Exactly Uniform Limb Thickness | Midnight Navy Night-World (#12182E) with Warm Golden Light Pools (#F59E0B) | Zero Gradients.",
-    "century_old_photograph": "📜 Century-Old Photograph Directives: Authentic Damaged Archival Print | Faded Warm Sepia, Aged Albumen, or Silver Gelatin Monochrome | 9 Dynamic Archival Treatments (Map Overlays, Diptych Splits, Engraving Splits, Leporello Folders, Silver Bleeding, Fold Creases, Document Archives, Split-Screen Trio, Textured Blur) | STRICTLY ZERO Modern RGB Colors.",
+    "century_old_photograph": "📜 Century-Old Photograph Directives: Authentic Damaged Archival Print | Faded Warm Sepia, Aged Albumen, or Silver Gelatin Monochrome | 12 Dynamic Archival Treatments (Map Overlays, Diptych Splits, Engraving Splits, Leporello Folders, Silver Bleeding, Fold Creases, Document Archives, Split-Screen Trio, Textured Blur, Full Antique Engraving, Full-Frame Archival Photo, Full Historical Map) | STRICTLY ZERO Modern RGB Colors.",
     "3d_red_blue_stickman": "⚔️ 3D Red & Blue Stickman Directives: Strict Faction Separation | Attacking Forces = 100% Solid Bright Red 3D Stick Figures | Defending Forces = 100% Solid Blue 3D Stick Figures | No Color Mixing on Tasks | Featureless Smooth Spherical Heads | Rounded 3D Block Geometry | Zero Realistic Anatomy.",
-    "antique_engraving": "✒️ Antique Engraving Directives: 18th/19th-Century Copperplate & Steel Engraving | Fine Black-Ink Cross-Hatching & Stippling on Aged Cream Paper | Black Ink Only | STRICTLY NO Color, NO Sepia Wash, NO Photographic Look, NO Torn Edges | Stills Held Completely Still.",
-    "authentic_archival_photography": "📷 Authentic Archival Photography Directives: Genuine Period Photograph | Silver Gelatin or Albumen Print | Warm Sepia / Antique Monochrome | Realistic Grain, Dust Spots, Hairline Scratches, Vignette | Fills Full Frame | STRICTLY NO Torn Edges & NO Paper Borders | Stills Held Completely Still.",
-    "historical_maps": "🗺️ Historical Maps Directives: Aged Parchment Period Cartography | Hand-Drawn Coastlines, Borders & Compass Rose | Strictly Period-Accurate Place Names & Frontiers | Narratively Relevant Geography | ZERO Modern Map Looks, ZERO Satellite Look | Stills Held Completely Still (Never Pan/Zoom Across Map).",
 }
 
 

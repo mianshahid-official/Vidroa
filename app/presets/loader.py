@@ -104,12 +104,6 @@ class PresetManager:
             sid = "mixed_media_collage"
         elif sid in ("cutout", "paper_cut", "paper_cutout_illustration"):
             sid = "paper_cutout"
-        elif sid in ("antique_engraving", "engraving", "copperplate_engraving"):
-            sid = "antique_engraving"
-        elif sid in ("authentic_archival_photography", "archival_photography", "archival_photo", "archival"):
-            sid = "authentic_archival_photography"
-        elif sid in ("historical_maps", "maps", "map", "historical_map", "cartography"):
-            sid = "historical_maps"
 
         res = cls._styles_cache.get(sid)
         if not res and sid == "vintage_photograph":

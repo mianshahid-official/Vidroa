@@ -27,9 +27,6 @@ ALLOWED_STYLE_ORDER = [
     ("3d_red_blue_stickman", "Red & Blue Stickman", "3D Animation"),
     ("whatif_flat_vector", "What If Flat Vector", "2D Minimalist Vector"),
     ("century_old_photograph", "Century-Old Photograph", "Historical Archival"),
-    ("antique_engraving", "Antique Engraving", "Historical Engraving"),
-    ("authentic_archival_photography", "Archival Photo", "Historical Photography"),
-    ("historical_maps", "Historical Maps", "Historical Cartography"),
 ]
 
 
@@ -128,9 +125,6 @@ class StyleThumbnailCard(QFrame):
             "whatif_flat_vector": "02_whatif_flat_vector_ai_prompt.txt",
             "century_old_photograph": "03_century_old_photograph_ai_prompt.txt",
             "3d_red_blue_stickman": "05_3d_red_blue_stickman_ai_prompt.txt",
-            "antique_engraving": "06_antique_engraving_ai_prompt.txt",
-            "authentic_archival_photography": "07_authentic_archival_photography_ai_prompt.txt",
-            "historical_maps": "08_historical_maps_ai_prompt.txt",
         }
         filename = prompt_map.get(self.style_id, "01_zombie_survival_ai_prompt.txt")
         target_path = prompts_dir / filename
@@ -294,12 +288,6 @@ class StyleThumbnailMatrix(QWidget):
             sid = "century_old_photograph"
         elif sid in ("stick_figure", "stickman", "red_blue_stickman_3d", "3d_red_blue_stickman", "red_and_blue", "red_blue"):
             sid = "3d_red_blue_stickman"
-        elif sid in ("antique_engraving", "engraving", "copperplate_engraving"):
-            sid = "antique_engraving"
-        elif sid in ("authentic_archival_photography", "archival_photography", "archival_photo", "archival"):
-            sid = "authentic_archival_photography"
-        elif sid in ("historical_maps", "maps", "map", "historical_map", "cartography"):
-            sid = "historical_maps"
         else:
             sid = "zombie_survival"
 

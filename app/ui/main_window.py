@@ -1753,12 +1753,9 @@ class MainWindow(QMainWindow):
         self.style_combo.clear()
         styles = PresetManager.get_all_styles()
 
-        # Curated styles: Historical styles (Century-Old, Engraving, Archival Photo, Maps), 3D Stickman, etc.
+        # Curated styles: Century-Old Photograph, 3D Stickman, B&W Photo, Paper Quilling, Mixed-Media, Paper Cutout
         priority_styles = [
             ("century_old_photograph", "Century-Old Photograph"),
-            ("antique_engraving", "Antique Engraving"),
-            ("authentic_archival_photography", "Authentic Archival Photography"),
-            ("historical_maps", "Historical Maps"),
             ("3d_red_blue_stickman", "3D Red & Blue Stickman Animation"),
             ("bw_vintage_historical_photography", "Black & White Vintage Historical Photography"),
             ("paper_quilling", "Paper Quilling Illustration"),

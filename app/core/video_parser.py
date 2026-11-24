@@ -55,10 +55,21 @@ def parse_video_visual(visual_text: str) -> Optional[Dict[str, Any]]:
     # Clean up trailing period from shot description if needed
     shot_desc = shot_desc.strip()
 
+    # Detect optional archival image treatment from shot description
+    treatment = None
+    lower_desc = shot_desc.lower()
+    if any(k in lower_desc for k in ["antique engraving", "engraving plate", "copperplate", "etching", "treatment 10"]):
+        treatment = "antique_engraving"
+    elif any(k in lower_desc for k in ["authentic archival", "archival photograph", "silver gelatin", "treatment 11"]):
+        treatment = "authentic_archival"
+    elif any(k in lower_desc for k in ["historical map", "map plate", "cartography", "period map", "treatment 12"]):
+        treatment = "historical_maps"
+
     return {
         "is_video": True,
         "shot_description": shot_desc,
         "keywords": keywords,
+        "treatment": treatment,
     }
 
 

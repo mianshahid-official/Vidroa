@@ -85,8 +85,8 @@ STYLE DIRECTIVES: CENTURY-OLD PHOTOGRAPH
 - Authentic early 20th-century camera optics: slight natural vignetting at frame corners, natural depth of field, natural directional daylight or period gaslight/oil lantern illumination.
 - Widescreen 16:9 framing capturing historical documentary scale.
 
-4. THE 9 SPECIALIZED ARCHIVAL IMAGE TREATMENTS & DYNAMIC LAYOUTS:
-To create museum-grade historical documentary storytelling, do NOT make every shot a plain centered photo. Instead, selectively apply these 9 specialized treatments based on the narrative context of the scene (or cycle them organically with subtle pacing). Maintain approximately 40-50% of scenes as clean widescreen archival photographic plates so treatments feel intentional, powerful, and cinematic:
+4. THE 12 SPECIALIZED ARCHIVAL IMAGE TREATMENTS & DYNAMIC LAYOUTS:
+To create museum-grade historical documentary storytelling, do NOT make every shot a plain centered photo. Instead, selectively apply these 12 specialized treatments based on the narrative context of the scene (or cycle them organically with subtle pacing). Maintain approximately 40-50% of scenes as clean widescreen archival photographic plates so treatments feel intentional, powerful, and cinematic:
 
 1. The Woodblock / Engraving Plate Split:
    - Description in Visual prompt: Place the 4:6 vintage photograph on one side of the 16:9 frame, paired with an antique copperplate engraving, woodcut illustration, or hand-drawn architectural sketch of the same location or subject on the other side.
@@ -123,6 +123,21 @@ To create museum-grade historical documentary storytelling, do NOT make every sh
 9. Antique Map Overlay:
    - Description in Visual prompt: Place the historical photograph over a detailed antique geographical map of the relevant location, including compass roses, faded borders, geographical markings, old routes, and handwritten location annotations.
    - Best Context: Military troop marches, territorial campaigns, voyages, borders, or strategic travel routes.
+
+10. Full Antique Engraving Plate:
+   - Description in Visual prompt: The WHOLE 16:9 frame is an antique copperplate or steel engraving — fine black-ink cross-hatching, stippling, etched linework on aged cream paper. Black ink only: NO color, NO sepia wash, NO photographic look, NO torn paper edges.
+   - Best Context: Founding moments, blueprints, architecture, ships, machinery — scenes best told as an engraving rather than a photo.
+   - Difference from treatment 1 (Woodblock / Engraving Plate Split): That one pairs a photo with an engraving side by side; this one is the FULL frame as an engraving.
+
+11. Full-Frame Authentic Archival Photograph:
+   - Description in Visual prompt: The WHOLE frame is a genuine period photograph — silver gelatin or albumen print, warm sepia tones, film grain, dust spots, thin scratches, faded contrast, slight vignette. The photograph FILLS the frame edge-to-edge with NO torn edges and NO paper border.
+   - Best Context: Key moments, iconic scenes, portraits where the photo itself should fill the screen.
+   - Difference from the baseline: The baseline century-old plate has torn/chipped edges; this treatment has NONE.
+
+12. Full Historical Map Plate:
+   - Description in Visual prompt: The WHOLE frame is an aged parchment period map — hand-drawn coastlines, ornate compass rose, period place names, trade routes, battle lines, empire territories as they were at the time of the story. Place names and borders must be period-accurate (no modern names/borders where they did not exist); NO modern map look, NO satellite, NO modern roads; the map must show the geography the narration is talking about, never a decorative generic map; the still is held completely still, NEVER pan or zoom across the map.
+   - Best Context: Marches, campaigns, voyages, territorial change.
+   - Difference from treatment 9 (Antique Map Overlay): That one places a photo OVER a map; this one is the map itself filling the frame.
 
 ================================================================================
 PART 2: PRODUCTION BIBLES FORMAT SPECIFICATION
