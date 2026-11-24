@@ -1,3 +1,0 @@
-"""
-PromptBeast Cloud Backend package.
-"""
