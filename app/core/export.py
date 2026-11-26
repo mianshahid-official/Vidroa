@@ -145,6 +145,7 @@ class StoryboardExporter:
 
             img_entry = {
                 "image_id": sc.scene_id,
+                "scene_id": sc.scene_id,
                 "start": sc.start,
                 "end": sc.end,
                 "duration": sc.duration,
@@ -152,10 +153,23 @@ class StoryboardExporter:
                 "end_word_index": sc.end_word_index,
                 "start_word": start_word,
                 "end_word": end_word,
+                "narration_excerpt": sc.narration_excerpt,
                 "visual_subject": sc.visual_subject,
+                "visual_idea": sc.visual_idea,
+                "visual_description": sc.visual_description,
                 "visual_purpose": sc.visual_purpose,
                 "framing_suggestion": sc.framing_suggestion,
                 "prompt": sc.prompt,
+                "image_path": sc.image_path,
+                "is_video": sc.is_video,
+                "video_path": sc.video_path,
+                "video_keywords": sc.video_keywords,
+                "video_shot_description": sc.video_shot_description,
+                "treatment": sc.treatment,
+                "generation_status": sc.generation_status,
+                "is_approved": sc.is_approved,
+                "video_approved": sc.video_approved,
+                "is_video_fallback_to_image": sc.is_video_fallback_to_image,
                 "is_manually_edited": sc.is_manually_edited
             }
             images_list.append(img_entry)
@@ -238,7 +252,7 @@ class StoryboardExporter:
         return " ".join(p.split())
 
     @classmethod
-    def export_to_prompts_only(cls, scenes: List[VisualScene], thumbnail_prompt: Optional[str] = None) -> str:
+    def export_to_prompts_only(cls, scenes: List[VisualScene]) -> str:
         """
         Generates clean prompts_only.txt:
         Each prompt is strictly on a single clean line (1 scene = 1 line), extracting the pure
@@ -261,8 +275,7 @@ class StoryboardExporter:
         cls,
         output_dir: str,
         scenes: List[VisualScene],
-        narration: Optional[NarrationData] = None,
-        thumbnail_prompt: Optional[str] = None
+        narration: Optional[NarrationData] = None
     ) -> Dict[str, str]:
         """Saves all export files to the target directory."""
         out_path = Path(output_dir)
@@ -286,14 +299,7 @@ class StoryboardExporter:
 
         prompts_only_file = out_path / "prompts_only.txt"
         with open(prompts_only_file, "w", encoding="utf-8") as f:
-            f.write(cls.export_to_prompts_only(scenes, thumbnail_prompt=thumbnail_prompt))
-
-        # Also keep a copy in workspace root
-        try:
-            with open("prompts_only.txt", "w", encoding="utf-8") as f:
-                f.write(cls.export_to_prompts_only(scenes, thumbnail_prompt=thumbnail_prompt))
-        except Exception:
-            pass
+            f.write(cls.export_to_prompts_only(scenes))
 
         return {
             "text": str(txt_file),

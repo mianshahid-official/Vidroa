@@ -111,8 +111,6 @@ class PresetManager:
         elif not res and sid == "century_old_photograph":
             res = cls._styles_cache.get("vintage_photograph")
 
-        if not res and cls._styles_cache:
-            return cls._styles_cache.get("zombie_survival") or cls._styles_cache.get("century_old_photograph") or list(cls._styles_cache.values())[0]
         return res
 
     @classmethod

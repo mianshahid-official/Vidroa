@@ -58,12 +58,11 @@ PromptBeast is a desktop application and cloud AI engine designed for content cr
 - **`app/ui/`**: PySide6 dark QSS theme with 3-column workflow (Inputs -> Timeline & Scene List -> Inspector & Progress).
 - **`app/ui/widgets/timeline_view.py`**: Custom `QPainter` canvas with multi-scale time ruler, interactive scene blocks, hover tooltips, and draggable playhead.
 - **`app/core/timeline_engine.py`**: Precision scene operations (split, merge, delete, renumber, boundary gap/overlap healing).
-- **`app/core/validation.py`**: Timeline integrity validator (coverage, gapless bounds, word-boundary preservation, prompt quality thresholds).
 - **`app/core/export.py`**: Exporters for `image_prompts.txt`, `timeline.json`, `image_prompts.json`, and `timeline.csv`.
 - **`app/core/project_manager.py`**: Atomic disk persistence with crash recovery detection.
 
-### 2. Cloud AI Layer (`backend/`)
-- **`backend/modal_app.py`**: Modal serverless deployment on NVIDIA L4 24GB or A10G.
+### 2. AI Inference & Pipeline Layer (`backend/`)
+- **`backend/app.py`**: Local/cloud FastAPI server exposing `/api/v1/jobs`.
 - **`backend/pipeline/`**: Modular 4-stage pipeline orchestrator.
 - **`backend/jobs/store.py`**: Thread-safe job store with progress streaming, batch caching, and user cancellation handling.
 - **`backend/inference/engine.py`**: vLLM model runner with schema-repair fallback.

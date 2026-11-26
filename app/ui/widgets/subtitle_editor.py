@@ -26,6 +26,8 @@ class SubtitleEditor(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.config = SubtitleConfig()
+        self.last_active_preset: SubtitlePreset = SubtitlePreset.HORMOZI_KARAOKE
+        self._preset_buttons = {}
         self._setup_ui()
         self._apply_preset(SubtitlePreset.HORMOZI_KARAOKE)
 
@@ -92,6 +94,7 @@ class SubtitleEditor(QWidget):
             """)
             btn.clicked.connect(lambda _, p=val: self._apply_preset(p))
             self.preset_btn_group.addButton(btn, i)
+            self._preset_buttons[val] = btn
             preset_layout.addWidget(btn, row, col)
             if val == SubtitlePreset.HORMOZI_KARAOKE:
                 btn.setChecked(True)
@@ -190,8 +193,17 @@ class SubtitleEditor(QWidget):
         self._update_color_buttons()
         self._update_preview()
 
+    def select_preset(self, preset: SubtitlePreset):
+        """Programmatically select a preset and update the UI buttons."""
+        self._apply_preset(preset)
+
     def _apply_preset(self, preset: SubtitlePreset):
         self.config.preset = preset
+        if preset != SubtitlePreset.NONE:
+            self.last_active_preset = preset
+        btn = self._preset_buttons.get(preset)
+        if btn and not btn.isChecked():
+            btn.setChecked(True)
         if preset == SubtitlePreset.HORMOZI_KARAOKE:
             self.config.font_name = "Impact"
             self.config.font_size = 58

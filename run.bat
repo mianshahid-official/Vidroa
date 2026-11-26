@@ -1,36 +1,50 @@
 @echo off
-title PromptBeast Production Studio
+title Vidroa Production Studio
 color 0b
 
 echo =======================================================
-echo          PROMPTBEAST PRODUCTION STUDIO
+echo             VIDROA PRODUCTION STUDIO
 echo =======================================================
 echo.
 
-:: Check if Python is installed
-python --version >nul 2>&1
+cd /d "%~dp0"
+set "PYTHONPATH=%~dp0"
+
+set "PYTHON_EXE=python"
+if exist "venv\Scripts\python.exe" (
+    set "PYTHON_EXE=venv\Scripts\python.exe"
+) else if exist ".venv\Scripts\python.exe" (
+    set "PYTHON_EXE=.venv\Scripts\python.exe"
+)
+
+%PYTHON_EXE% --version >nul 2>&1
 if errorlevel 1 (
     color 0c
     echo [ERROR] Python is not found in your system PATH!
     echo Please install Python 3.10+ and check 'Add python.exe to PATH'.
     echo.
     pause
-    exit
+    exit /b 1
 )
 
-:: Set working directory and pythonpath
-cd /d "%~dp0"
-set "PYTHONPATH=%~dp0"
+%PYTHON_EXE% -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"
+if errorlevel 1 (
+    color 0c
+    echo [ERROR] Python 3.10+ is required. Detected older version:
+    %PYTHON_EXE% --version
+    echo.
+    pause
+    exit /b 1
+)
 
-echo Launching PromptBeast Desktop Studio...
+echo Launching Vidroa Desktop Studio using %PYTHON_EXE%...
 echo.
-python app\main.py
+%PYTHON_EXE% app\main.py
 if errorlevel 1 (
     echo.
-    echo [PromptBeast Notice] Application closed with error. Check crash.log if needed.
+    echo [Vidroa Notice] Application closed with error. Check crash.log if needed.
     echo.
     pause
 )
 
-:: Auto-close CMD window immediately upon normal application exit
 exit

@@ -4,7 +4,7 @@ Welcome to the **PromptBeast Master AI Prompt System**. This directory contains 
 1. **Narration-Aware Chronological Visual Storyboards** (in PromptBeast's exact `Visual X Words: ... Visual: ...` format).
 2. **Comprehensive 7-Part Production Bibles** (Characters, Environments, Props, Style, Chronology, and Continuity Rules).
 
-Each prompt is custom-tailored to one of PromptBeast's **11 production visual styles**, strictly locking character designs, faction colors, line art thickness, camera framing, and negative visual rules.
+Each prompt is custom-tailored to one of PromptBeast's **4 production visual styles**, strictly locking character designs, faction colors, line art thickness, camera framing, and negative visual rules.
 
 ---
 
@@ -19,9 +19,9 @@ Each prompt is custom-tailored to one of PromptBeast's **11 production visual st
 
 ---
 
-## 2. Interactive Two-Stage Conversational Workflow
+## 2. Interactive Three-Stage Conversational Workflow
 
-All 11 prompts enforce a strict, conversational protocol so you never have to repeat formatting instructions to the external AI:
+All 4 prompts enforce a strict, conversational protocol so you never have to repeat formatting instructions to the external AI:
 
 ```mermaid
 sequenceDiagram

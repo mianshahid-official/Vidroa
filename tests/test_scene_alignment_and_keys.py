@@ -65,7 +65,5 @@ def test_groq_keys_engine_setter_and_persistence(tmp_path):
         assert reloaded.api_keys == test_keys
         assert reloaded.api_key == test_keys[0]
     finally:
-        # Restore clean state
-        orig.api_key = ""
-        orig.api_keys = []
+        # Restore original user settings
         SettingsManager.save_settings(orig)

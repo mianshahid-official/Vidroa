@@ -20,15 +20,15 @@ This guide explains how to deploy the PromptBeast inference backend to Modal wit
 
 ---
 
-## 2. Deploying to Modal
+## 2. Deploying Your Custom Backend
 
-To deploy the production cloud backend to Modal:
+To host the FastAPI backend on cloud GPUs, deploy `backend/app.py` (using your cloud ASGI runner):
 
 ```powershell
-modal deploy backend/modal_app.py
+uvicorn backend.app:app --host 0.0.0.0 --port 8000
 ```
 
-Modal will output the public web endpoint URL, for example:
+Your hosted endpoint URL will be:
 ```
 https://<username>--promptbeast-backend-modelservice-fastapi-app.modal.run
 ```
@@ -37,7 +37,7 @@ https://<username>--promptbeast-backend-modelservice-fastapi-app.modal.run
 
 ## 3. Configuring GPU & Model
 
-In `backend/modal_app.py` and `backend/config.py`, the GPU and model can be customized:
+In `backend/config.py`, the GPU and model settings can be customized:
 
 ### GPU Options:
 - **NVIDIA L4 24GB (Default)**: Best price/performance for 30B models.

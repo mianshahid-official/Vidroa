@@ -18,5 +18,5 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8000, help="Port number")
     args = parser.parse_args()
 
-    print(f"Starting PromptBeast Cloud API Backend on http://{args.host}:{args.port}")
+    print(f"Starting Vidroa Local API Backend on http://{args.host}:{args.port}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")

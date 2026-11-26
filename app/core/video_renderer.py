@@ -1,6 +1,6 @@
 """
 High-performance FFmpeg Video Rendering Engine.
-Compiles storyboard scenes, image assets, Ken Burns camera motion,
+Compiles storyboard scenes, still image assets, B-roll video footage,
 voiceover audio, and dynamic karaoke subtitles into upload-ready MP4 videos.
 """
 import os
@@ -277,13 +277,18 @@ class VideoRenderer:
                 )
 
                 if is_clip:
-                    # Video scene: plays full screen, no edges, no torn-edge treatment
+                    if not (4.0 < dur < 10.0):
+                        raise ValueError(
+                            f"Video scene {sc.scene_id} has invalid duration {dur:.2f}s. "
+                            "B-roll video scenes must be strictly between 4.0s and 10.0s."
+                        )
+                    # Video scene: plays full screen, no edges, no torn-edge treatment (never silently looped)
                     base_filter = (
                         f"scale={target_w}:{target_h}:force_original_aspect_ratio=increase,"
                         f"crop={target_w}:{target_h},"
                         f"setsar=1,fps={fps},trim=duration={dur:.3f},setpts=PTS-STARTPTS"
                     )
-                    input_args = ["-stream_loop", "-1", "-t", str(dur), "-i", str(sc.video_path)]
+                    input_args = ["-t", str(dur), "-i", str(sc.video_path)]
                 else:
                     # Still image: held completely still, no motion, zoom or pan (torn edges stay still)
                     base_filter = cls.build_zoompan_filter(
@@ -347,7 +352,7 @@ class VideoRenderer:
 
                 if progress_callback:
                     pct = 5.0 + ((i + 1) / total_scenes) * 65.0
-                    progress_callback(round(pct, 1), f"Rendering camera motion: Scene {i+1}/{total_scenes} ({pct:.0f}%)")
+                    progress_callback(round(pct, 1), f"Rendering still scene: Scene {i+1}/{total_scenes} ({pct:.0f}%)")
 
             # Phase 2: Create concat list for seamless demuxer joining
             concat_txt = temp_dir / "concat_list.txt"
@@ -463,6 +468,112 @@ class VideoRenderer:
             # Cleanup temp directory
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+    @classmethod
+    def burn_subtitles_to_video(
+        cls,
+        clean_video_path: str,
+        ass_path: str,
+        output_subbed_path: str
+    ) -> str:
+        """
+        Fast second FFmpeg pass that ONLY burns ASS subtitles onto an already-rendered clean MP4.
+        Audio stream is copied without re-encoding.
+        """
+        out_p = Path(output_subbed_path).resolve()
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        escaped_sub = escape_ffmpeg_filter_path(ass_path)
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(Path(clean_video_path).resolve()),
+            "-vf", f"ass='{escaped_sub}'",
+            "-c:a", "copy",
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-crf", "20",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            str(out_p)
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            raise RuntimeError(f"FFmpeg subtitle burning failed:\n{proc.stderr}")
+        return str(out_p)
+
+    @classmethod
+    def render_dual_video_sync(
+        cls,
+        scenes: List[VisualScene],
+        audio_path: str,
+        clean_video_path: str,
+        subbed_video_path: Optional[str] = None,
+        burn_subtitles: bool = False,
+        settings: Optional[VideoRenderSettings] = None,
+        narration: Optional[NarrationData] = None,
+        progress_callback: Optional[Callable[[float, str], None]] = None
+    ) -> str:
+        """
+        Renders the clean video first (no subtitles) to clean_video_path, and if burn_subtitles is True
+        and subbed_video_path is provided, runs a fast second FFmpeg pass burning ASS subtitles onto it.
+        Returns the path matching the user's subtitle selection.
+        """
+        import copy
+        cfg = copy.deepcopy(settings) if settings else VideoRenderSettings()
+        sub_cfg = copy.deepcopy(cfg.subtitle_config)
+        # Force NONE for clean pass
+        cfg.subtitle_config.preset = SubtitlePreset.NONE
+
+        def clean_cb(pct: float, msg: str):
+            if progress_callback:
+                scaled = pct * 0.85 if (burn_subtitles and subbed_video_path) else pct
+                progress_callback(scaled, msg)
+
+        out_clean = cls.render_video_sync(
+            scenes=scenes,
+            audio_path=audio_path,
+            output_video_path=clean_video_path,
+            settings=cfg,
+            narration=narration,
+            progress_callback=clean_cb
+        )
+
+        if burn_subtitles and subbed_video_path and sub_cfg.preset != SubtitlePreset.NONE:
+            if progress_callback:
+                progress_callback(88.0, "Burning dynamic subtitles onto clean video...")
+
+            effective_narration = narration
+            if not effective_narration or not effective_narration.words:
+                effective_narration = SubtitleEngine.synthesize_narration_from_scenes(scenes)
+
+            if effective_narration and effective_narration.words:
+                target_w, target_h = cfg.aspect_ratio.dimensions
+                if cfg.custom_width and cfg.custom_height:
+                    target_w, target_h = cfg.custom_width, cfg.custom_height
+
+                temp_ass = str(Path(subbed_video_path).parent / f".temp_{Path(subbed_video_path).stem}.ass")
+                SubtitleEngine.generate_ass_subtitles(
+                    narration=effective_narration,
+                    output_ass_path=temp_ass,
+                    config=sub_cfg,
+                    target_w=target_w,
+                    target_h=target_h
+                )
+                try:
+                    out_subbed = cls.burn_subtitles_to_video(out_clean, temp_ass, subbed_video_path)
+                finally:
+                    try:
+                        Path(temp_ass).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+
+                if progress_callback:
+                    progress_callback(100.0, f"Final video ready: {Path(out_subbed).name}")
+                return out_subbed
+
+        if progress_callback:
+            progress_callback(100.0, f"Final video ready: {Path(out_clean).name}")
+        return out_clean
+
 
 class VideoRenderWorker(QThread):
     """
@@ -476,9 +587,12 @@ class VideoRenderWorker(QThread):
         self,
         scenes: List[VisualScene],
         audio_path: str,
-        output_video_path: str,
+        output_video_path: Optional[str] = None,
         settings: Optional[VideoRenderSettings] = None,
         narration: Optional[NarrationData] = None,
+        clean_video_path: Optional[str] = None,
+        subbed_video_path: Optional[str] = None,
+        burn_subtitles: bool = False,
         parent: Optional[QObject] = None
     ):
         super().__init__(parent)
@@ -487,6 +601,9 @@ class VideoRenderWorker(QThread):
         self.output_video_path = output_video_path
         self.settings = settings
         self.narration = narration
+        self.clean_video_path = clean_video_path
+        self.subbed_video_path = subbed_video_path
+        self.burn_subtitles = burn_subtitles
         self._is_cancelled = False
 
     def run(self):
@@ -495,14 +612,26 @@ class VideoRenderWorker(QThread):
                 if not self._is_cancelled:
                     self.progress.emit(pct, msg)
 
-            out_file = VideoRenderer.render_video_sync(
-                scenes=self.scenes,
-                audio_path=self.audio_path,
-                output_video_path=self.output_video_path,
-                settings=self.settings,
-                narration=self.narration,
-                progress_callback=cb
-            )
+            if self.clean_video_path:
+                out_file = VideoRenderer.render_dual_video_sync(
+                    scenes=self.scenes,
+                    audio_path=self.audio_path,
+                    clean_video_path=self.clean_video_path,
+                    subbed_video_path=self.subbed_video_path,
+                    burn_subtitles=self.burn_subtitles,
+                    settings=self.settings,
+                    narration=self.narration,
+                    progress_callback=cb
+                )
+            else:
+                out_file = VideoRenderer.render_video_sync(
+                    scenes=self.scenes,
+                    audio_path=self.audio_path,
+                    output_video_path=self.output_video_path or "final_video.mp4",
+                    settings=self.settings,
+                    narration=self.narration,
+                    progress_callback=cb
+                )
             if not self._is_cancelled:
                 self.finished.emit(out_file)
         except Exception as e:

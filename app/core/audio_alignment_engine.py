@@ -468,14 +468,22 @@ class AudioAlignmentEngine:
         acoustic_words: List[Dict[str, Any]] = []
         acoustic_dur = audio_duration
 
-        if engine in ("auto", "groq-whisper"):
+        if engine in ("auto", "faster-whisper"):
+            try:
+                acoustic_words, acoustic_dur = self._align_with_faster_whisper(p)
+                engine_used = f"faster-whisper-{self.local_model_size}"
+            except Exception as e:
+                logger.warning(f"Local faster-whisper failed: {e}. Falling back to Groq Whisper...")
+                if engine == "faster-whisper":
+                    raise
+                acoustic_words, acoustic_dur = self._align_with_groq_whisper(p)
+                engine_used = "groq-whisper-large-v3-turbo"
+        elif engine == "groq-whisper":
             try:
                 acoustic_words, acoustic_dur = self._align_with_groq_whisper(p)
                 engine_used = "groq-whisper-large-v3-turbo"
             except Exception as e:
                 logger.warning(f"Groq Whisper failed: {e}. Falling back to faster-whisper...")
-                if engine == "groq-whisper":
-                    raise
                 acoustic_words, acoustic_dur = self._align_with_faster_whisper(p)
                 engine_used = f"faster-whisper-{self.local_model_size}"
         else:

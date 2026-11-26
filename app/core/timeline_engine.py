@@ -97,11 +97,23 @@ class TimelineEngine:
             end_word_index=first_end_word_idx,
             narration_excerpt=first_narration,
             visual_subject=f"{target.visual_subject} (Part 1)",
+            visual_idea=target.visual_idea,
+            visual_description=target.visual_description,
             visual_purpose=target.visual_purpose,
             framing_suggestion=target.framing_suggestion,
             prompt=target.prompt,
+            image_path=target.image_path,
+            is_video=target.is_video,
+            video_path=target.video_path,
+            video_keywords=list(target.video_keywords or []),
+            video_shot_description=target.video_shot_description,
+            treatment=target.treatment,
+            generation_status=target.generation_status,
+            is_approved=target.is_approved,
+            video_approved=target.video_approved,
+            is_video_fallback_to_image=target.is_video_fallback_to_image,
             is_manually_edited=True,
-            is_validated=False
+            is_validated=bool(target.prompt and target.prompt.strip())
         )
 
         second_duration = round(target.end - first_end, 3)
@@ -114,11 +126,23 @@ class TimelineEngine:
             end_word_index=second_end_word_idx,
             narration_excerpt=second_narration,
             visual_subject=f"{target.visual_subject} (Part 2)",
+            visual_idea=target.visual_idea,
+            visual_description=target.visual_description,
             visual_purpose=target.visual_purpose,
             framing_suggestion=target.framing_suggestion,
-            prompt=f"[Part 2] {target.prompt}",
+            prompt=f"[Part 2] {target.prompt}" if target.prompt else "",
+            image_path=target.image_path,
+            is_video=target.is_video,
+            video_path=target.video_path,
+            video_keywords=list(target.video_keywords or []),
+            video_shot_description=target.video_shot_description,
+            treatment=target.treatment,
+            generation_status=target.generation_status,
+            is_approved=target.is_approved,
+            video_approved=target.video_approved,
+            is_video_fallback_to_image=target.is_video_fallback_to_image,
             is_manually_edited=True,
-            is_validated=False
+            is_validated=bool(target.prompt and target.prompt.strip())
         )
 
         new_list = scenes[:target_idx] + [scene_a, scene_b] + scenes[target_idx + 1:]
@@ -161,7 +185,7 @@ class TimelineEngine:
             combined_narration = f"{sc_a.narration_excerpt} {sc_b.narration_excerpt}".strip()
 
         combined_subject = f"{sc_a.visual_subject} followed by {sc_b.visual_subject}"
-        combined_prompt = f"{sc_a.prompt}\n\n[Continuing scene context]: {sc_b.prompt}"
+        combined_prompt = f"{sc_a.prompt}\n\n[Continuing scene context]: {sc_b.prompt}" if (sc_a.prompt or sc_b.prompt) else ""
 
         merged_scene = VisualScene(
             scene_id=sc_a.scene_id,
@@ -172,11 +196,23 @@ class TimelineEngine:
             end_word_index=end_word_idx,
             narration_excerpt=combined_narration,
             visual_subject=combined_subject,
+            visual_idea=sc_a.visual_idea or sc_b.visual_idea,
+            visual_description=sc_a.visual_description or sc_b.visual_description,
             visual_purpose=sc_a.visual_purpose or sc_b.visual_purpose,
             framing_suggestion=sc_a.framing_suggestion or sc_b.framing_suggestion,
             prompt=combined_prompt,
+            image_path=sc_a.image_path or sc_b.image_path,
+            is_video=sc_a.is_video or sc_b.is_video,
+            video_path=sc_a.video_path or sc_b.video_path,
+            video_keywords=list(sc_a.video_keywords or sc_b.video_keywords or []),
+            video_shot_description=sc_a.video_shot_description or sc_b.video_shot_description,
+            treatment=sc_a.treatment or sc_b.treatment,
+            generation_status=sc_a.generation_status if sc_a.generation_status != "pending" else sc_b.generation_status,
+            is_approved=sc_a.is_approved or sc_b.is_approved,
+            video_approved=sc_a.video_approved or sc_b.video_approved,
+            is_video_fallback_to_image=sc_a.is_video_fallback_to_image and sc_b.is_video_fallback_to_image,
             is_manually_edited=True,
-            is_validated=False
+            is_validated=bool(combined_prompt.strip())
         )
 
         new_list = scenes[:first_idx] + [merged_scene] + scenes[second_idx + 1:]
@@ -243,135 +279,3 @@ class TimelineEngine:
             current_time = healed_scene.end
 
         return healed
-
-
-    @classmethod
-    def enforce_duration_limits(
-        cls,
-        scenes: List[VisualScene],
-        min_duration: float = 0.5,
-        max_duration: float = 6.0,
-        target_duration: float = 4.5,
-        narration: Optional[NarrationData] = None
-    ) -> List[VisualScene]:
-        """Strictly enforces that no scene exceeds max_duration and no scene is below min_duration."""
-        if not scenes:
-            return []
-
-        framings = [
-            "Wide establishing shot",
-            "Medium tracking shot",
-            "Close-up dramatic focus",
-            "Low-angle cinematic perspective",
-            "Over-the-shoulder reaction view"
-        ]
-
-        result = []
-        for sc in scenes:
-            dur = sc.duration
-            if dur <= max_duration and dur >= min_duration:
-                result.append(sc)
-                continue
-
-            num_parts = max(1, int(round(dur / target_duration)))
-            while num_parts > 1 and (dur / num_parts) < min_duration:
-                num_parts -= 1
-            while (dur / num_parts) > max_duration:
-                num_parts += 1
-
-            part_len = dur / num_parts
-            cur_start = sc.start
-
-            for p_idx in range(num_parts):
-                if p_idx == num_parts - 1:
-                    cur_end = sc.end
-                else:
-                    target_t = cur_start + part_len
-                    if narration and narration.words:
-                        cur_end, _ = cls.find_nearest_word_boundary(target_t, narration)
-                    else:
-                        cur_end = round(target_t, 2)
-
-                    if cur_end - cur_start < min_duration or sc.end - cur_end < min_duration:
-                        cur_end = round(cur_start + part_len, 2)
-                    if cur_end >= sc.end or cur_end <= cur_start:
-                        cur_end = round(cur_start + part_len, 2)
-
-                part_dur = round(cur_end - cur_start, 2)
-                
-                seg_excerpt = sc.narration_excerpt
-                if narration and narration.words:
-                    w_seg = [w.word for w in narration.words if w.start >= cur_start - 0.05 and w.end <= cur_end + 0.05]
-                    if w_seg:
-                        seg_excerpt = " ".join(w_seg)
-
-                framing = framings[p_idx % len(framings)]
-                
-                sub = VisualScene(
-                    scene_id=f"{len(result) + 1:03d}",
-                    start=round(cur_start, 2),
-                    end=round(cur_end, 2),
-                    duration=part_dur,
-                    narration_excerpt=seg_excerpt,
-                    visual_subject=f"{sc.visual_subject} ({framing})" if p_idx > 0 else sc.visual_subject,
-                    visual_purpose=sc.visual_purpose,
-                    framing_suggestion=framing,
-                    prompt=f"{framing}. {sc.prompt}" if sc.prompt else "",
-                    is_validated=True
-                )
-                result.append(sub)
-                cur_start = cur_end
-
-        cleaned = []
-        for sc in result:
-            if cleaned and sc.duration < min_duration and (cleaned[-1].duration + sc.duration) <= max_duration:
-                prev = cleaned[-1]
-                prev.end = sc.end
-                prev.duration = round(prev.end - prev.start, 2)
-                prev.narration_excerpt = f"{prev.narration_excerpt} {sc.narration_excerpt}".strip()
-            elif cleaned and sc.duration < min_duration:
-                prev = cleaned[-1]
-                combined_start = prev.start
-                combined_end = sc.end
-                mid_t = round((combined_start + combined_end) / 2.0, 2)
-                if narration and narration.words:
-                    mid_t, _ = cls.find_nearest_word_boundary(mid_t, narration)
-                prev.end = mid_t
-                prev.duration = round(prev.end - prev.start, 2)
-                sc.start = mid_t
-                sc.duration = round(sc.end - sc.start, 2)
-                cleaned.append(sc)
-            else:
-                cleaned.append(sc)
-
-        # Ensure coverage extends to the full narration duration if narration exists
-        if narration and narration.duration_seconds and cleaned and cleaned[-1].end < narration.duration_seconds - 2.0:
-            tail_start = cleaned[-1].end
-            tail_end = round(narration.duration_seconds, 2)
-            rem_dur = tail_end - tail_start
-            num_tail_parts = max(1, int(round(rem_dur / target_duration)))
-            part_len = rem_dur / num_tail_parts
-            cur_s = tail_start
-            for tp_idx in range(num_tail_parts):
-                cur_e = tail_end if tp_idx == num_tail_parts - 1 else round(cur_s + part_len, 2)
-                if narration.words and tp_idx < num_tail_parts - 1:
-                    cur_e, _ = cls.find_nearest_word_boundary(cur_e, narration)
-                w_seg = [w.word for w in narration.words if w.start >= cur_s - 0.05 and w.end <= cur_e + 0.05]
-                ex = " ".join(w_seg) if w_seg else f"Scene continuing to {cur_e:.2f}s"
-                framing = framings[(len(cleaned) + tp_idx) % len(framings)]
-                tail_sc = VisualScene(
-                    scene_id=f"{len(cleaned) + 1:03d}",
-                    start=round(cur_s, 2),
-                    end=round(cur_e, 2),
-                    duration=round(cur_e - cur_s, 2),
-                    narration_excerpt=ex,
-                    visual_subject=f"Documentary Action: {ex[:45]}...",
-                    framing_suggestion=framing,
-                    prompt="",
-                    is_validated=True
-                )
-                cleaned.append(tail_sc)
-                cur_s = cur_e
-
-        healed = cls.heal_gaps_and_overlaps(cleaned)
-        return cls.renumber_scenes(healed)

@@ -27,7 +27,7 @@ from app.presets.loader import PresetManager
 from app.models.planning import StoryIntelligence
 from app.core.export import StoryboardExporter
 from app.core.video_renderer import VideoRenderer, VideoRenderSettings
-from app.models.video_config import AspectRatio
+from app.models.video_config import AspectRatio, MotionPreset, SubtitleConfig, SubtitlePreset
 
 
 class TestRealE2EPipeline:
@@ -122,8 +122,8 @@ class TestRealE2EPipeline:
         out_mp4 = temp_dir / "rendered_output.mp4"
         render_cfg = VideoRenderSettings(
             fps=24,
-            ken_burns_enabled=False,
-            render_subtitles=False
+            motion_preset=MotionPreset.STATIC,
+            subtitle_config=SubtitleConfig(preset=SubtitlePreset.NONE)
         )
 
         video_path = VideoRenderer.render_video_sync(

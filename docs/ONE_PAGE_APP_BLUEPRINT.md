@@ -72,7 +72,7 @@ The primary AI generation workshop structured as a **3-Pane Studio Layout**.
 │ [ History          ▼]│ ───────────────────────────────── │ ───────────────────────────────── │
 │                      │ ┌───────────────────────────────┐ │ Visual Prompt Blueprint:          │
 │ Visual Style Preset: │ │ SCENE 001 [⏱ 0.00s - 4.25s]   │ │ "A wide establishing panoramic   │
-│ [ 3D Render & CGI  ▼]│ │ "Mount Vesuvius slept under   │ │ shot of the ancient city of       │
+│ [Century-Old Photo ▼]│ │ "Mount Vesuvius slept under   │ │ shot of the ancient city of       │
 │ [👁️ Preview Style]   │ │ morning skies..."             │ │ Pompeii in 79 AD. The towering   │
 │                      │ │ Subject: Pompeii Morning      │ │ volcano looms in the hazy       │
 │ Timing Rules:        │ └───────────────────────────────┘ │ distance under morning skies.     │
@@ -90,7 +90,7 @@ The primary AI generation workshop structured as a **3-Pane Studio Layout**.
 ```
 
 **Key Visual Features:**
-- **Curated Visual Styles**: Strictly **13 distinct, viral styles** (Stick Figure, History Painting, 2D Vector, 3D Render, Realistic DSLR, Midjourney Hyper-Realism, Anime Ghibli, Isometric 3D, Dark Fantasy, Retro Pop Art, Claymation, Century-Old Photo, Watercolor) + Custom.
+- **Curated Visual Styles**: Strictly **4 live, production-locked styles** (Century-Old Photograph, 3D Red & Blue Stickman Animation, What-If Flat Vector, Zombie Survival) + Custom.
 - **Strict 3 to 6-Second Pacing**: Hard limits preventing scenes from dragging or rushing.
 - **Interactive Storyboard Timeline**: Cards highlight with bright cyan borders when clicked, instantly updating the right inspector.
 
@@ -131,7 +131,7 @@ The final production hub where subtitles, motion, audio, and images are compiled
 │ • Stroke: Heavy Black 4px                     │ │              VESUVIUS                     │ │
 │                                               │ │                                           │ │
 │ Motion & Camera Dynamics:                     │ │                                           │ │
-│ [🎬 Alternating Ken Burns Zoom (Dynamic)   ▼] │ │        SLEPT UNDER MORNING SKIES          │ │
+│ [🖼️ Static Still + Graded B-Roll Clips      ▼] │ │        SLEPT UNDER MORNING SKIES          │ │
 │ [✔] Add 2.35:1 Cinematic Letterbox Bars       │ │                                           │ │
 │ [✔] Add Soft Vignette Lighting                │ └───────────────────────────────────────────┘ │
 │                                               │ [ 00:02.15 / 04:07.45 ] [▶ Play] [⏸ Pause]   │
@@ -181,7 +181,7 @@ In the new Single-Page App, all four tabs are eliminated and unified into a resp
 ├───────────────────────────────────┼───────────────────────────────────────────────┼───────────────────────────────────────────────┤
 │ 📝 Narration Script Editor:       │ 🎛️ Generation Presets Bar:                    │ 🖼️ Visual Scene Preview Viewport:             │
 │ [📂 Open] [💾 Save] [🧹 Clear]     │ Subject: [ History                         ▼] │ ┌───────────────────────────────────────────┐ │
-│ ┌───────────────────────────────┐ │ Style:   [ 3D Render & CGI                 ▼] │ │                                           │ │
+│ ┌───────────────────────────────┐ │ Style:   [Century-Old Photograph             ▼] │ │                                           │ │
 │ │ It was the morning of August  │ │          [👁️ Preview Style]                  │ │          [IMAGE 001 PREVIEW]              │ │
 │ │ 24, 79 AD. Mount Vesuvius     │ │ Timing:  [AI Decides (3.0s - 6.0s)         ▼] │ │                                           │ │
 │ │ loomed silently...            │ │ [🚀 GENERATE STORYBOARD + PROMPTS]          │ │              VESUVIUS                     │ │
@@ -195,7 +195,7 @@ In the new Single-Page App, all four tabs are eliminated and unified into a resp
 │                                   │ ├───────────────────────────────────────────┤ │ ───────────────────────────────────────────── │
 │ ⚡ Whisper Transcription:          │ │ SCENE 002 [⏱ 4.25s - 8.10s (3.85s)]      │ │ 🎛️ Subtitles & Video Motion:                │
 │ [⚡ TRANSCRIBE WORD TIMESTAMPS]    │ │ "Suddenly the earth trembled..."          │ │ Subtitles: [🔥 Hormozi Viral             ▼] │
-│ [📂 Import Timestamps JSON]       │ │ Subject: Ground Shaking                   │ │ Motion:    [🎬 Alternating Ken Burns Zoom ▼] │
+│ [📂 Import Timestamps JSON]       │ │ Subject: Ground Shaking                   │ │ Framing:   [🖼️ Static Still & B-Roll      ▼] │
 │ 🟢 2,143 words aligned (Groq LPU) │ │ [📷 img_002.png] [✂ Split] [☍ Merge]      │ │ [✔] Letterbox [✔] Vignette                  │
 │                                   │ └───────────────────────────────────────────┘ │ ───────────────────────────────────────────── │
 │                                   │ [➕ Add Scene] [📋 Export TXT/JSON/CSV]      │ [🚀 RENDER FINAL VIDEO (MP4)]                 │
@@ -218,7 +218,9 @@ In the Single-Page Architecture, every component reacts simultaneously:
 
 ---
 
-## 🛠️ Part 5: Code Architecture for Single-Page Refactoring
+## 🛠️ Part 5: Code Architecture for Single-Page Refactoring (Completed)
+
+> **Status Note**: Replacing `QTabWidget` with a unified multi-pane studio workspace is already implemented in `app/ui/main_window.py` (using a top pipeline stepper + `QStackedWidget` workspace views).
 
 In `app/ui/main_window.py`:
 - Replace `self.tabs = QTabWidget()` with a master horizontal `QSplitter`:

@@ -13,8 +13,8 @@ A step-by-step workflow guide for creating visual storyboards with PromptBeast.
 4. **Choose Subject & Visual Style**: Select the domain (e.g. `History`) and artistic style (e.g. `Century-Old Photograph`).
 5. **Configure Timing**:
    - Set **Timing Mode** (`AI Decides`, `Target Duration`, or `Fixed Duration Intervals`).
-   - Adjust Minimum, Preferred, and Maximum scene durations (e.g. Min 3s, Pref 5s, Max 8s).
-6. **Start Generation**: Click **🚀 START STORYBOARD GENERATION**.
+   - Adjust Minimum, Preferred, and Maximum scene durations (e.g. Min 3.0s, Pref 4.5s, Max 6.0s).
+6. **Start Generation**: Click **🚀 GENERATE STORYBOARD + PROMPTS**.
 7. **Monitor Real-Time Progress**: Watch the right panel progress breakdown:
    - Story Analysis ✓
    - Visual Scene Planning ✓
@@ -29,6 +29,6 @@ A step-by-step workflow guide for creating visual storyboards with PromptBeast.
    - **Merge**: Click **☍ Merge Next** to combine two adjacent scenes.
    - **Regenerate**: Click **⚡ Regenerate Scene** to generate a fresh prompt from the cloud AI.
 10. **Export Storyboard**:
-    - Click **File -> Export Storyboard...** (or `Ctrl+E`).
+    - Click **File -> &Export Prompts and JSON...** (or `Ctrl+E`).
     - Preview or copy `image_prompts.txt`, `timeline.json`, `image_prompts.json`, or `timeline.csv`.
     - Click **Export All Files to Folder...** to save all formats to your desired destination.

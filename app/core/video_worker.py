@@ -44,9 +44,30 @@ class VideoWorker:
                 scene.is_video = True
                 scene.video_shot_description = parsed["shot_description"]
                 scene.video_keywords = parsed["keywords"]
+                if not getattr(scene, "treatment", None):
+                    scene.treatment = parsed.get("treatment")
 
         keywords = scene.video_keywords or [scene.visual_subject]
-        target_dur = max(MIN_VIDEO_DURATION + 0.1, min(MAX_VIDEO_DURATION - 0.1, scene.duration))
+        if not (MIN_VIDEO_DURATION < scene.duration < MAX_VIDEO_DURATION):
+            err_msg = (
+                f"[VIDEO DURATION INVALID] Scene {scene.scene_id}: duration {scene.duration:.2f}s is outside "
+                f"the valid B-roll range ({MIN_VIDEO_DURATION}s < duration < {MAX_VIDEO_DURATION}s). "
+                "Falling back to generated still image."
+            )
+            print(err_msg)
+            scene.is_video_fallback_to_image = True
+            scene.is_video = False
+            scene.video_path = None
+            scene.generation_status = "pending"
+            return {
+                "success": False,
+                "scene_id": scene.scene_id,
+                "video_path": None,
+                "fallback_needed": True,
+                "error": err_msg,
+                "log": [err_msg],
+            }
+        target_dur = scene.duration
 
         # Setup scene cache directory
         base_cache = Path(cache_dir or "video_cache")

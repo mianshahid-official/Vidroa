@@ -136,20 +136,21 @@ def evaluate_quality_gates(
     file_p = video_file_path or candidate.get("file_path")
 
     # Gate 1: Duration check
-    # The clip must be long enough to be trimmed to target_duration,
-    # and the target duration after trim must be > 4.0 and < 10.0 seconds.
+    # Both target scene duration and source clip duration must permit a clip strictly in (4.0, 10.0)
     eff_dur = float(candidate.get("duration") or 0.0)
     if file_p and Path(file_p).exists():
         meta = get_video_metadata(file_p)
         if meta["duration"] > 0:
             eff_dur = meta["duration"]
 
-    # Target duration after trim
-    trimmed_dur = min(eff_dur, max(MIN_VIDEO_DURATION + 0.01, min(MAX_VIDEO_DURATION - 0.01, target_duration)))
-    if eff_dur < MIN_VIDEO_DURATION or not (MIN_VIDEO_DURATION < trimmed_dur < MAX_VIDEO_DURATION):
+    if not (MIN_VIDEO_DURATION < target_duration < MAX_VIDEO_DURATION):
         failures.append(
-            f"Gate 1 Failed (Duration): Source clip duration ({eff_dur:.1f}s) or trimmed duration ({trimmed_dur:.1f}s) "
+            f"Gate 1 Failed (Duration): Scene duration ({target_duration:.2f}s) "
             f"not strictly between {MIN_VIDEO_DURATION}s and {MAX_VIDEO_DURATION}s."
+        )
+    elif eff_dur < MIN_VIDEO_DURATION or eff_dur < target_duration:
+        failures.append(
+            f"Gate 1 Failed (Duration): Source clip duration ({eff_dur:.1f}s) is shorter than target scene duration ({target_duration:.1f}s) or {MIN_VIDEO_DURATION}s."
         )
 
     # Gate 2: Resolution check (at least 720p)
@@ -215,9 +216,14 @@ def evaluate_quality_gates(
 
 def trim_video_clip(input_path: str, output_path: str, target_duration: float) -> str:
     """
-    Trims a video clip using FFmpeg to target_duration (clamped between 4.01s and 9.99s).
+    Trims a video clip using FFmpeg to target_duration (strictly between 4.0s and 10.0s).
     """
-    clamped_dur = max(MIN_VIDEO_DURATION + 0.1, min(MAX_VIDEO_DURATION - 0.1, target_duration))
+    if not (MIN_VIDEO_DURATION < target_duration < MAX_VIDEO_DURATION):
+        raise ValueError(
+            f"Target duration {target_duration:.2f}s is outside valid B-roll bounds "
+            f"({MIN_VIDEO_DURATION}s < dur < {MAX_VIDEO_DURATION}s)."
+        )
+    clamped_dur = float(target_duration)
     out_p = Path(output_path)
     out_p.parent.mkdir(parents=True, exist_ok=True)
 

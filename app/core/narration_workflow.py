@@ -86,10 +86,8 @@ def import_script_json(file_path_or_str: str) -> JSONImportResult:
 
         duration = float(data.get("duration", word_list[-1].end))
         narration = NarrationData(
-            text=text,
             words=word_list,
-            duration_seconds=duration,
-            is_estimated=False
+            duration_seconds=duration
         )
         return JSONImportResult(
             success=True,
@@ -161,10 +159,8 @@ def import_script_json(file_path_or_str: str) -> JSONImportResult:
         if word_list:
             duration = word_list[-1].end
             narration = NarrationData(
-                text=story_text,
                 words=word_list,
-                duration_seconds=duration,
-                is_estimated=False
+                duration_seconds=duration
             )
             return JSONImportResult(
                 success=True,
@@ -478,6 +474,7 @@ def align_visuals_with_timestamps(
                     start_word_index=raw_timings[idx][3] if raw_timings[idx][3] >= 0 else None,
                     end_word_index=raw_timings[idx][4] if raw_timings[idx][4] >= 0 else None,
                     is_video=is_vid,
+                    treatment=v_info.get("treatment") if is_vid else None,
                     video_shot_description=v_info["shot_description"] if is_vid else "",
                     video_keywords=v_info["keywords"] if is_vid else [],
                 ))
@@ -520,6 +517,7 @@ def align_visuals_with_timestamps(
                 start_word_index=None,
                 end_word_index=None,
                 is_video=is_vid,
+                treatment=v_info.get("treatment") if is_vid else None,
                 video_shot_description=v_info["shot_description"] if is_vid else "",
                 video_keywords=v_info["keywords"] if is_vid else [],
             ))
@@ -610,181 +608,6 @@ def parse_custom_bible_text(bible_text: str) -> Dict[str, Any]:
     """
     from app.core.bible_manager import BibleManager
     return BibleManager.parse_single_bible_text(bible_text)
-
-
-def _legacy_parse_custom_bible_text(bible_text: str) -> Dict[str, Any]:
-    """Legacy parser retained for fallback reference."""
-    bibles: Dict[str, Any] = {
-        "story_bible": {
-            "premise": "Realistic survival horror documentary.",
-            "summary": "Survival struggle in an abandoned shopping mall.",
-            "genre_and_tone": "Grounded survival documentary horror",
-            "setting_period": "Modern Day",
-            "visual_identity": ""
-        },
-        "characters": [],
-        "environments": [],
-        "key_objects": [],
-        "visual_style_bible": {
-            "color_palette": "Cold grey, dark blue, black, concrete grey, muted green",
-            "lighting_rules": "Flashlight beams, emergency lights, lightning, and deep shadows",
-            "camera_guidelines": "Wide establishing, medium character, close-up focal objects, mezzanine views"
-        },
-        "visual_continuity_rules": [],
-        "chronological_events": []
-    }
-
-    # 1. CHARACTER BIBLE
-    char_match = re.search(r"(?:1\.?\s*)?CHARACTER BIBLE(.*?)(?=\d+\.\s*ENVIRONMENT|\Z)", bible_text, re.DOTALL | re.IGNORECASE)
-    if char_match:
-        c_text = char_match.group(1)
-        c_blocks = re.split(r"CHARACTER\s+\d+:\s*", c_text, flags=re.IGNORECASE)[1:]
-        for block in c_blocks:
-            lines = [l.strip() for l in block.strip().split("\n") if l.strip()]
-            if not lines:
-                continue
-            name = lines[0]
-            role = ""
-            app_lines = []
-            cloth_lines = []
-            prop_lines = []
-            rule_lines = []
-            curr_mode = "app"
-
-            for l in lines[1:]:
-                llow = l.lower()
-                if llow.startswith("role:"):
-                    role = l.split(":", 1)[1].strip()
-                elif llow.startswith(("appearance:", "build:", "age:", "gender:")):
-                    curr_mode = "app"
-                    app_lines.append(l)
-                elif llow.startswith("clothing:"):
-                    curr_mode = "cloth"
-                elif llow.startswith("important props:"):
-                    curr_mode = "props"
-                elif llow.startswith(("visual continuity:", "important rules:", "continuity:")):
-                    curr_mode = "rules"
-                    rule_lines.append(l.split(":", 1)[1].strip() if ":" in l else l)
-                elif llow.startswith("personality through visual expression:"):
-                    curr_mode = "app"
-                    app_lines.append(l)
-                else:
-                    if curr_mode == "cloth":
-                        cloth_lines.append(l.lstrip("-*• "))
-                    elif curr_mode == "props":
-                        prop_lines.append(l.lstrip("-*• "))
-                    elif curr_mode == "rules":
-                        rule_lines.append(l.lstrip("-*• "))
-                    else:
-                        app_lines.append(l)
-
-            bibles["characters"].append({
-                "name": name,
-                "role": role or "Key Figure",
-                "physical_description": " ".join(app_lines).strip() or "Realistic physical features.",
-                "clothing_and_gear": ", ".join(cloth_lines).strip() or "Practical attire.",
-                "important_props": ", ".join(prop_lines).strip(),
-                "consistency_rules": " ".join(rule_lines).strip() or f"Keep {name} appearance consistent."
-            })
-
-    # 2. ENVIRONMENT BIBLE
-    env_match = re.search(r"(?:2\.?\s*)?ENVIRONMENT BIBLE(.*?)(?=\d+\.\s*OBJECT|\Z)", bible_text, re.DOTALL | re.IGNORECASE)
-    if env_match:
-        e_text = env_match.group(1)
-        e_blocks = re.split(r"LOCATION\s+\d+:\s*", e_text, flags=re.IGNORECASE)[1:]
-        for block in e_blocks:
-            lines = [l.strip() for l in block.strip().split("\n") if l.strip()]
-            if not lines:
-                continue
-            name = lines[0]
-            arch_lines = []
-            features_lines = []
-            lighting_lines = []
-            details_lines = []
-            curr_mode = "arch"
-
-            for l in lines[1:]:
-                llow = l.lower()
-                if llow.startswith(("architecture:", "location:", "primary setting:")):
-                    curr_mode = "arch"
-                    arch_lines.append(l.split(":", 1)[1].strip() if ":" in l else l)
-                elif llow.startswith(("interior design:", "interior arrangement:")):
-                    curr_mode = "features"
-                    features_lines.append(l.split(":", 1)[1].strip() if ":" in l else l)
-                elif llow.startswith(("visual progression:", "atmosphere:")):
-                    curr_mode = "lighting"
-                    lighting_lines.append(l.split(":", 1)[1].strip() if ":" in l else l)
-                elif llow.startswith(("important details:", "important items:", "important props:", "important continuity:")):
-                    curr_mode = "details"
-                    details_lines.append(l.split(":", 1)[1].strip() if ":" in l else l)
-                else:
-                    if curr_mode == "features":
-                        features_lines.append(l.lstrip("-*• "))
-                    elif curr_mode == "lighting":
-                        lighting_lines.append(l.lstrip("-*• "))
-                    elif curr_mode == "details":
-                        details_lines.append(l.lstrip("-*• "))
-                    else:
-                        arch_lines.append(l.lstrip("-*• "))
-
-            bibles["environments"].append({
-                "name": name,
-                "architectural_style": " ".join(arch_lines).strip() or "Story location architecture.",
-                "environmental_features": " ".join(features_lines).strip() or "Interior features and elements.",
-                "lighting_and_atmosphere": " ".join(lighting_lines).strip() or "Atmospheric lighting.",
-                "setting_constraints": " ".join(details_lines).strip()
-            })
-
-    # 3. OBJECT AND PROP BIBLE
-    obj_match = re.search(r"(?:3\.?\s*)?OBJECT AND PROP BIBLE(.*?)(?=\d+\.\s*CINEMATIC|\Z)", bible_text, re.DOTALL | re.IGNORECASE)
-    if obj_match:
-        o_text = obj_match.group(1)
-        items = re.findall(r"(?:^[•\-\*]\s*|^)([A-Za-z0-9\s\',]{3,40})(?::\s*([^\n]+)|$)", o_text, re.MULTILINE)
-        for name, desc in items:
-            name_clean = name.strip().lstrip("•-* ")
-            if not name_clean or name_clean.lower().startswith(("maintain", "survival equipment", "food and water", "important personal", "structural elements")):
-                continue
-            bibles["key_objects"].append({
-                "name": name_clean,
-                "visual_description": desc.strip() if desc else f"Key survival item: {name_clean}",
-                "significance": desc.strip() if desc else "Essential survival prop"
-            })
-
-    # 4. CINEMATIC STYLE BIBLE
-    style_match = re.search(r"(?:4\.?\s*)?CINEMATIC STYLE BIBLE(.*?)(?=\d+\.\s*CHRONOLOGY|\Z)", bible_text, re.DOTALL | re.IGNORECASE)
-    if style_match:
-        s_text = style_match.group(1)
-        for l in s_text.split("\n"):
-            llow = l.lower()
-            if "lighting progression" in llow or "lighting" in llow:
-                bibles["visual_style_bible"]["lighting_rules"] = l.strip()
-            elif "color progression" in llow or "color" in llow:
-                bibles["visual_style_bible"]["color_palette"] = l.strip()
-            elif "composition variety" in llow or "composition" in llow:
-                bibles["visual_style_bible"]["camera_guidelines"] = l.strip()
-
-    # 5. CHRONOLOGY AND CONTINUITY BIBLE
-    chron_match = re.search(r"(?:5\.?\s*)?CHRONOLOGY AND CONTINUITY BIBLE(.*?)(?=\d+\.\s*IMPORTANT|\Z)", bible_text, re.DOTALL | re.IGNORECASE)
-    if chron_match:
-        c_lines = chron_match.group(1).strip().split("\n")
-        events = []
-        for l in c_lines:
-            l_clean = l.strip().lstrip("•-*| ")
-            if l_clean and not l_clean.lower().startswith(("timeline", "major event", "---")):
-                events.append(l_clean)
-        bibles["chronological_events"] = events[:25]
-
-    # 6. RULES & IDENTITY
-    rules_match = re.search(r"IMPORTANT VISUAL CONTINUITY RULES(.*?)(?=\d+\.\s*FINAL|\Z)", bible_text, re.DOTALL | re.IGNORECASE)
-    if rules_match:
-        r_lines = [rl.strip().lstrip("•-* ") for rl in rules_match.group(1).strip().split("\n") if rl.strip()]
-        bibles["visual_continuity_rules"] = r_lines
-
-    identity_match = re.search(r"FINAL STORY VISUAL IDENTITY(.*?)\Z", bible_text, re.DOTALL | re.IGNORECASE)
-    if identity_match:
-        bibles["story_bible"]["visual_identity"] = identity_match.group(1).strip()
-
-    return bibles
 
 
 # =============================================================================
@@ -947,7 +770,8 @@ def generate_prompts_batch(
             "end": s.end,
             "duration": s.duration,
             "narration": s.narration_excerpt,
-            "visual_idea": getattr(s, "visual_idea", "") or s.visual_subject
+            "visual_idea": getattr(s, "visual_idea", "") or s.visual_subject,
+            "treatment": getattr(s, "treatment", None)
         })
 
     user_prompt = f"""AUTHORITATIVE USER-SELECTED VISUAL STYLE:
@@ -978,7 +802,7 @@ INSTRUCTIONS FOR EACH SCENE:
 2. STRICT STYLE ENFORCEMENT: Every single prompt MUST strictly follow the 'STYLE DIRECTIVES' above for '{style_name}'.
    - If '{style_name}' mandates a pure flat 2D cartoon with a locked hero character (e.g. backwards red cap, charcoal hoodie) and uniform pale olive-green zombie horde, apply those exact design elements!
    - If '{style_name}' mandates photographic or historical styles, apply those exact camera, lens, and lighting directives!
-   - If '{style_name}' is Century-Old Photograph, analyze each scene's narrative context to selectively apply one of the 12 specialized archival image treatments where it naturally elevates the storytelling (e.g. Antique Map Overlay for travel/campaigns, Diptych Split for wide+detail contrasts, Engraving Plate Split for blueprints/founding, Leporello Folder for journeys, Silver Bleeding for shadows/night, Fold Creases for intimate diaries/memories, Document Archive for treaties/evidence, Split-Screen Trio for fast montages, Textured Blur for key portraits, Full Antique Engraving Plate, Full-Frame Authentic Archival Photograph, Full Historical Map Plate). For baseline shots (~40-50%), keep clean, full-frame widescreen archival prints for balanced documentary pacing. Do not misuse or oversaturate.
+   - If '{style_name}' is Century-Old Photograph, analyze each scene's narrative context to selectively apply one of the 12 specialized archival image treatments where it naturally elevates the storytelling (The Woodblock / Engraving Plate Split, The Accordion / Leporello Souvenir Folder, Silver Mirroring & Chemical Bleeding, Fold Creases & Crushed Paper Texture, The Double-Exposure / Diptych Split, The Polarized / Document Archive Layout, The Cinematic Split-Screen Trio, Textured Cinematic Blur Background, Antique Map Overlay, Full Antique Engraving Plate, Full-Frame Authentic Archival Photograph, Full Historical Map Plate). For baseline shots (~40-50%), keep clean, full-frame widescreen archival prints for balanced documentary pacing. Do not misuse or oversaturate.
 3. Do not invent contradictory characters or ignore the supplied visual ideas.
 4. Do NOT include /imagine prompt: or parameter flags like --ar or --style raw. Return clean, detailed descriptive visual prompts only.
 5. Return JSON matching the schema with the exact scene_ids provided.

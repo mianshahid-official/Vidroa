@@ -56,6 +56,7 @@ desktop.ini
 
 # Testing & Coverage
 .pytest_cache/
+tests/test_scratch/
 .coverage
 htmlcov/
 .tox/
@@ -74,14 +75,12 @@ prompts_only.txt
 data/
 projects/
 New folder/
-script-beanie-main/
-test script/
-PROMPTBEAST_FORENSIC_DOCUMENTATION.zip
-COMPETITOR_REPOS/
+presets/audio/
+*.mp3
+*.wav
 config/user_settings.json
 
 
 # Chat & Local Summaries
-CHAT_HISTORY_SUMMARY.txt
 *.chat_summary.txt
 

@@ -210,7 +210,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         total_dur = max([float(getattr(sc, "end", 0.0)) for sc in scenes], default=0.0) if scenes else 0.0
 
         return NarrationData(
-            full_text=" ".join(full_text_parts),
             duration_seconds=total_dur,
             words=words
         )

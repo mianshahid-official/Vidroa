@@ -5,7 +5,7 @@ only structural facts that can be verified without a model call:
 
 - every scene has a non-empty prompt
 - scene IDs are unique
-- the scene timeline has no overlaps and no large gaps (a gap of up to 0.5s
+- the scene timeline has no overlaps and no large gaps (a gap of up to 2.0s
   is allowed: it is the natural silence between spoken words, since scenes
   end at word boundaries and the next scene starts at the next word)
 - every scene has a positive duration
@@ -95,7 +95,7 @@ def validate_storyboard(scenes: List, narration=None) -> None:
                 if gap_to_end <= MAX_HEALABLE_GAP_SECONDS:
                     ordered[-1].end = round(total, 2)
                     ordered[-1].duration = round(total - float(ordered[-1].start), 2)
-                elif gap_to_end > 1.0:
+                else:
                     raise RuntimeError(
                         f"Storyboard validation failed: last scene ends at {last_end}s, "
                         f"but narration runs to {total}s."

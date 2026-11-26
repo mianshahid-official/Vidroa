@@ -1,5 +1,5 @@
 """
-Regression tests for the Script Beanie core fixes (2026-11-10).
+Regression tests for the Vidroa core fixes (2026-11-10).
 
 Fix 1: Stage 3 fails loudly instead of silently filling template prompts.
 Fix 2: Deterministic storyboard validation gate (prompts, IDs, timeline).

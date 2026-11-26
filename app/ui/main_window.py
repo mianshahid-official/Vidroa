@@ -4,9 +4,10 @@ Unified 4-Step Pipeline:
 1. 🎙️ Story Narration + Local Neural TTS Voiceover (Kokoro & Piper)
 2. 🎨 AI Storyboard + 3-Pane Bulk Prompts Studio
 3. 🖼️ Image Assets Ingestion + Scene Auto-Binding
-4. 🎬 Subtitle Styling, Ken Burns Motion + Native FFmpeg Video Render
+4. 🎬 Subtitle Styling, Still Video Canvas + Native FFmpeg Video Render
 """
 import os
+import sys
 import json
 from pathlib import Path
 from typing import Optional, List
@@ -71,7 +72,6 @@ from app.presets.loader import PresetManager
 from app.core.story_loader import StoryLoader
 from app.core.timestamp_parser import TimestampParser
 from app.core.timeline_engine import TimelineEngine
-from app.core.validation import TimelineValidator
 from app.core.project_manager import ProjectManager
 from app.core.export import StoryboardExporter
 from app.core.video_renderer import VideoRenderer
@@ -475,8 +475,8 @@ class MainWindow(QMainWindow):
         self.voice_speed_spin = QDoubleSpinBox()
         self.voice_speed_spin.setValue(1.0)
         self.balance_guard_badge = QLabel("🛡️ Audio First Engine")
-        self.chk_modal_tts = QCheckBox()
-        self.chk_modal_tts.setChecked(False)
+        self.chk_kokoro_tts = QCheckBox()
+        self.chk_kokoro_tts.setChecked(False)
 
         # =========================================================================
         # UNIFIED SETTINGS BAR (CLEAN, PROFESSIONAL & COMPACT)
@@ -1380,8 +1380,7 @@ class MainWindow(QMainWindow):
                     th_p = build_viral_thumbnail_prompt(headline=th_h, style_id=sid)
                     self.project.state.thumbnail_prompt = th_p
                 prompts_payload = StoryboardExporter.export_to_prompts_only(
-                    self.project.state.scenes,
-                    thumbnail_prompt=th_p
+                    self.project.state.scenes
                 )
 
         ok, msg = BrowserProfilesManager.open_browser_profile(
@@ -1753,14 +1752,12 @@ class MainWindow(QMainWindow):
         self.style_combo.clear()
         styles = PresetManager.get_all_styles()
 
-        # Curated styles: Century-Old Photograph, 3D Stickman, B&W Photo, Paper Quilling, Mixed-Media, Paper Cutout
+        # Curated 4 live visual styles
         priority_styles = [
             ("century_old_photograph", "Century-Old Photograph"),
             ("3d_red_blue_stickman", "3D Red & Blue Stickman Animation"),
-            ("bw_vintage_historical_photography", "Black & White Vintage Historical Photography"),
-            ("paper_quilling", "Paper Quilling Illustration"),
-            ("mixed_media_collage", "Mixed-Media Collage"),
-            ("paper_cutout", "Paper-Cutout Illustration"),
+            ("whatif_flat_vector", "What-If Flat Vector"),
+            ("zombie_survival", "Zombie Survival"),
         ]
 
         added_ids = set()
@@ -1793,14 +1790,14 @@ class MainWindow(QMainWindow):
     def _on_preview_voice(self):
         pass
 
-    def _on_chk_modal_tts_toggled(self, checked: bool):
+    def _on_chk_kokoro_tts_toggled(self, checked: bool):
         if not hasattr(self, "balance_guard_badge"):
             return
         self.balance_guard_badge.setText("🛡️ Kokoro Local Engine (100% Offline)")
         self.balance_guard_badge.setStyleSheet("color: #FF4B4B; font-weight: 600; font-size: 10px; background-color: rgba(229, 57, 53, 0.15); padding: 4px 8px; border-radius: 6px; border: 1px solid #E53935;")
 
     def _on_open_style_preview(self):
-        current_id = self.style_combo.currentData() or "midjourney_hyper_realism"
+        current_id = self.style_combo.currentData() or "century_old_photograph"
         dlg = StylePreviewDialog(current_id, self)
         if dlg.exec():
             selected = dlg.selected_style_id
@@ -2766,7 +2763,8 @@ class MainWindow(QMainWindow):
             pass
         event.accept()
         QApplication.instance().quit()
-        os._exit(0)
+        if "pytest" not in sys.modules:
+            os._exit(0)
 
     def _on_job_completed(self, resp):
         try:

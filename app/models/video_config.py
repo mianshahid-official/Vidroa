@@ -102,8 +102,6 @@ class VideoRenderSettings(BaseModel):
     custom_height: Optional[int] = None
     motion_preset: MotionPreset = MotionPreset.STATIC
     motion_intensity: float = 1.15            # Zoom factor (1.15 = 15% zoom)
-    hook_clips_count: int = 3                 # First N scenes rendered with high-retention animated motion / clips
-    hook_motion_intensity: float = 1.25       # Dynamic camera intensity for hook scenes
     video_overlay: VideoOverlay = VideoOverlay.SUBTLE_VIGNETTE
     transition_style: TransitionStyle = TransitionStyle.RANDOM
     subtitle_config: SubtitleConfig = Field(default_factory=SubtitleConfig)

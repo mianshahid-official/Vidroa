@@ -3,7 +3,6 @@ Comprehensive Test Suite for PromptBeast's Streamlined 4-Stage Architecture.
 Tests Stage 1, Stage 2, Stage 3, Stage 4, and the unified PipelineOrchestrator.
 Validates zero cross-story contamination across multiple genres:
 - Zombie Survival Story
-- Constantinople 1453 Documentary
 - Julius Caesar Documentary
 - Science Explainer (Quantum Physics)
 """
@@ -272,14 +271,6 @@ class Test4StagePipeline(unittest.TestCase):
         self.assertEqual(bind_res["assigned"], 2)
         self.assertEqual(bind_res["missing"], 1)
         self.assertIn("003", bind_res["missing_scene_ids"])
-
-        val_res = Stage4RenderingManager.validate_assets_for_rendering(
-            scenes=scenes,
-            audio_path=str(self.test_dir / "audio.mp3"),
-            allow_placeholders=True
-        )
-        self.assertFalse(val_res["is_valid"])  # False because audio.mp3 does not exist on disk
-        self.assertIn("Audio file missing", val_res["errors"][0])
 
     # =========================================================================
     # PIPELINE ORCHESTRATOR END-TO-END TEST

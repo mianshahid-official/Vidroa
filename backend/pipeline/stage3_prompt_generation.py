@@ -386,7 +386,8 @@ class Stage3PromptGeneration:
                 "visual_idea": getattr(s, "visual_idea", "") or s.visual_subject,
                 "environment": s.environment or getattr(s, "location_id", "") or "Story setting",
                 "composition": s.composition or "Cinematic shot",
-                "characters": s.character_ids or []
+                "characters": s.character_ids or [],
+                "treatment": getattr(s, "treatment", None)
             })
 
         user_prompt = f"""AUTHORITATIVE USER-SELECTED VISUAL STYLE:
@@ -545,6 +546,7 @@ Narration: {scene.narration_excerpt}
 Visual Idea: {getattr(scene, 'visual_idea', '') or scene.visual_subject}
 Environment: {scene.environment}
 Camera Composition: {scene.composition}
+Treatment: {getattr(scene, 'treatment', None) or 'baseline'}
 
 INSTRUCTIONS:
 1. Write simple, direct prose describing the shot, subject, environment, and lighting (2 to 4 continuous sentences).
@@ -556,6 +558,8 @@ INSTRUCTIONS:
    - If this scene depicts an ENVIRONMENT, OBJECT, VEHICLE, or EMPTY LOCATION, state: "Pure environment/object shot with NO characters or people present. Empty of people."
    - If this scene depicts PASSENGERS, SURVIVORS, or CROWDS without the hero, state: "Background crowd/passengers only. The protagonist is NOT in this scene (he is located elsewhere); no character wearing the protagonist's red cap, hoodie, or messenger bag."
    - For ZOMBIE / ENEMY scenes: NEVER depict the protagonist as a zombie or infected creature, and NEVER put the protagonist's signature clothes/gear on a zombie. State: "All figures are uniform background zombies. The protagonist is completely unharmed, safe elsewhere, and NOT in this shot; NO zombie wears the protagonist's red cap or hoodie."
+6. CENTURY-OLD PHOTOGRAPH IMAGE TREATMENTS:
+   - If '{style_name}' is Century-Old Photograph, analyze the narrative context and selectively apply one of the 12 specialized archival image treatments (The Woodblock / Engraving Plate Split, The Accordion / Leporello Souvenir Folder, Silver Mirroring & Chemical Bleeding, Fold Creases & Crushed Paper Texture, The Double-Exposure / Diptych Split, The Polarized / Document Archive Layout, The Cinematic Split-Screen Trio, Textured Cinematic Blur Background, Antique Map Overlay, Full Antique Engraving Plate, Full-Frame Authentic Archival Photograph, Full Historical Map Plate) where appropriate, or keep clean widescreen archival plates.
 """
         try:
             raw = engine.generate_text(

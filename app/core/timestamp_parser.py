@@ -92,7 +92,7 @@ class TimestampParser:
         return str(path.resolve())
 
     @staticmethod
-    def estimate_from_text(story_text: str, words_per_minute: float = 145.0) -> NarrationData:
+    def estimate_from_text(story_text: str, words_per_minute: float = 150.0) -> NarrationData:
         """
         Generates estimated word-level timestamps from raw story text ONLY as a preview fallback
         when no audio file has been generated or uploaded.
@@ -101,7 +101,7 @@ class TimestampParser:
         if not tokens:
             return NarrationData(duration_seconds=0.0, words=[])
 
-        base_word_duration = 60.0 / words_per_minute  # ~0.414 seconds per word
+        base_word_duration = 60.0 / words_per_minute  # 0.400 seconds per word at 150 WPM
         current_time = 0.2  # Small initial silence
         words: List[WordTimestamp] = []
 

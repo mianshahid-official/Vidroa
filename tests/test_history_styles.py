@@ -73,22 +73,49 @@ class TestStandaloneStylesReverted:
         assert "historical_maps" not in order_ids
 
     def test_not_in_style_picker_combo(self):
-        from PySide6.QtWidgets import QApplication, QComboBox
+        from PySide6.QtWidgets import QApplication
         from app.ui.main_window import MainWindow
 
-        # Priority styles check
-        priority_styles = [
-            ("century_old_photograph", "Century-Old Photograph"),
-            ("3d_red_blue_stickman", "3D Red & Blue Stickman Animation"),
-            ("bw_vintage_historical_photography", "Black & White Vintage Historical Photography"),
-            ("paper_quilling", "Paper Quilling Illustration"),
-            ("mixed_media_collage", "Mixed-Media Collage"),
-            ("paper_cutout", "Paper-Cutout Illustration"),
-        ]
-        priority_ids = [p[0] for p in priority_styles]
-        assert "antique_engraving" not in priority_ids
-        assert "authentic_archival_photography" not in priority_ids
-        assert "historical_maps" not in priority_ids
+        app = QApplication.instance() or QApplication([])
+        win = MainWindow()
+        try:
+            combo = win.style_combo
+            combo_ids = [combo.itemData(i) for i in range(combo.count())]
+            combo_labels = [combo.itemText(i) for i in range(combo.count())]
+
+            # Reverted / standalone names must not appear
+            assert "antique_engraving" not in combo_ids
+            assert "authentic_archival_photography" not in combo_ids
+            assert "historical_maps" not in combo_ids
+
+            # Deleted styles must not appear
+            for dead_id in (
+                "bw_vintage_historical_photography",
+                "paper_quilling",
+                "mixed_media_collage",
+                "paper_cutout",
+            ):
+                assert dead_id not in combo_ids
+
+            # Exactly the 4 live styles (plus optional Custom) are present
+            live_ids = {
+                "century_old_photograph",
+                "3d_red_blue_stickman",
+                "whatif_flat_vector",
+                "zombie_survival",
+            }
+            non_custom = [cid for cid in combo_ids if cid != "custom"]
+            assert set(non_custom) == live_ids
+            assert any("Zombie Survival" in lbl for lbl in combo_labels)
+
+            # Verify each live style selects itself cleanly
+            for lid in live_ids:
+                idx = combo.findData(lid)
+                assert idx >= 0
+                combo.setCurrentIndex(idx)
+                assert combo.currentData() == lid
+        finally:
+            win.close()
 
 
 # =============================================================================
@@ -139,18 +166,23 @@ class TestCenturyOldTwelveTreatments:
 # =============================================================================
 
 class MockCenturyOldInferenceEngine(BaseInferenceEngine):
-    """Mocks expansion of Century-Old storyboard scenes adhering to treatments and pacing."""
+    """Mocks expansion of Century-Old storyboard scenes keying off scene.treatment passed by Stage 3."""
 
     def generate_text(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
         import re
-        scene_ids = re.findall(r'"scene_id":\s*"([^"]+)"', prompt)
+        # Extract the JSON list passed under SCENES TO GENERATE IN THIS BATCH:
+        m = re.search(r"SCENES TO GENERATE IN THIS BATCH:\s*(\[.*?\])\s*INSTRUCTIONS:", prompt, re.DOTALL)
+        assert m, "Prompt did not include scenes JSON batch"
+        scenes_payload = json.loads(m.group(1))
         res = []
-        for sid in scene_ids:
-            if sid == "001":
+        for sc in scenes_payload:
+            sid = sc["scene_id"]
+            treatment = sc.get("treatment")
+            if treatment == "antique_engraving":
                 p_text = f"Scene {sid} [Treatment 10 - Full Antique Engraving Plate]: 18th-century copperplate engraving with intricate black-ink cross-hatching and stippling on aged cream paper of the foundry blueprint. Pure black ink, no color, no sepia wash, no torn edges."
-            elif sid == "003":
+            elif treatment == "historical_maps":
                 p_text = f"Scene {sid} [Treatment 12 - Full Historical Map Plate]: Aged parchment period map showing Iberian coastline, Nova Carthago, and the Rhône march route in hand-drawn sepia ink with compass rose. Strictly period-accurate frontiers."
-            elif sid == "005":
+            elif treatment == "authentic_archival":
                 p_text = f"Scene {sid} [Treatment 11 - Full-Frame Authentic Archival Photograph]: Genuine silver gelatin photograph in warm sepia tones, film grain, and subtle vignetting filling the full 16:9 frame edge-to-edge. No torn edges, no paper border."
             else:
                 p_text = f"Scene {sid} [Baseline Archival Plate]: Authentic damaged archival photograph with faded sepia tones and naturally chipped torn card edges, dust spots, and hairline scratches."

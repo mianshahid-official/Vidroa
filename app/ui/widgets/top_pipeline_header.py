@@ -1,7 +1,7 @@
 """
-Top Pipeline Header and Stepper Bar for Stickman Director / PromptBeast.
+Top Pipeline Header and Stepper Bar for PromptBeast.
 Exact match to FrameForge top navigation:
-  Left: Clapperboard Icon + STICKMAN DIRECTOR (Red) + Subtitle
+  Left: Clapperboard Icon + PromptBeast (Red) + Subtitle
   Center: 4-Step Interactive Pipeline Stepper (Audio & Script -> Visual Style -> Prompts & Flow -> Images & Render)
   Right: Settings Button (Full-page switch)
 """
@@ -141,7 +141,7 @@ class TopPipelineHeader(QFrame):
         title_col.setSpacing(1)
         title_col.setAlignment(Qt.AlignVCenter)
 
-        self.main_title = QLabel("STICKMAN DIRECTOR")
+        self.main_title = QLabel("PromptBeast")
         self.main_title.setStyleSheet("""
             background: transparent;
             color: #E53935;

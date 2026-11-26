@@ -113,6 +113,14 @@ class ProjectManager:
                 "story_file_path": project.state.story_file_path,
                 "timestamps_file_path": project.state.timestamps_file_path,
                 "audio_file_path": project.state.audio_file_path,
+                "images_folder_path": project.state.images_folder_path,
+                "thumbnail_headline": project.state.thumbnail_headline,
+                "thumbnail_prompt": project.state.thumbnail_prompt,
+                "style_preset_id": project.state.style_preset_id,
+                "extracted_bibles": project.state.extracted_bibles,
+                "user_visual_ideas_raw": project.state.user_visual_ideas_raw,
+                "last_rendered_video_path": project.state.last_rendered_video_path,
+                "final_video_path": project.state.final_video_path,
                 "last_job_id": project.state.last_job_id,
                 "last_generation_status": project.state.last_generation_status,
                 "total_scenes": len(project.state.scenes)
@@ -158,6 +166,14 @@ class ProjectManager:
         state.story_file_path = raw_state.get("story_file_path")
         state.timestamps_file_path = raw_state.get("timestamps_file_path")
         state.audio_file_path = raw_state.get("audio_file_path")
+        state.images_folder_path = raw_state.get("images_folder_path")
+        state.thumbnail_headline = raw_state.get("thumbnail_headline")
+        state.thumbnail_prompt = raw_state.get("thumbnail_prompt")
+        state.style_preset_id = raw_state.get("style_preset_id")
+        state.extracted_bibles = raw_state.get("extracted_bibles")
+        state.user_visual_ideas_raw = raw_state.get("user_visual_ideas_raw")
+        state.last_rendered_video_path = raw_state.get("last_rendered_video_path")
+        state.final_video_path = raw_state.get("final_video_path")
         state.last_job_id = raw_state.get("last_job_id")
         state.last_generation_status = raw_state.get("last_generation_status")
 
@@ -229,9 +245,21 @@ class ProjectManager:
                                 end_word=item.get("end_word"),
                                 narration_excerpt=item.get("narration_excerpt", ""),
                                 visual_subject=item.get("visual_subject", ""),
+                                visual_idea=item.get("visual_idea", ""),
+                                visual_description=item.get("visual_description", ""),
                                 visual_purpose=item.get("visual_purpose", ""),
                                 framing_suggestion=item.get("framing_suggestion", ""),
                                 prompt=item.get("prompt", ""),
+                                image_path=item.get("image_path"),
+                                is_video=bool(item.get("is_video", False)),
+                                video_path=item.get("video_path"),
+                                video_keywords=item.get("video_keywords", []),
+                                video_shot_description=item.get("video_shot_description", ""),
+                                treatment=item.get("treatment"),
+                                generation_status=item.get("generation_status", "pending"),
+                                is_approved=bool(item.get("is_approved", False)),
+                                video_approved=bool(item.get("video_approved", False)),
+                                is_video_fallback_to_image=bool(item.get("is_video_fallback_to_image", False)),
                                 is_manually_edited=item.get("is_manually_edited", False),
                                 is_validated=True
                             )
@@ -312,7 +340,7 @@ class ProjectManager:
                 try:
                     with open(folder / "timeline.json", "r", encoding="utf-8") as f:
                         tl = json.load(f)
-                        scene_count = len(tl.get("images", []))
+                        scene_count = len(tl.get("images") or tl.get("scenes") or [])
                 except Exception:
                     pass
 

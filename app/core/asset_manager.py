@@ -181,7 +181,7 @@ class AssetManager:
         if not target_dir.exists():
             return 0
 
-        total_extracted = cls.consolidate_and_flatten_subfolders(target_dir)
+        consolidated_count = cls.consolidate_and_flatten_subfolders(target_dir)
 
         # Collect all candidate zip files in target_dir (and subdirectories like acc1, acc2)
         zip_files: List[Path] = []
@@ -195,12 +195,12 @@ class AssetManager:
                     zip_files.append(p)
 
         if not zip_files:
-            return 0
+            return consolidated_count
 
         # Sort zip files deterministically (natural name sort, then mtime)
         zip_files.sort(key=lambda z: (natural_sort_key(z), z.stat().st_mtime))
 
-        total_extracted = 0
+        total_extracted = consolidated_count
         archive_dir = target_dir / ".extracted_zips"
         archive_dir.mkdir(parents=True, exist_ok=True)
 
@@ -284,12 +284,10 @@ class AssetManager:
 
     @classmethod
     def scan_folder_for_images(cls, folder_path: str) -> List[Path]:
+        """Pure-read scan of folder_path for image files (does not move or delete directories)."""
         path = Path(folder_path)
         if not path.exists() or not path.is_dir():
             return []
-
-        # Automatically flatten any accidental subfolders into the main directory
-        cls.consolidate_and_flatten_subfolders(path)
 
         images = []
         for file in sorted(path.iterdir(), key=natural_sort_key):

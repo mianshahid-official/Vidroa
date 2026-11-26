@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from app.presets.loader import PresetManager
 from app.models.presets import VisualStylePreset
 
-ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "style_previews"
+ASSETS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "assets" / "style_previews"
 
 
 class StylePreviewDialog(QDialog):
@@ -216,17 +216,6 @@ class StylePreviewDialog(QDialog):
             "stick_figure": "3d_red_blue_stickman",
             "stickman": "3d_red_blue_stickman",
             "red_blue_stickman_3d": "3d_red_blue_stickman",
-            "black_white_historical_photography": "bw_vintage_historical_photography",
-            "bw_historical_photography": "bw_vintage_historical_photography",
-            "quilling": "paper_quilling",
-            "paper_quill": "paper_quilling",
-            "paper_quilling_illustration": "paper_quilling",
-            "collage": "mixed_media_collage",
-            "mixed_media": "mixed_media_collage",
-            "mixed_media_collage_illustration": "mixed_media_collage",
-            "cutout": "paper_cutout",
-            "paper_cut": "paper_cutout",
-            "paper_cutout_illustration": "paper_cutout",
         }
         if style_id in aliases:
             candidate_ids.append(aliases[style_id])
@@ -244,7 +233,7 @@ class StylePreviewDialog(QDialog):
 
         # Fallback if not found
         if not preview_path or not preview_path.exists():
-            for fallback in ["century_old_photograph.png", "vintage_photograph.png", "3d_red_blue_stickman.png", "bw_vintage_historical_photography.png"]:
+            for fallback in ["century_old_photograph.png", "3d_red_blue_stickman.png", "whatif_flat_vector.png", "zombie_survival.png"]:
                 fb = ASSETS_DIR / fallback
                 if fb.exists():
                     preview_path = fb
@@ -289,7 +278,21 @@ class StylePreviewDialog(QDialog):
             self.style_selector.setCurrentIndex(0)
 
     def _on_copy_prompt(self):
-        text = self.prompt_text.toPlainText().strip()
+        prompts_dir = Path(__file__).resolve().parent.parent.parent.parent / "config" / "ai_prompts"
+        prompt_map = {
+            "zombie_survival": "01_zombie_survival_ai_prompt.txt",
+            "whatif_flat_vector": "02_whatif_flat_vector_ai_prompt.txt",
+            "century_old_photograph": "03_century_old_photograph_ai_prompt.txt",
+            "3d_red_blue_stickman": "05_3d_red_blue_stickman_ai_prompt.txt",
+        }
+        text = ""
+        fname = prompt_map.get(self.current_style_id)
+        if fname:
+            target = prompts_dir / fname
+            if target.exists():
+                text = target.read_text(encoding="utf-8")
+        if not text:
+            text = self.prompt_text.toPlainText().strip()
         if text:
             QApplication.clipboard().setText(text)
             self.copy_btn.setText("Copied!")

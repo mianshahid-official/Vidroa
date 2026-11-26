@@ -1,7 +1,7 @@
 """
 Stage 4: Image Assignment and Local Video Rendering for PromptBeast.
 Matches generated images to storyboard scenes, tracks missing assets,
-and performs local FFmpeg compilation with Ken Burns motion, audio, and subtitles.
+and performs local FFmpeg compilation with still images, audio, and subtitles.
 Zero Modal dependency.
 """
 import os
@@ -89,44 +89,6 @@ class Stage4RenderingManager:
         }
 
     @classmethod
-    def validate_assets_for_rendering(
-        cls,
-        scenes: List[VisualScene],
-        audio_path: Optional[str] = None,
-        allow_placeholders: bool = True
-    ) -> Dict[str, Any]:
-        """
-        Verifies that all scenes have valid image files and that audio is present.
-        """
-        errors = []
-        warnings = []
-
-        if not audio_path or not Path(audio_path).exists():
-            errors.append(f"Audio file missing or not found: {audio_path}")
-
-        if not scenes:
-            errors.append("Storyboard contains zero scenes.")
-
-        missing_scenes = []
-        for s in scenes:
-            if not s.image_path or not Path(s.image_path).exists():
-                missing_scenes.append(s.scene_id)
-
-        if missing_scenes:
-            msg = f"{len(missing_scenes)} scenes have missing images: {', '.join(missing_scenes[:10])}..."
-            if allow_placeholders:
-                warnings.append(f"{msg} (Placeholders will be automatically generated).")
-            else:
-                errors.append(msg)
-
-        return {
-            "is_valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "missing_count": len(missing_scenes)
-        }
-
-    @classmethod
     def render_video_local(
         cls,
         scenes: List[VisualScene],
@@ -137,7 +99,7 @@ class Stage4RenderingManager:
         progress_callback: Optional[Callable[[float, str], None]] = None
     ) -> str:
         """
-        Renders complete video locally using FFmpeg with Ken Burns effects, audio, and subtitles.
+        Renders complete video locally using FFmpeg with still images, audio, and subtitles.
         Never calls Modal for video rendering.
         """
         if not VideoRenderer.is_ffmpeg_available():

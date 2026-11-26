@@ -56,17 +56,17 @@ def get_style_filter(style_id: str = "century_old_photograph", treatment: Option
     s = (style_id or "").lower().strip()
     t = (treatment or "").lower().strip()
 
-    if any(k in s for k in ["century_old", "vintage", "archival", "sepia", "history"]):
-        if any(k in t for k in ["antique_engraving", "engraving", "copperplate", "etching", "10"]):
+    if s in {"century_old_photograph", "vintage_photograph", "vintage_photo", "century_old"}:
+        if t in {"antique_engraving", "engraving", "copperplate", "treatment_10", "10"}:
             return ANTIQUE_ENGRAVING_FILTER
-        elif any(k in t for k in ["historical_maps", "map", "maps", "cartography", "12"]):
+        elif t in {"historical_maps", "historical_map", "maps", "map", "treatment_12", "12"}:
             return HISTORICAL_MAPS_FILTER
-        elif any(k in t for k in ["authentic_archival", "archival_photography", "archival_photo", "11"]):
+        elif t in {"authentic_archival", "authentic_archival_photography", "archival_photography", "archival_photo", "treatment_11", "11"}:
             return ARCHIVAL_PHOTOGRAPHY_FILTER
         else:
             return CENTURY_OLD_FILTER
 
-    if any(k in s for k in ["flat", "2d", "cartoon", "vector", "stickman", "anime"]):
+    if s in {"zombie_survival", "whatif_flat_vector", "3d_red_blue_stickman"}:
         return FLAT_2D_CARTOON_FILTER
     else:
         return GENERAL_CINEMATIC_FILTER

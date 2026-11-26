@@ -1,7 +1,7 @@
 """
-Local Wi-Fi Mobile Share Server for PromptBeast.
+Local Wi-Fi Mobile Share Server for Vidroa (PromptBeast).
 Runs a lightweight local web server on port 10246 and generates a QR code
-so users can scan with their phone and download the rendered MP4 directly
+so users can scan with their phone and download ONLY the rendered MP4 file
 to their mobile photo library/camera roll.
 """
 
@@ -9,7 +9,7 @@ import os
 import socket
 import threading
 import urllib.parse
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -28,7 +28,7 @@ def get_local_ip() -> str:
 
 
 class MobileShareServer:
-    """Hosts rendered videos for 1-click mobile download over local Wi-Fi."""
+    """Hosts a single rendered video file for 1-click mobile download over local Wi-Fi."""
 
     _server: Optional[HTTPServer] = None
     _thread: Optional[threading.Thread] = None
@@ -39,27 +39,26 @@ class MobileShareServer:
     def start(cls, video_path: str, port: int = 10246) -> Tuple[str, str]:
         """
         Starts local server if not already running and returns (share_url, qr_data_url).
+        Serves ONLY the target video file (no directory listing or sibling file access).
         """
         cls.stop()
-        cls._video_path = str(Path(video_path).resolve())
+        target_p = Path(video_path).resolve()
+        cls._video_path = str(target_p)
         cls._port = port
 
-        file_dir = str(Path(cls._video_path).parent)
-        file_name = Path(cls._video_path).name
+        file_name = target_p.name
+        encoded_name = urllib.parse.quote(file_name)
+        allowed_video_paths = {f"/{encoded_name}", f"/{file_name}", "/video"}
 
-        class VideoShareHandler(SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, directory=file_dir, **kwargs)
-
+        class VideoShareHandler(BaseHTTPRequestHandler):
             def do_GET(self):
-                if self.path == "/" or self.path == "/download":
-                    # Serve friendly HTML landing page
-                    encoded_name = urllib.parse.quote(file_name)
+                clean_path = self.path.split("?", 1)[0]
+                if clean_path in ("/", "/download"):
                     html = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PromptBeast Video Download</title>
+    <title>Vidroa Video Download</title>
     <style>
         body {{ background: #0b0f19; color: #f8fafc; font-family: -apple-system, sans-serif; text-align: center; padding: 30px; }}
         .card {{ background: #121c2d; border-radius: 16px; padding: 24px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
@@ -70,20 +69,37 @@ class MobileShareServer:
 </head>
 <body>
     <div class="card">
-        <h2>⚡ PromptBeast Video Ready</h2>
+        <h2>⚡ Vidroa Video Ready</h2>
         <p>{file_name}</p>
         <video controls playsinline src="/{encoded_name}"></video>
-        <a class="btn" href="/{encoded_name}" download>📥 Save Video to Camera Roll</a>
+        <a class="btn" href="/{encoded_name}" download="{file_name}">📥 Save Video to Camera Roll</a>
     </div>
 </body>
 </html>"""
+                    body = html.encode("utf-8")
                     self.send_response(200)
                     self.send_header("Content-Type", "text/html; charset=utf-8")
-                    self.send_header("Content-Length", str(len(html.encode("utf-8"))))
+                    self.send_header("Content-Length", str(len(body)))
                     self.end_headers()
-                    self.wfile.write(html.encode("utf-8"))
+                    self.wfile.write(body)
+                elif clean_path in allowed_video_paths and target_p.exists() and target_p.is_file():
+                    file_size = target_p.stat().st_size
+                    self.send_response(200)
+                    self.send_header("Content-Type", "video/mp4")
+                    self.send_header("Content-Length", str(file_size))
+                    self.send_header("Content-Disposition", f'attachment; filename="{file_name}"')
+                    self.end_headers()
+                    with open(target_p, "rb") as vf:
+                        while True:
+                            chunk = vf.read(65536)
+                            if not chunk:
+                                break
+                            self.wfile.write(chunk)
                 else:
-                    super().do_GET()
+                    self.send_error(404, "Not Found")
+
+            def log_message(self, format, *args):
+                pass
 
         try:
             cls._server = HTTPServer(("0.0.0.0", cls._port), VideoShareHandler)
@@ -94,7 +110,6 @@ class MobileShareServer:
 
         local_ip = get_local_ip()
         share_url = f"http://{local_ip}:{cls._port}/"
-        # QR Code generator URL (or clean SVG)
         qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={urllib.parse.quote(share_url)}"
         return share_url, qr_url
 
@@ -109,3 +124,4 @@ class MobileShareServer:
                 pass
             cls._server = None
         cls._thread = None
+        cls._video_path = None

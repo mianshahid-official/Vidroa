@@ -1,7 +1,7 @@
 """
 Visual Style & Reference Thumbnail Matrix for PromptBeast.
-Presents the visual art style presets as rich, perfectly scaled visual cards.
-Supports Zombie Survival, What If Flat Vector, Stickman, Century-Old Photo, etc.
+Presents the 4 live visual art style presets (Zombie Survival, What-If Flat Vector,
+Century-Old Photograph, and 3D Red & Blue Stickman) as rich visual cards.
 """
 
 from pathlib import Path
@@ -289,7 +289,7 @@ class StyleThumbnailMatrix(QWidget):
         elif sid in ("stick_figure", "stickman", "red_blue_stickman_3d", "3d_red_blue_stickman", "red_and_blue", "red_blue"):
             sid = "3d_red_blue_stickman"
         else:
-            sid = "zombie_survival"
+            return
 
         self._selected_id = sid
         for c in self._cards:

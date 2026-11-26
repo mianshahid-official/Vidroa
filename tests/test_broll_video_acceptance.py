@@ -526,3 +526,24 @@ class TestBrollVideoRenderer:
         assert stream["height"] == 720
         total_dur = float(stream.get("duration") or meta["format"]["duration"])
         assert 6.5 <= total_dur <= 8.5
+
+        # Verify that the still scene (scene 1, 0.0-2.5s) is held completely still (zero zoom/pan motion):
+        # Decode frames 6..18 sequentially and compare upper 70% (includes center title & torn border, excludes bottom subtitles)
+        f_cmd = [
+            "ffmpeg", "-v", "error",
+            "-i", str(rendered_path),
+            "-vframes", "20",
+            "-f", "rawvideo",
+            "-pix_fmt", "rgb24",
+            "-"
+        ]
+        raw_frames = subprocess.run(f_cmd, capture_output=True, check=True).stdout
+        frames = np.frombuffer(raw_frames, dtype=np.uint8).reshape(-1, 720, 1280, 3)
+        assert len(frames) >= 18
+        region_a = frames[6, :500, :, :].astype(np.int16)
+        region_b = frames[16, :500, :, :].astype(np.int16)
+        diff = np.abs(region_a - region_b)
+        mean_diff = float(np.mean(diff))
+        assert mean_diff < 0.5, (
+            f"Still image scene was not held completely still (mean pixel diff={mean_diff:.4f}, max={int(np.max(diff))})"
+        )

@@ -132,14 +132,6 @@ def build_viral_thumbnail_prompt(
             f'Arresting high-concept minimalist composition, bold high-contrast color palette, clean vector silhouettes, dramatic perspective and visual intrigue. '
             f'STRICT NEGATIVE: photorealism, 3D CGI render, realistic human skin, complex noise, textures.'
         )
-    elif "2d_stickman" in sid:
-        return (
-            f'A high-CTR YouTube thumbnail cover in expressive 2D cartoon stickman animation aesthetic. '
-            f'Features large bold graphic typography text rendered directly in the image reading: "{clean_hl}" '
-            f'in playful high-contrast block lettering with crisp drop shadow. '
-            f'Dynamic composition: stylized 2D stickman hero in an intense action stance with bold clean outlines, vibrant colorful backdrop, cinematic visual storytelling. '
-            f'STRICT NEGATIVE: photorealism, 3D CGI plastic render, realistic human face, textures.'
-        )
     elif "stickman" in sid or "3d_red_blue" in sid:
         return (
             f'YouTube thumbnail cover in 3D stylized CGI animated stickman aesthetic. '
@@ -150,32 +142,7 @@ def build_viral_thumbnail_prompt(
             f'Stylized toy CGI render, smooth matte plastic surfaces, cinematic volumetric lighting, rich visual depth. '
             f'STRICT NEGATIVE: human face, realistic eyes, nose, mouth, human skin texture, realistic fabric, photorealism, live-action.'
         )
-    elif "paper_cutout" in sid:
-        return (
-            f'A high-CTR YouTube thumbnail visual centerpiece in handcrafted layered paper-cutout 2D illustration aesthetic. '
-            f'Features bold, prominent stylized paper typography text rendered directly in the image reading: "{clean_hl}" '
-            f'in large dimensional cut-paper lettering with delicate drop shadows and visible paper texture. '
-            f'Arresting multi-layered cardstock composition with distinct physical paper depth, simple expressive silhouettes, '
-            f'warm parchment and muted historical color palette, soft dramatic studio lighting. '
-            f'STRICT NEGATIVE: photorealism, modern 3D plastic render, glossy surfaces.'
-        )
-    elif "paper_quilling" in sid:
-        return (
-            f'A high-CTR YouTube thumbnail visual centerpiece in intricate handcrafted paper-quilling art aesthetic. '
-            f'Features bold, prominent stylized typography text rendered directly in the image reading: "{clean_hl}" '
-            f'crafted from coiled, folded, and shaped colored paper strips with physical dimensionality. '
-            f'Intricate rolled paper centerpiece, tactile craft relief, elegant studio rim lighting, and clean decorative borders. '
-            f'STRICT NEGATIVE: photorealism, digital blur, flat digital vector.'
-        )
-    elif "mixed_media" in sid:
-        return (
-            f'A high-CTR YouTube thumbnail visual centerpiece in expressive mixed media collage art aesthetic. '
-            f'Features bold, prominent graphic typography text rendered directly in the image reading: "{clean_hl}" '
-            f'in large high-contrast poster lettering. Dynamic layered archival documents, textured newspaper fragments, '
-            f'bold acrylic brushstrokes, and striking high-impact graphic design composition. '
-            f'STRICT NEGATIVE: photorealism, modern 3D plastic render.'
-        )
-    elif "century" in sid or "vintage" in sid or "photo" in sid or "bw_" in sid:
+    elif "century" in sid or "vintage" in sid or "photo" in sid:
         era_txt = era_or_setting or "historical era"
         return (
             f'A high-CTR YouTube thumbnail visual centerpiece capturing the high stakes of {era_txt}. '

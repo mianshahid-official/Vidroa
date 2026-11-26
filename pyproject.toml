@@ -3,18 +3,30 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "promptbeast"
+name = "vidroa"
 version = "1.0.0"
-description = "Story-to-Image Prompt & Narration Timeline Studio"
+description = "Story-to-Video, B-Roll & Narration Timeline Studio"
 readme = "README.md"
-authors = [{ name = "PromptBeast Team" }]
+requires-python = ">=3.10"
+authors = [{ name = "Vidroa Team" }]
 dependencies = [
     "PySide6>=6.6.0",
-    "fastapi>=0.110.0",
-    "uvicorn>=0.28.0",
     "pydantic>=2.7.0",
     "httpx>=0.27.0",
+    "groq>=0.11.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "faster-whisper>=1.0.0",
+    "soundfile>=0.12.0",
+    "pydub>=0.25.1",
+    "numpy>=1.24.0",
+    "Pillow>=10.0.0",
+    "qrcode>=7.4.0",
+    "pytest>=8.0.0",
 ]
+
+[project.scripts]
+vidroa = "app.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

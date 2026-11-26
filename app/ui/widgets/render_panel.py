@@ -1,6 +1,6 @@
 """
 Video Rendering and Export Panel.
-Configures Ken Burns motion, aspect ratio, overlays, and orchestrates final MP4 generation.
+Configures still images, aspect ratio, overlays, and orchestrates final MP4 generation.
 Fully scrollable and responsive.
 """
 import os
@@ -129,31 +129,6 @@ class RenderPanel(QWidget):
         r1.addWidget(self.ar_combo)
         vid_layout.addLayout(r1)
 
-        # Ken Burns Motion Toggle & Motion Presets
-        r_motion_toggle = QHBoxLayout()
-        self.chk_enable_ken_burns = QCheckBox("Enable Camera Motion / Ken Burns (Uncheck for shake-free still prints)")
-        self.chk_enable_ken_burns.setChecked(False)  # Default OFF: shake-free static video preserves worn/torn paper edges
-        self.chk_enable_ken_burns.setStyleSheet("color: #F5F5F5; font-size: 11px; font-weight: 700;")
-        self.chk_enable_ken_burns.toggled.connect(self._on_motion_toggled)
-        r_motion_toggle.addWidget(self.chk_enable_ken_burns)
-        vid_layout.addLayout(r_motion_toggle)
-
-        r2 = QHBoxLayout()
-        m_lbl = QLabel("Motion Style:")
-        m_lbl.setFixedWidth(95)
-        self.motion_combo = PBComboBox()
-        self.motion_combo.addItem("Static Still (No Movement / Shake-Free)", MotionPreset.STATIC)
-        self.motion_combo.addItem("Subtle Alternating Ken Burns (Zoom In / Out)", MotionPreset.SUBTLE_ALTERNATING)
-        self.motion_combo.addItem("Smooth Zoom In", MotionPreset.ZOOM_IN)
-        self.motion_combo.addItem("Smooth Zoom Out", MotionPreset.ZOOM_OUT)
-        self.motion_combo.addItem("Pan Left to Right", MotionPreset.PAN_LEFT_RIGHT)
-        self.motion_combo.addItem("Pan Right to Left", MotionPreset.PAN_RIGHT_LEFT)
-        self.motion_combo.setEnabled(False)  # Disabled when toggle is off
-        self.motion_combo.currentIndexChanged.connect(self._on_settings_changed)
-        r2.addWidget(m_lbl)
-        r2.addWidget(self.motion_combo)
-        vid_layout.addLayout(r2)
-
         # Zoom slider & Overlay
         r3 = QHBoxLayout()
         z_lbl = QLabel("Zoom Factor:")
@@ -266,7 +241,16 @@ class RenderPanel(QWidget):
             }
         """)
         self.render_btn.clicked.connect(self._on_start_render)
-        summary_layout.addWidget(self.render_btn)
+
+        self.chk_subtitles = QCheckBox("Subtitles")
+        self.chk_subtitles.setChecked(True)
+        self.chk_subtitles.setStyleSheet("color: #F5F5F5; font-size: 12px; font-weight: 700; margin-left: 8px;")
+        self.chk_subtitles.toggled.connect(self._on_subtitles_toggled)
+
+        render_btn_row = QHBoxLayout()
+        render_btn_row.addWidget(self.render_btn, 1)
+        render_btn_row.addWidget(self.chk_subtitles)
+        summary_layout.addLayout(render_btn_row)
 
         # Progress bar
         self.progress_bar = QProgressBar()
@@ -437,6 +421,23 @@ class RenderPanel(QWidget):
                 self.narration = win.project.state.narration
 
         win = self.window()
+        if win and hasattr(win, "project") and win.project:
+            render_sub = getattr(win.project.config, "render_subtitles", True)
+            if hasattr(self, "chk_subtitles"):
+                self.chk_subtitles.blockSignals(True)
+                self.chk_subtitles.setChecked(bool(render_sub))
+                self.chk_subtitles.blockSignals(False)
+            if hasattr(self, "sub_editor"):
+                if not render_sub:
+                    self.sub_editor.select_preset(SubtitlePreset.NONE)
+                else:
+                    sub_cfg = getattr(win.project.config.video_settings, "subtitle_config", None)
+                    if sub_cfg and getattr(sub_cfg, "preset", SubtitlePreset.NONE) != SubtitlePreset.NONE:
+                        self.sub_editor.select_preset(sub_cfg.preset)
+                    elif self.sub_editor.config.preset == SubtitlePreset.NONE:
+                        restore_p = getattr(self.sub_editor, "last_active_preset", SubtitlePreset.HORMOZI_KARAOKE)
+                        self.sub_editor.select_preset(restore_p)
+
         th_head = getattr(win.project.state, "thumbnail_headline", "") if (win and hasattr(win, "project") and win.project) else ""
         th_prompt = getattr(win.project.state, "thumbnail_prompt", "") if (win and hasattr(win, "project") and win.project) else ""
 
@@ -489,8 +490,8 @@ class RenderPanel(QWidget):
             ar_val = "16:9"
             ar_dims = (1920, 1080)
 
-        # Defensive Motion Preset String
-        mp = getattr(self.settings, "motion_preset", MotionPreset.SUBTLE_ALTERNATING)
+        # Still Image Mode (stills are always held completely still)
+        mp = getattr(self.settings, "motion_preset", MotionPreset.STATIC)
         mp_val = getattr(mp, "value", str(mp))
 
         text = (
@@ -499,14 +500,23 @@ class RenderPanel(QWidget):
             f"<b>Voiceover:</b> {audio_status}<br>"
             f"<b>Aspect Ratio:</b> {ar_val} ({ar_dims[0]}x{ar_dims[1]})<br>"
             f"<b>Subtitles:</b> {sub_status}<br>"
-            f"<b>Motion:</b> {mp_val} ({self.settings.motion_intensity:.2f}x zoom)"
+            f"<b>Still Framing:</b> {mp_val}"
         )
         self.summary_text.setText(text)
 
-    def _on_motion_toggled(self, checked: bool):
-        self.motion_combo.setEnabled(checked)
-        self.zoom_slider.setEnabled(checked)
-        self._on_settings_changed()
+    def _on_subtitles_toggled(self, checked: bool):
+        if hasattr(self, "sub_editor"):
+            if not checked:
+                self.sub_editor.select_preset(SubtitlePreset.NONE)
+            else:
+                restore_p = getattr(self.sub_editor, "last_active_preset", SubtitlePreset.HORMOZI_KARAOKE)
+                if restore_p == SubtitlePreset.NONE:
+                    restore_p = SubtitlePreset.HORMOZI_KARAOKE
+                self.sub_editor.select_preset(restore_p)
+        win = self.window()
+        if win and hasattr(win, "project") and win.project:
+            win.project.config.render_subtitles = bool(checked)
+        self._update_summary()
 
     def _auto_extract_story_headline(self) -> str:
         win = self.window()
@@ -550,10 +560,7 @@ class RenderPanel(QWidget):
 
     def _on_settings_changed(self):
         self.settings.aspect_ratio = self.ar_combo.currentData() or AspectRatio.LANDSCAPE_16_9
-        if not hasattr(self, "chk_enable_ken_burns") or not self.chk_enable_ken_burns.isChecked():
-            self.settings.motion_preset = MotionPreset.STATIC
-        else:
-            self.settings.motion_preset = self.motion_combo.currentData() or MotionPreset.SUBTLE_ALTERNATING
+        self.settings.motion_preset = MotionPreset.STATIC
         self.settings.motion_intensity = round(1.0 + self.zoom_slider.value() / 100.0, 2)
         self.settings.video_overlay = self.overlay_combo.currentData() or VideoOverlay.SUBTLE_VIGNETTE
         if hasattr(self, "transition_combo"):
@@ -562,6 +569,16 @@ class RenderPanel(QWidget):
 
     def _on_sub_config_changed(self, cfg: SubtitleConfig):
         self.settings.subtitle_config = cfg
+        if hasattr(self, "chk_subtitles"):
+            is_none = (getattr(cfg, "preset", SubtitlePreset.NONE) == SubtitlePreset.NONE)
+            self.chk_subtitles.blockSignals(True)
+            self.chk_subtitles.setChecked(not is_none)
+            self.chk_subtitles.blockSignals(False)
+            win = self.window()
+            if win and hasattr(win, "project") and win.project:
+                win.project.config.render_subtitles = not is_none
+                if hasattr(win.project.config, "video_settings"):
+                    win.project.config.video_settings.subtitle_config = cfg
         self._update_summary()
 
     def _on_start_render(self):
@@ -624,6 +641,23 @@ class RenderPanel(QWidget):
 
         if not self.scenes:
             QMessageBox.warning(self, "No Images or Storyboard", "Please select an image folder or generate a storyboard first.")
+            return
+
+        # Enforce B-roll 4.0s-10.0s duration rule at render time
+        bad_video_scenes = [
+            f"Scene #{sc.scene_id} ({sc.duration:.2f}s)"
+            for sc in self.scenes
+            if getattr(sc, "is_video", False)
+            and not getattr(sc, "is_video_fallback_to_image", False)
+            and not (4.0 < sc.duration < 10.0)
+        ]
+        if bad_video_scenes:
+            QMessageBox.warning(
+                self,
+                "Invalid B-Roll Video Duration",
+                "B-roll video scenes must be strictly longer than 4.0s and shorter than 10.0s.\n\n"
+                "Out-of-range video scene(s):\n" + "\n".join(bad_video_scenes[:8])
+            )
             return
 
         # Enforce human checkpoint: A scene does not render until its clip is approved (or its image fallback is approved)
@@ -689,12 +723,15 @@ class RenderPanel(QWidget):
             from app.core.subtitle_engine import SubtitleEngine
             self.narration = SubtitleEngine.synthesize_narration_from_scenes(self.scenes)
 
-        # Name file clearly with project name and subtitle status
+        # Determine clean and subbed output paths
         sub_cfg = getattr(self.settings, "subtitle_config", None)
-        has_subtitles = sub_cfg and getattr(sub_cfg, "preset", SubtitlePreset.NONE) != SubtitlePreset.NONE
+        burn_subtitles = (
+            getattr(self, "chk_subtitles", None) is None or self.chk_subtitles.isChecked()
+        ) and sub_cfg and getattr(sub_cfg, "preset", SubtitlePreset.NONE) != SubtitlePreset.NONE
+
         proj_name = getattr(project, "name", "project") if project else "project"
-        suffix = "_subtitles.mp4" if has_subtitles else "_nosubtitles.mp4"
-        output_file = str((renders_dir / f"{proj_name}{suffix}").resolve())
+        clean_file = str((renders_dir / f"{proj_name}_nosubtitles.mp4").resolve())
+        subbed_file = str((renders_dir / f"{proj_name}_subtitles.mp4").resolve()) if burn_subtitles else None
 
         # Authoritatively verify/re-bind scene images if an images directory is available
         img_dir_cand = None
@@ -719,9 +756,12 @@ class RenderPanel(QWidget):
         self._worker = VideoRenderWorker(
             scenes=self.scenes,
             audio_path=self.audio_path,
-            output_video_path=output_file,
+            output_video_path=subbed_file or clean_file,
             settings=self.settings,
             narration=self.narration,
+            clean_video_path=clean_file,
+            subbed_video_path=subbed_file,
+            burn_subtitles=bool(burn_subtitles),
             parent=self
         )
         self._worker.progress.connect(self._on_worker_progress)
