@@ -166,8 +166,8 @@ VISUAL_STYLES = [
         "id": "century_old_photograph",
         "name": "Century-Old Photograph",
         "category": "Historical & Archival",
-        "description": "Authentic damaged, aged, physically worn archival photograph with warm faded sepia, aged albumen, or silver gelatin monochrome tones, physically worn and naturally torn edges, random black dust spots, and thin vertical black scratches. Incorporates 9 dynamic archival image treatments and layout variants selectively based on scene context.",
-        "system_instructions": "Execute as an authentic damaged and physically aged archival photograph: Timeless warm faded sepia, aged albumen, or rich silver gelatin monochrome tones with deep dynamic range. STRICTLY NO modern vibrant RGB saturated colors (no bright modern blue oceans, no digital vivid greens, no modern color grading). Physically worn, irregular edges with naturally torn, chipped, and frayed borders. Random black dust spots and photographic imperfections. Random thin vertical black scratches and hairline lines across the print. Central historical subject remains sharp, clear, and legible, with physical wear concentrated around edges and perimeter. Preserves period-accurate clothing, weapons, and historical setting facts. Incorporates 9 specialized archival image treatments (Woodblock / Engraving Plate Split, Accordion / Leporello Souvenir Folder, Silver Mirroring & Chemical Bleeding, Fold Creases & Crushed Paper Texture, Double-Exposure / Diptych Split, Polarized / Document Archive Layout, Cinematic Split-Screen Trio, Textured Cinematic Blur Background, Antique Map Overlay) applied selectively based on narrative context."
+        "description": "Authentic damaged, aged, physically worn archival photograph with warm faded sepia, aged albumen, or silver gelatin monochrome tones, physically worn and naturally torn edges, random black dust spots, and thin vertical black scratches. Incorporates 12 dynamic archival image treatments and layout variants selectively based on scene context.",
+        "system_instructions": "Execute as an authentic damaged and physically aged archival photograph: Timeless warm faded sepia, aged albumen, or rich silver gelatin monochrome tones with deep dynamic range. STRICTLY NO modern vibrant RGB saturated colors (no bright modern blue oceans, no digital vivid greens, no modern color grading). Physically worn, irregular edges with naturally torn, chipped, and frayed borders. Random black dust spots and photographic imperfections. Random thin vertical black scratches and hairline lines across the print. Central historical subject remains sharp, clear, and legible, with physical wear concentrated around edges and perimeter. Preserves period-accurate clothing, weapons, and historical setting facts. Incorporates 12 specialized archival image treatments (Woodblock / Engraving Plate Split, Accordion / Leporello Souvenir Folder, Silver Mirroring & Chemical Bleeding, Fold Creases & Crushed Paper Texture, Double-Exposure / Diptych Split, Polarized / Document Archive Layout, Cinematic Split-Screen Trio, Textured Cinematic Blur Background, Antique Map Overlay, Full Antique Engraving Plate, Full-Frame Authentic Archival Photograph, Full Historical Map Plate) applied selectively based on narrative context."
     },
     {
         "id": "historical_archival_photograph",
@@ -182,13 +182,6 @@ VISUAL_STYLES = [
         "category": "Historical & Archival",
         "description": "1960s-1970s analog film aesthetic with warm Kodachrome hues and organic grain.",
         "system_instructions": "Style as authentic 1960s-1970s 35mm color film photography. Warm Kodachrome/Ektachrome color palette, organic medium film grain, slight lens halation, authentic vintage color shift, natural daylight exposure, and era-specific styling."
-    },
-    {
-        "id": "antique_engraving",
-        "name": "Antique Engraving",
-        "category": "Classical Art & Print",
-        "description": "18th-century copperplate or steel-engraved line etching on aged laid paper.",
-        "system_instructions": "Render as a masterwork copperplate or steel engraving from the 18th or 19th century. Precise fine cross-hatching, intricate black ink linework, stippling, printed on cream or aged parchment paper with natural plate indentation texture."
     },
     {
         "id": "historical_engraving",
